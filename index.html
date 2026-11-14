@@ -123,7 +123,8 @@ const WALK = [
   { x0: 0.2, y0: 0.42, x1: 0.6, y1: 0.93, room: "hall" },
   { x0: 0.42, y0: 0.21, x1: 0.6, y1: 0.44, room: "hall" },
   { x0: 0.12, y0: 0.58, x1: 0.22, y1: 0.9, room: "hall" },
-  { x0: 0.6, y0: 0.24, x1: 0.71, y1: 0.9, room: "hall", plat: true },
+  { x0: 0.628, y0: 0.26, x1: 0.77, y1: 0.53, room: "hall", plat: true }, // quai, à droite du pilier
+  { x0: 0.6, y0: 0.52, x1: 0.7, y1: 0.7, room: "hall", plat: true },
   { x0: 0.25, y0: 0.2, x1: 0.4, y1: 0.33, room: "ctrl" }
 ];
 const DOOR_IN = { x: 0.365, y: 0.3 }, DOOR_OUT = { x: 0.37, y: 0.44 };
@@ -131,8 +132,8 @@ const P = {
   start: { x: 0.16, y: 0.8 }, outside: { x: 0.05, y: 0.84 },
   desk: { x: 0.3, y: 0.25 }, cabinet: { x: 0.35, y: 0.22 }, window: { x: 0.33, y: 0.44 },
   vending: { x: 0.47, y: 0.92 }, bench: { x: 0.28, y: 0.46 }, ticket: { x: 0.22, y: 0.6 },
-  gerWait: { x: 0.65, y: 0.3 }, gerDoor: { x: 0.46, y: 0.44 }, gerEnd: { x: 0.65, y: 0.82 },
-  bastPlat: { x: 0.66, y: 0.62 }, film: { x: 0.45, y: 0.5 }, board: { x: 0.68, y: 0.5 }, delWait: { x: 0.23, y: 0.62 }
+  gerWait: { x: 0.68, y: 0.32 }, gerDoor: { x: 0.46, y: 0.44 }, gerEnd: { x: 0.6, y: 0.68 },
+  bastPlat: { x: 0.635, y: 0.57 }, film: { x: 0.45, y: 0.5 }, board: { x: 0.66, y: 0.47 }, delWait: { x: 0.23, y: 0.62 }
 };
 const HOT = [
   { id: "door", name: "Porte du local technique", x: 0.37, y: 0.39, r: 0.04, at: DOOR_OUT },
@@ -140,7 +141,7 @@ const HOT = [
   { id: "bench", name: "Banc", x: 0.23, y: 0.4, r: 0.045, at: P.bench },
   { id: "ticket", name: "Distributeur de billets", x: 0.17, y: 0.52, r: 0.04, at: P.ticket },
   { id: "vending", name: "Distributeur de boissons", x: 0.47, y: 0.74, r: 0.055, at: P.vending },
-  { id: "alarm", name: "Arrêt d'urgence", x: 0.62, y: 0.39, r: 0.03, at: { x: 0.61, y: 0.44 } },
+  { id: "alarm", name: "Arrêt d'urgence", x: 0.62, y: 0.39, r: 0.03, at: { x: 0.645, y: 0.42 } },
   { id: "board", name: "Tableau des départs", x: 0.66, y: 0.24, r: 0.035, at: { x: 0.65, y: 0.3 } },
   { id: "poster", name: "Affiche", x: 0.19, y: 0.31, r: 0.03, at: { x: 0.23, y: 0.46 } },
   { id: "exit", name: "Sortie", x: 0.1, y: 0.72, r: 0.05, at: { x: 0.15, y: 0.77 } },
@@ -228,12 +229,16 @@ const A = {};
 const rame = { y: -0.3, state: "away" };
 
 /* ================= Déplacements ================= */
-const roomOf = p => (WALK[4].x0 <= p.x && p.x <= WALK[4].x1 && WALK[4].y0 <= p.y && p.y <= WALK[4].y1 ? "ctrl" : "hall");
+const CTRL = WALK.find(r => r.room === "ctrl");
+const roomOf = p => (CTRL.x0 <= p.x && p.x <= CTRL.x1 && CTRL.y0 <= p.y && p.y <= CTRL.y1 ? "ctrl" : "hall");
+// bord jaune du quai mesuré sur l'illustration (diagonale) ; on garde une marge pour rester sur le carrelage clair
+const platEdge = y => 0.787 - (y - 0.25) * 0.31, platMax = y => platEdge(y) - 0.045;
+const onUpperPlat = p => p.x > 0.615 && p.y < 0.53;
 function clampWalk(p) {
   let best = null, bd = 9;
   for (const r of WALK) {
-    let x1 = r.x1; if (r.plat) x1 = Math.min(r.x1, 0.725 - (p.y - 0.25) * 0.12);
-    const x = Math.max(r.x0, Math.min(x1, p.x)), y = Math.max(r.y0, Math.min(r.y1, p.y)), d = Math.hypot(x - p.x, (y - p.y) * 0.56);
+    const y = Math.max(r.y0, Math.min(r.y1, p.y)), x1 = r.plat ? Math.min(r.x1, platMax(y)) : r.x1;
+    const x = Math.max(r.x0, Math.min(x1, p.x)), d = Math.hypot(x - p.x, (y - p.y) * 0.56);
     if (d < bd) { bd = d; best = { x, y }; }
   }
   return best;
@@ -241,6 +246,10 @@ function clampWalk(p) {
 function goTo(a, target) {
   const tgt = target === P.outside ? { ...target } : clampWalk(target), from = roomOf(a), to = target === P.outside ? "hall" : roomOf(tgt);
   a.path = from === to ? [tgt] : from === "ctrl" ? [DOOR_IN, DOOR_OUT, tgt] : [DOOR_OUT, DOOR_IN, tgt];
+  // contourner le pilier : passage hall ↔ haut du quai par le bas du pilier
+  const out = []; let prev = a;
+  for (const q of a.path) { if (onUpperPlat(prev) !== onUpperPlat(q) && Math.min(prev.x, q.x) < 0.6) out.push({ x: 0.62, y: 0.6 }); out.push(q); prev = q; }
+  a.path = out;
 }
 function stepAgent(a, dt, speed) {
   if (!a.path.length) return true;
@@ -290,7 +299,7 @@ function updateAgents(dt) {
   stepAgent(b, dt, 0.06);
   if (S.bastFilm && near(b, P.film, 0.03) && roomOf(g) === "ctrl" && near(g, P.cabinet)) S.filmed += dt;
   // Mme Delattre
-  if (t < 330) want(d, P.delWait); else if (t < 355) want(d, { x: 0.67, y: 0.56 }); else if (rame.state === "dock") d.vis = false;
+  if (t < 330) want(d, P.delWait); else if (t < 355) want(d, { x: 0.64, y: 0.52 }); else if (rame.state === "dock") d.vis = false;
   stepAgent(d, dt, 0.04);
   // la rame
   if (t >= 285 && t < 300) { rame.state = "arriving"; rame.y = -0.25 + ((t - 285) / 15) * 0.75; if (!S.said.rame) { S.said.rame = 1; Snd.rame(); } }
