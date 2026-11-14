@@ -178,13 +178,15 @@ addEventListener("pointerdown", () => Snd.init(), { capture: true });
 /* ================= Voix (synthèse vocale du navigateur, gratuite) ================= */
 const Voice = {
   voices: [],
-  prof: { odile: { p: 0.95, r: 1.0, i: 0 }, gerald: { p: 0.5, r: 0.9, i: 1 }, bastien: { p: 1.15, r: 1.12, i: 2 }, delattre: { p: 1.35, r: 0.88, i: 0 }, narr: { p: 0.9, r: 0.98, i: 3 } },
+  prof: { odile: { p: 0.95, r: 1.22, i: 0 }, gerald: { p: 0.6, r: 1.15, i: 1 }, bastien: { p: 1.15, r: 1.35, i: 2 }, delattre: { p: 1.3, r: 1.12, i: 0 } },
   ok: "speechSynthesis" in window,
   init() { if (!this.ok) return; const load = () => { this.voices = speechSynthesis.getVoices().filter(v => /^fr/i.test(v.lang)); }; load(); speechSynthesis.onvoiceschanged = load; },
   speak(who, html) {
     if (!this.ok || M.voice === false) return;
     const txt = html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim(), quotes = [...txt.matchAll(/«\s*([^»]+?)\s*»/g)].map(m => m[1]);
-    const pr = this.prof[quotes.length ? who : "narr"] || this.prof.narr, line = quotes.length ? quotes.join(" … ") : txt;
+    // seuls les personnages parlent : jamais de narrateur, jamais les descriptions hors guillemets
+    const pr = this.prof[who]; if (!pr || !quotes.length) return;
+    const line = quotes.join(". ").replace(/…/g, ",");
     try { speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(line); u.lang = "fr-FR"; if (this.voices.length) u.voice = this.voices[pr.i % this.voices.length]; u.pitch = pr.p; u.rate = pr.r; u.volume = 0.95; speechSynthesis.speak(u); } catch (e) {}
   },
   stop() { if (this.ok) try { speechSynthesis.cancel(); } catch (e) {} }
@@ -634,8 +636,7 @@ function endLoop() {
 function showOverlay(title, lines, btn, kind) {
   $ov.hidden = false;
   $ov.innerHTML = `<div><p class="t">${title}</p><div class="lines">${lines.map((l, i) => `<p style="animation-delay:${0.4 + i * 1.3}s">${l}</p>`).join("")}</div>${btn ? `<button class="go" type="button" style="animation-delay:${0.6 + lines.length * 1.3}s">${btn}</button>` : `<button class="go" type="button" style="animation-delay:${0.6 + lines.length * 1.3}s">Rejouer depuis le début</button><p class="small">Fins découvertes : ${M.endings.length}/6. Fiction : le POMA 2000 a réellement relié la gare à la ville haute de Laon de 1989 à 2016 ; personnages et événements sont inventés.</p>`}</div>`;
-  Voice.speak("narr", lines.join(" "));
-  $ov.querySelector(".go").addEventListener("click", () => {
+    $ov.querySelector(".go").addEventListener("click", () => {
     Voice.stop();
     if (btn) { M.loops++; saveM(); Snd.rewind(); $ov.hidden = true; newLoop(); rewindT = 1.6; zoom = 1.25; zoomT = 1; paused = false; toast("21 h 54. Encore. Le carnet garde ce que vous avez appris."); }
     else { M.clues = []; M.loops = 1; saveM(); $ov.hidden = true; newLoop(); paused = false; }
@@ -681,7 +682,7 @@ if (location.hash === "#debug") window.__dbg = { get S() { return S; }, A, M, P,
 if (!M.seenIntro) {
   paused = true; $ov.hidden = false;
   $ov.innerHTML = `<div><p class="t">La Dernière Rame</p><div class="lines"><p style="animation-delay:.3s">Laon, samedi 27 août 2016. Station basse du POMA.</p><p style="animation-delay:1.5s">À 22 h 00, la toute dernière rame doit monter vers la ville haute. Puis la ligne fermera pour toujours.</p><p style="animation-delay:2.9s">Vous avez six minutes. Et vous allez les revivre. Encore. Et encore.</p></div><button class="go" type="button" style="animation-delay:4.2s">Entrer dans la station</button><p class="small">Touchez le sol pour marcher, un objet ou une personne pour interagir. « Avancer » accélère le temps. Fiction inspirée d'un lieu réel.</p></div>`;
-  $ov.querySelector(".go").addEventListener("click", () => { M.seenIntro = true; saveM(); $ov.hidden = true; paused = false; Snd.init(); Snd.chime(); Voice.speak("narr", "Vingt et une heures cinquante-quatre. Six minutes avant le dernier départ."); });
+  $ov.querySelector(".go").addEventListener("click", () => { M.seenIntro = true; saveM(); $ov.hidden = true; paused = false; Snd.init(); Snd.chime(); });
 }
 requestAnimationFrame(frame);
 })();
