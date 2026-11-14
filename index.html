@@ -195,6 +195,13 @@ const WHO = { "Odile": "odile", "L'homme au gilet jaune": "gerald", "Bastien": "
 /* ================= Images ================= */
 const IMG = {};
 [["bg", "img/station.jpg"], ["joueur", "img/joueur.webp"], ["odile", "img/odile.webp"], ["bastien", "img/bastien.webp"], ["delattre", "img/delattre.webp"], ["gerald", "img/gerald.webp"], ["rame", "img/rame.webp"]].forEach(([k, s]) => { const im = new Image(); im.onload = () => { IMG[k] = im; }; im.src = s; });
+for (const n of ["joueur", "odile", "bastien", "delattre", "gerald"]) for (const v of ["f", "b", "s", "w"]) { const im = new Image(); im.onload = () => { IMG[`${n}_${v}`] = im; }; im.src = `img/${n}_${v}.webp`; }
+// vue à afficher : de dos quand il s'éloigne, de profil quand il traverse (deux images alternées), de face sinon
+function viewImg(a) {
+  const n = a.img, f = a.face || "f";
+  if (f === "s") { const step = a.path.length && Math.sin((a.walk || 0) * 11) > 0; return IMG[`${n}_${step ? "w" : "s"}`] || IMG[`${n}_s`] || IMG[n]; }
+  return IMG[`${n}_${f}`] || IMG[n];
+}
 
 /* ================= État d'une boucle ================= */
 let S;
@@ -232,6 +239,7 @@ function stepAgent(a, dt, speed) {
   if (!a.path.length) return true;
   const p = a.path[0], dx = p.x - a.x, dy = (p.y - a.y) * 0.56, d = Math.hypot(dx, dy), s = speed * dt;
   if (Math.abs(dx) > 0.002) a.dir = dx > 0 ? 1 : -1;
+  if (d > 0.002) a.face = Math.abs(dx) > Math.abs(dy) * 0.9 ? "s" : dy < 0 ? "b" : "f";
   if (d <= s) { a.x = p.x; a.y = p.y; a.path.shift(); return !a.path.length; }
   a.x += (dx / d) * s; a.y += (dy / 0.56 / d) * s; a.walk = (a.walk || 0) + dt; return false;
 }
@@ -385,7 +393,7 @@ function pose(a, t) {
   return { bob: 0, rot: Math.sin(t * 0.9 + seed) * 0.012, sy: 1 + Math.sin(t * 1.9 + seed) * 0.008, sx: 1 - Math.sin(t * 1.9 + seed) * 0.004 };
 }
 function drawReflection(a, t) {
-  const im = IMG[a.img]; if (!im || roomOf(a) === "ctrl") return;
+  const im = viewImg(a); if (!im || roomOf(a) === "ctrl") return;
   const p = toScr(a), h = 0.15 * IH * S2(), w = (h * im.width) / im.height, ps = pose(a, t), wet = a.y > 0.55 ? 0.22 : 0.12;
   ctx.save(); ctx.beginPath(); ctx.rect(p.x - w, p.y, w * 2, h * 0.55); ctx.clip();
   ctx.translate(p.x, p.y); ctx.rotate(-ps.rot * 0.6); ctx.scale(a.dir < 0 ? -ps.sx : ps.sx, -ps.sy); ctx.globalAlpha = wet; ctx.drawImage(im, -w / 2, -h, w, h); ctx.restore();
@@ -407,9 +415,10 @@ function drawBody(im, w, h, a, ps) {
   ctx.drawImage(im, 0, 0, iw, hy + ih * 0.02, -w / 2, -h * HIP, w, h * HIP + h * 0.02); ctx.restore();
 }
 function drawAgent(a, t) {
-  const p = toScr(a), h = 0.15 * IH * S2(), im = IMG[a.img], ps = pose(a, t);
-  ctx.fillStyle = "rgba(0,0,0,.45)"; ctx.beginPath(); ctx.ellipse(p.x, p.y, h * 0.2 * (1 - ps.bob * 2), h * 0.06, 0, 0, Math.PI * 2); ctx.fill();
-  if (im) { const w = (h * im.width) / im.height; ctx.save(); ctx.translate(p.x, p.y - ps.bob * h); ctx.rotate(ps.rot * 0.5); ctx.scale(a.dir < 0 ? -ps.sx : ps.sx, ps.sy); drawBody(im, w, h, a, ps); ctx.restore(); }
+  const p = toScr(a), h = 0.15 * IH * S2(), im = viewImg(a), ps = pose(a, t), side = (a.face || "f") === "s" && IMG[`${a.img}_s`];
+  ctx.fillStyle = "rgba(0,0,0,.45)"; ctx.beginPath(); ctx.ellipse(p.x, p.y, h * (side ? 0.26 : 0.2) * (1 - ps.bob * 2), h * 0.06, 0, 0, Math.PI * 2); ctx.fill();
+  if (im) { const w = (h * im.width) / im.height; ctx.save(); ctx.translate(p.x, p.y - ps.bob * h); ctx.rotate(ps.rot * (side ? 0.3 : 0.5)); ctx.scale(a.dir < 0 ? -ps.sx : ps.sx, ps.sy);
+    if (side || !a.path.length) ctx.drawImage(im, -w / 2, -h, w, h); else drawBody(im, w, h, a, ps); ctx.restore(); }
   else { ctx.fillStyle = a === A.player ? "#e8e4da" : "#6fd3c8"; ctx.beginPath(); ctx.arc(p.x, p.y - h * 0.5, h * 0.2, 0, Math.PI * 2); ctx.fill(); }
   if (a === A.player) { ctx.strokeStyle = `rgba(242,180,90,${0.5 + 0.25 * Math.sin(t * 3)})`; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(p.x, p.y, h * 0.24, h * 0.07, 0, 0, Math.PI * 2); ctx.stroke(); }
 }
@@ -592,7 +601,7 @@ cv.addEventListener("pointermove", e => {
 });
 function arrive() {
   if (!pending) return; const p = pending; pending = null;
-  if (p.kind === "agent") { const a = A[p.id]; if (!a.vis) return; if (Math.hypot(A.player.x - a.x, (A.player.y - a.y) * 0.56) > 0.09) return toast(`${a.name} est trop loin`); A.player.dir = a.x > A.player.x ? 1 : -1; a.dir = -A.player.dir; focus = { x: (a.x + A.player.x) / 2, y: (a.y + A.player.y) / 2 - 0.04 }; zoomT = 1.35; talk(p.id); }
+  if (p.kind === "agent") { const a = A[p.id]; if (!a.vis) return; if (Math.hypot(A.player.x - a.x, (A.player.y - a.y) * 0.56) > 0.09) return toast(`${a.name} est trop loin`); A.player.dir = a.x > A.player.x ? 1 : -1; a.dir = -A.player.dir; A.player.face = "s"; if (!(p.id === "odile" && roomOf(a) === "ctrl")) a.face = "s"; else A.player.face = "b"; focus = { x: (a.x + A.player.x) / 2, y: (a.y + A.player.y) / 2 - 0.04 }; zoomT = 1.35; talk(p.id); }
   else examine(p.id);
 }
 
