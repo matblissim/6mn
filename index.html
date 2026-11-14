@@ -177,19 +177,24 @@ addEventListener("pointerdown", () => Snd.init(), { capture: true });
 
 /* ================= Voix (synthèse vocale du navigateur, gratuite) ================= */
 const Voice = {
-  voices: [],
+  voices: [], audio: null,
+  rec: [["Bonsoir. Dernière rame", "voix/odile_bonsoir.mp3"], ["Sous-traitance.", "voix/gerald_soustraitance.mp3"], ["Mm. J'attends la dernière", "voix/bastien_bonsoir.mp3"]],
   prof: { odile: { p: 0.95, r: 1.22, i: 0 }, gerald: { p: 0.6, r: 1.15, i: 1 }, bastien: { p: 1.15, r: 1.35, i: 2 }, delattre: { p: 1.3, r: 1.12, i: 0 } },
   ok: "speechSynthesis" in window,
   init() { if (!this.ok) return; const load = () => { this.voices = speechSynthesis.getVoices().filter(v => /^fr/i.test(v.lang)); }; load(); speechSynthesis.onvoiceschanged = load; },
   speak(who, html) {
-    if (!this.ok || M.voice === false) return;
+    if (M.voice === false) return;
     const txt = html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim(), quotes = [...txt.matchAll(/«\s*([^»]+?)\s*»/g)].map(m => m[1]);
     // seuls les personnages parlent : jamais de narrateur, jamais les descriptions hors guillemets
     const pr = this.prof[who]; if (!pr || !quotes.length) return;
     const line = quotes.join(". ").replace(/…/g, ",");
+    // répliques doublées par des acteurs (ElevenLabs) : priorité sur la synthèse du navigateur
+    const rec = this.rec.find(r => quotes[0].startsWith(r[0]));
+    if (rec) { this.stop(); try { this.audio = new Audio(rec[1]); this.audio.volume = 0.95; this.audio.play().catch(() => {}); } catch (e) {} return; }
+    if (!this.ok) return;
     try { speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(line); u.lang = "fr-FR"; if (this.voices.length) u.voice = this.voices[pr.i % this.voices.length]; u.pitch = pr.p; u.rate = pr.r; u.volume = 0.95; speechSynthesis.speak(u); } catch (e) {}
   },
-  stop() { if (this.ok) try { speechSynthesis.cancel(); } catch (e) {} }
+  stop() { if (this.audio) { this.audio.pause(); this.audio = null; } if (this.ok) try { speechSynthesis.cancel(); } catch (e) {} }
 };
 Voice.init();
 const WHO = { "Odile": "odile", "L'homme au gilet jaune": "gerald", "Bastien": "bastien", "Mme Delattre": "delattre" };
@@ -651,7 +656,7 @@ function openJournal() {
 }
 document.getElementById("bJournal").addEventListener("click", openJournal);
 const $fast = document.getElementById("bFast"); $fast.addEventListener("click", () => { fast = !fast; $fast.setAttribute("aria-pressed", fast); });
-const $voice = document.getElementById("bVoice"); $voice.setAttribute("aria-pressed", M.voice !== false); if (!Voice.ok) $voice.hidden = true;
+const $voice = document.getElementById("bVoice"); $voice.setAttribute("aria-pressed", M.voice !== false);
 $voice.addEventListener("click", () => { M.voice = M.voice === false; saveM(); $voice.setAttribute("aria-pressed", M.voice !== false); if (M.voice === false) Voice.stop(); });
 const $snd = document.getElementById("bSound"); $snd.setAttribute("aria-pressed", M.sound); $snd.addEventListener("click", () => { Snd.init(); Snd.set(!M.sound); $snd.setAttribute("aria-pressed", M.sound); });
 
