@@ -1,0 +1,143 @@
+<title>Graphe de résolution</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;700&family=IBM+Plex+Mono:wght@500&family=Inter:wght@400;600&display=swap">
+<style>
+/* Layout: document d'analyse sobre aux couleurs du jeu (nuit, sarcelle, ambre) : chiffres clés, graphe, chemin critique, diagnostic. */
+:root {
+  --bg: #f6f5f1; --fg: #182024; --muted: #5d6b70; --line: #d9dcd8; --card: #ffffff;
+  --teal: #1f7f78; --amber: #b8731d; --blood: #b2402c; --ok: #3f7a3a;
+  --f-title: "Barlow Condensed", "Arial Narrow", sans-serif; --f-body: "Inter", system-ui, sans-serif; --f-mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #0b1013; --fg: #e8e4da; --muted: #8fa0a6; --line: #24323a; --card: #111a1f; --teal: #6fd3c8; --amber: #f2b45a; --blood: #e0533d; --ok: #8fcf7a; color-scheme: dark; } }
+:root[data-theme="dark"] { --bg: #0b1013; --fg: #e8e4da; --muted: #8fa0a6; --line: #24323a; --card: #111a1f; --teal: #6fd3c8; --amber: #f2b45a; --blood: #e0533d; --ok: #8fcf7a; color-scheme: dark; }
+body { background: var(--bg); color: var(--fg); font-family: var(--f-body); line-height: 1.55; }
+.wrap { max-width: 1040px; margin: 0 auto; padding-block: 28px 60px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+h1 { font-family: var(--f-title); font-size: clamp(32px, 6vw, 48px); letter-spacing: .04em; text-transform: uppercase; margin: 0 0 4px; text-wrap: balance; }
+.kick { font-family: var(--f-title); letter-spacing: .2em; text-transform: uppercase; color: var(--teal); font-size: 14px; margin: 0; }
+h2 { font-family: var(--f-title); font-size: 26px; letter-spacing: .05em; text-transform: uppercase; margin: 40px 0 10px; }
+p { max-width: 72ch; }
+.lede { color: var(--muted); font-size: 17px; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-top: 20px; }
+.tile { background: var(--card); border: 1px solid var(--line); border-radius: 6px; padding: 12px 14px; }
+.tile b { display: block; font-family: var(--f-mono); font-size: 28px; color: var(--fg); font-weight: 500; font-variant-numeric: tabular-nums; }
+.tile span { font-size: 13px; color: var(--muted); }
+.graph { background: var(--card); border: 1px solid var(--line); border-radius: 6px; padding: 12px; overflow-x: auto; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; color: var(--muted); margin: 10px 0 0; }
+.legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -1px; margin-right: 6px; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-family: var(--f-title); letter-spacing: .06em; text-transform: uppercase; font-size: 14px; color: var(--muted); font-weight: 500; }
+td.t { font-family: var(--f-mono); white-space: nowrap; color: var(--teal); }
+.tbl { overflow-x: auto; background: var(--card); border: 1px solid var(--line); border-radius: 6px; }
+.score { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; }
+.sc { background: var(--card); border: 1px solid var(--line); border-radius: 6px; padding: 14px 16px; min-width: 0; }
+.sc h3 { margin: 0 0 6px; font-size: 15px; }
+.bar { height: 8px; background: var(--line); border-radius: 4px; overflow: hidden; margin: 6px 0 8px; }
+.bar i { display: block; height: 100%; background: var(--amber); }
+.sc p { margin: 0; font-size: 14px; color: var(--muted); }
+ul.road { padding-left: 20px; display: flex; flex-direction: column; gap: 8px; max-width: 76ch; }
+code { font-family: var(--f-mono); font-size: .92em; }
+</style>
+
+<div class="wrap">
+  <p class="kick">La Dernière Rame · prototype v1</p>
+  <h1>Graphe de résolution</h1>
+  <p class="lede">Toutes les connaissances, actions et fins du prototype, avec leurs dépendances et leurs fenêtres de temps, pour juger de la complexité et de la profondeur du gameplay.</p>
+
+  <div class="tiles">
+    <div class="tile"><b>4</b><span>fins, dont 1 vraie fin</span></div>
+    <div class="tile"><b>9</b><span>indices dans le carnet</span></div>
+    <div class="tile"><b>2</b><span>indices indispensables à la vraie fin</span></div>
+    <div class="tile"><b>2</b><span>boucles minimum pour gagner</span></div>
+    <div class="tile"><b>6</b><span>interactions sur le chemin critique</span></div>
+    <div class="tile"><b>3</b><span>fenêtres de temps à respecter</span></div>
+  </div>
+
+  <h2>Le graphe complet</h2>
+  <div class="graph">
+<pre class="mermaid">
+flowchart TD
+  S([21:54 · début de boucle])
+  S --> obs[Laisser filer le temps]
+  obs --> Echute([Chute · la boucle recommence])
+  Echute --> Kchute{{Indice · la rame chute à 22:00}}
+
+  S --> Kcafe{{21:57:20 · Odile part au café}}
+  S --> banc[Regarder le banc] --> Ipiece[(Pièce de 2 €)]
+  Ipiece --> distrib[Distributeur de boissons] --> Icafe[(Café)]
+  Icafe -->|avant 21:57:20| offrir[Offrir le café à Odile]
+  offrir --> Esursis([Sursis · le saboteur repart libre])
+
+  Kcafe --> vitre[21:57:30–21:58:30 · observer le local]
+  vitre --> Klocal{{Indice · le gilet jaune fouille l'armoire}}
+  vitre --> entrer[Entrer dans le local pendant le sabotage]
+  entrer --> Esursis
+
+  S --> alarme[Appuyer sur l'arrêt d'urgence] --> Ealarme([Alarme · départ annulé, saboteur en fuite])
+
+  S --> sac[21:56–21:59 · regarder le sac sur le banc] --> Kdrone{{Indice · Bastien cache un drone}}
+  S --> delattre[Parler à Mme Delattre] --> Kintrus{{Indice · le gilet jaune n'est pas un agent}}
+  Klocal -.-> armoire[Après le sabotage · regarder l'armoire] --> Kfrein{{Indice · frein désarmé}}
+  Kfrein --> accuser[Accuser devant Odile]
+  Kintrus --> accuser
+  accuser --> Kpreuve{{Odile exige une preuve}}
+
+  Kdrone --> confiance[« Je sais pour le drone » · confiance de Bastien]
+  confiance --> filmer
+  Klocal --> filmer[Avant 21:57:25 · « Filmez la porte du local »]
+  filmer --> laisser[Laisser le sabotage avoir lieu]
+  laisser --> video[Après 21:58:40 · récupérer la vidéo] --> Ivideo[(Vidéo)]
+  Ivideo --> montrer[Montrer la vidéo à Odile, avant ~21:59:50]
+  Kpreuve -.-> montrer
+  montrer --> Ewin([Vraie fin · Le dernier voyage])
+
+  classDef clue fill:#e6f3f1,stroke:#1f7f78,color:#14302d
+  classDef item fill:#fbf0df,stroke:#b8731d,color:#3a2610
+  classDef end fill:#f6e2de,stroke:#b2402c,color:#3a140c
+  classDef win fill:#e3f0e0,stroke:#3f7a3a,color:#16300f
+  class Kchute,Kcafe,Klocal,Kdrone,Kintrus,Kfrein,Kpreuve clue
+  class Ipiece,Icafe,Ivideo item
+  class Echute,Esursis,Ealarme end
+  class Ewin win
+</pre>
+  </div>
+  <p class="legend"><span><i style="background:#e6f3f1;border:1px solid #1f7f78"></i>indice (gardé d'une boucle à l'autre)</span><span><i style="background:#fbf0df;border:1px solid #b8731d"></i>objet (perdu à chaque boucle)</span><span><i style="background:#f6e2de;border:1px solid #b2402c"></i>fin qui relance la boucle</span><span><i style="background:#e3f0e0;border:1px solid #3f7a3a"></i>vraie fin</span><span>flèche pointillée : utile mais pas obligatoire</span></p>
+
+  <h2>Chemin critique de la vraie fin</h2>
+  <p>Il faut au moins <b>deux boucles</b>. Il est impossible de gagner dès la première, parce que la demande de filmer doit être faite <b>avant 21:57:25</b>, alors que l'information qui la justifie (le gilet jaune dans le local) n'apparaît qu'à <b>21:57:30</b>.</p>
+  <div class="tbl"><table>
+    <thead><tr><th>Boucle</th><th>Heure</th><th>Action</th><th>Ce que ça débloque</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td class="t">21:57:30</td><td>Rester près de la vitre du local</td><td>Indice « le gilet jaune fouille l'armoire »</td></tr>
+      <tr><td>1</td><td class="t">22:00:00</td><td>Subir la chute</td><td>Indice « la rame chute » (la boucle recommence)</td></tr>
+      <tr><td>2</td><td class="t">21:56:00 → 21:57:25</td><td>Regarder le sac de Bastien, laissé sur le banc</td><td>Indice « drone »</td></tr>
+      <tr><td>2</td><td class="t">avant 21:57:25</td><td>« Je sais pour le drone », puis « Filmez la porte du local »</td><td>Bastien filme le local</td></tr>
+      <tr><td>2</td><td class="t">21:57:30 → 21:58:30</td><td>Ne pas intervenir : laisser le sabotage se produire</td><td>Une preuve existe</td></tr>
+      <tr><td>2</td><td class="t">après 21:58:40</td><td>« Alors, vous avez filmé ? »</td><td>Objet « vidéo »</td></tr>
+      <tr><td>2</td><td class="t">avant ~21:59:50</td><td>Montrer la vidéo à Odile</td><td>Elle réarme le frein (6 s), le saboteur est retenu → vraie fin</td></tr>
+    </tbody>
+  </table></div>
+
+  <h2>Diagnostic de complexité et de profondeur</h2>
+  <div class="score">
+    <div class="sc"><h3>Longueur du chemin critique</h3><div class="bar"><i style="width:35%"></i></div><p>6 interactions sur 2 boucles. C'est court : un joueur attentif peut finir en 15 à 30 minutes.</p></div>
+    <div class="sc"><h3>Ramification</h3><div class="bar"><i style="width:45%"></i></div><p>4 fins et 3 manières d'empêcher le sabotage (café, entrer dans le local, alarme). En revanche, il n'existe qu'une seule voie vers la vraie fin.</p></div>
+    <div class="sc"><h3>Dépendances entre boucles</h3><div class="bar"><i style="width:40%"></i></div><p>Une seule vraie dépendance obligatoire : savoir pour le local avant de demander à filmer. C'est l'idée la plus forte du prototype, mais elle est encore isolée.</p></div>
+    <div class="sc"><h3>Pression temporelle</h3><div class="bar"><i style="width:60%"></i></div><p>Trois fenêtres serrées (avant 21:57:25, de 21:57:30 à 21:58:30, puis de 21:58:40 à 21:59:50) et un emploi du temps à la seconde près pour chaque personnage.</p></div>
+    <div class="sc"><h3>Contre-intuition</h3><div class="bar"><i style="width:70%"></i></div><p>Pour gagner, il faut <b>laisser le sabotage avoir lieu</b> afin d'en garder la preuve. C'est le meilleur ressort du prototype.</p></div>
+    <div class="sc"><h3>Fausses pistes</h3><div class="bar"><i style="width:50%"></i></div><p>Le sac suspect de Bastien, le café, l'alarme, l'accusation sans preuve : chacune apprend quelque chose, mais aucune ne mène à la vraie fin.</p></div>
+  </div>
+  <p style="margin-top:14px"><b>En résumé :</b> le prototype a la bonne mécanique (connaissance qui persiste, actions chronométrées, solution contre-intuitive), mais <b>un seul étage</b>. Un jeu de ce genre en empile habituellement plusieurs, où chaque vérité découverte en ouvre une plus profonde.</p>
+
+  <h2>Pistes pour gagner en profondeur</h2>
+  <ul class="road">
+    <li><b>Un deuxième étage, le mobile.</b> Qui a payé le gilet jaune, et pourquoi ? Par exemple, un appel téléphonique qu'on peut surprendre près de l'entrée à 21:55, à condition d'y être, et qui change le sens de la fin.</li>
+    <li><b>Une deuxième voie vers la preuve.</b> Enfermer le saboteur dans le local avec le badge d'Odile, ou retrouver l'enregistrement de la caméra de surveillance du local grâce à un code qu'Odile ne donne qu'en confiance.</li>
+    <li><b>Des personnages qui réagissent.</b> Si on parle trop au gilet jaune, il se méfie et change d'heure. Si on effraie Bastien, il ne filme plus. Le joueur doit alors adapter son plan.</li>
+    <li><b>Des informations qui se croisent.</b> Une phrase de Mme Delattre, entendue à 21:59, devient la clé d'un dialogue à 21:55 dans la boucle suivante.</li>
+    <li><b>Plus de fins.</b> Monter dans la rame, confronter le saboteur seul, sauver la rame mais perdre Odile… Chaque fin donne un nouvel indice.</li>
+    <li><b>Un dernier lieu.</b> La cabine elle-même, pendant la montée : un second décor pour l'acte final.</li>
+  </ul>
+</div>
