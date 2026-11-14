@@ -160,7 +160,8 @@ const Snd = {
   rame() { this.tone(70, 4, { type: "sawtooth", to: 110, vol: 0.05 }); this.noise(4, 400, 0.08); },
   crash() { this.noise(2.5, 300, 0.5); this.tone(120, 2.5, { type: "sawtooth", to: 30, vol: 0.12 }); this.tone(900, 1.2, { type: "square", to: 200, vol: 0.05, delay: 0.3 }); },
   alarm() { for (let i = 0; i < 6; i++) this.tone(i % 2 ? 660 : 880, 0.3, { type: "square", vol: 0.05, delay: i * 0.32 }); },
-  rewind() { this.tone(200, 1.2, { type: "sine", to: 1800, vol: 0.08 }); }
+  rewind() { this.tone(1800, 1.4, { type: "sawtooth", to: 120, vol: 0.05 }); this.noise(1.4, 3000, 0.08); },
+  zap() { this.noise(0.08, 4000, 0.05); }
 };
 addEventListener("pointerdown", () => Snd.init(), { capture: true });
 
@@ -257,57 +258,134 @@ function say(a, txt) { bubbles.push({ a, txt, life: 4.5 }); }
 
 /* ================= Rendu ================= */
 const cv = document.getElementById("cv"), ctx = cv.getContext("2d");
-let VW = 1, VH = 1, DPR = 1, sc = 1, camX = 0, camY = 0;
+let VW = 1, VH = 1, DPR = 1, sc = 1, camX = 0, camY = 0, zoom = 1, zoomT = 1, focus = null, shake = 0, rewindT = 0;
+const ripples = [], sparks = [], dust = [], drops = [];
 function resize() { DPR = Math.min(2, devicePixelRatio || 1); VW = innerWidth; VH = innerHeight; cv.width = VW * DPR; cv.height = VH * DPR; sc = Math.max(VW / IW, VH / IH); }
 addEventListener("resize", resize);
-const toScr = p => ({ x: p.x * IW * sc - camX, y: p.y * IH * sc - camY });
-const toWorld = (x, y) => ({ x: (x + camX) / (IW * sc), y: (y + camY) / (IH * sc) });
-function render(now) {
-  const t = now / 1000;
-  const me = A.player, wpx = IW * sc, hpx = IH * sc;
-  const tx = Math.max(0, Math.min(wpx - VW, me.x * wpx - VW / 2)), ty = Math.max(0, Math.min(hpx - VH, me.y * hpx - VH * 0.55));
-  camX += (tx - camX) * 0.08; camY += (ty - camY) * 0.08;
+const S2 = () => sc * zoom;
+const toScr = p => ({ x: p.x * IW * S2() - camX, y: p.y * IH * S2() - camY });
+const toWorld = (x, y) => ({ x: (x + camX) / (IW * S2()), y: (y + camY) / (IH * S2()) });
+// néons : (x, y) du halo au sol, couleur, rayon ; l'un d'eux est défaillant
+const LIGHTS = [
+  { x: 0.31, y: 0.24, c: "120,230,210", r: 0.14 }, { x: 0.5, y: 0.25, c: "150,235,225", r: 0.17, bad: true },
+  { x: 0.2, y: 0.42, c: "140,225,215", r: 0.12 }, { x: 0.08, y: 0.6, c: "140,215,215", r: 0.1 },
+  { x: 0.67, y: 0.2, c: "255,190,110", r: 0.13 }, { x: 0.9, y: 0.58, c: "255,180,100", r: 0.12 }
+];
+const OUTSIDE = [[0, 0, 0.19, 0.42], [0, 0.55, 0.09, 1]];
+function flick(l, t) {
+  if (!l.bad) return 0.92 + 0.08 * Math.sin(t * 3.1 + l.x * 40);
+  const late = S.t > 300 ? 1 : 0.35, n = Math.sin(t * 37) * Math.sin(t * 13.7) * Math.sin(t * 5.3);
+  return n > 0.25 - late * 0.3 ? 0.25 : 1;
+}
+function render(now, real) {
+  const t = now / 1000, me = A.player;
+  zoom += (zoomT - zoom) * Math.min(1, real * 3);
+  const wpx = IW * S2(), hpx = IH * S2(), f = focus || me;
+  const tx = Math.max(0, Math.min(wpx - VW, f.x * wpx - VW / 2)), ty = Math.max(0, Math.min(hpx - VH, f.y * hpx - VH * 0.55));
+  camX += (tx - camX) * Math.min(1, real * 4); camY += (ty - camY) * Math.min(1, real * 4);
+  // dérive lente de la caméra, comme portée à l'épaule
+  const sx = Math.sin(t * 0.35) * 2 + (shake > 0 ? (Math.random() - 0.5) * 22 * shake : 0), sy = Math.cos(t * 0.27) * 1.5 + (shake > 0 ? (Math.random() - 0.5) * 22 * shake : 0);
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0); ctx.fillStyle = "#06090b"; ctx.fillRect(0, 0, VW, VH);
-  if (IMG.bg) ctx.drawImage(IMG.bg, -camX, -camY, wpx, hpx);
-  else { ctx.fillStyle = "#1a2328"; ctx.fillRect(-camX, -camY, wpx, hpx); }
+  ctx.save(); ctx.translate(sx, sy);
+  if (IMG.bg) ctx.drawImage(IMG.bg, -camX, -camY, wpx, hpx); else { ctx.fillStyle = "#1a2328"; ctx.fillRect(-camX, -camY, wpx, hpx); }
+  // pluie dehors
+  ctx.save(); ctx.beginPath(); for (const [x0, y0, x1, y1] of OUTSIDE) { const a = toScr({ x: x0, y: y0 }), b = toScr({ x: x1, y: y1 }); ctx.rect(a.x, a.y, b.x - a.x, b.y - a.y); } ctx.clip();
+  if (drops.length < 140) drops.push({ x: Math.random() * 0.2, y: Math.random(), v: 0.5 + Math.random() * 0.4 });
+  ctx.strokeStyle = "rgba(190,215,225,.35)"; ctx.lineWidth = 1;
+  for (const d of drops) { d.y += d.v * real; d.x += 0.05 * real; if (d.y > 1) { d.y = -0.02; d.x = Math.random() * 0.2; } const p = toScr(d); ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x - 3, p.y - 14 * S2()); ctx.stroke(); }
+  ctx.restore();
+  // flaques près de l'entrée : ronds dans l'eau
+  for (const [px, py, ph] of [[0.24, 0.88, 0], [0.3, 0.95, 1.7], [0.18, 0.92, 3.1]]) { const k = ((t * 0.6 + ph) % 1), p = toScr({ x: px, y: py }); ctx.strokeStyle = `rgba(200,230,235,${0.35 * (1 - k)})`; ctx.lineWidth = 1; ctx.beginPath(); ctx.ellipse(p.x, p.y, 4 + k * 26 * S2(), (4 + k * 26 * S2()) * 0.45, 0, 0, Math.PI * 2); ctx.stroke(); }
   // la rame sur sa voie
+  drawTrackCable(t);
   if (rame.state !== "away") drawRame(rame.y, t);
-  // personnages triés par profondeur
+  // trajet du joueur et onde au clic
+  if (me.path.length) { ctx.fillStyle = "rgba(242,180,90,.55)"; let a = me; for (const q of me.path) { const steps = Math.max(1, Math.floor(Math.hypot(q.x - a.x, q.y - a.y) / 0.02)); for (let i = 1; i <= steps; i++) { const p = toScr({ x: a.x + (q.x - a.x) * (i / steps), y: a.y + (q.y - a.y) * (i / steps) }); ctx.beginPath(); ctx.arc(p.x, p.y, 2, 0, Math.PI * 2); ctx.fill(); } a = q; } }
+  for (const r of ripples) { r.k += real * 1.6; const p = toScr(r); ctx.strokeStyle = `rgba(242,180,90,${Math.max(0, 1 - r.k)})`; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(p.x, p.y, 6 + r.k * 30, (6 + r.k * 30) * 0.45, 0, 0, Math.PI * 2); ctx.stroke(); }
+  while (ripples.length && ripples[0].k > 1) ripples.shift();
+  // reflets puis personnages, triés par profondeur
   const list = Object.values(A).filter(a => a.vis).sort((a, b) => a.y - b.y);
+  for (const a of list) drawReflection(a, t);
+  if (S.bagOnBench) { const p = toScr({ x: 0.25, y: 0.43 }); ctx.fillStyle = "#121416"; ctx.beginPath(); ctx.ellipse(p.x, p.y, 22 * S2(), 11 * S2(), -0.2, 0, Math.PI * 2); ctx.fill(); ctx.strokeStyle = "rgba(255,255,255,.18)"; ctx.stroke(); }
   for (const a of list) drawAgent(a, t);
-  if (S.bagOnBench) { const p = toScr({ x: 0.25, y: 0.43 }); ctx.fillStyle = "#121416"; ctx.beginPath(); ctx.ellipse(p.x, p.y, 16 * sc * 1.4, 8 * sc * 1.4, -0.2, 0, Math.PI * 2); ctx.fill(); ctx.strokeStyle = "rgba(255,255,255,.15)"; ctx.stroke(); }
-  // lumière clignotante du local quand on y trafique
-  if (A.gerald.vis && roomOf(A.gerald) === "ctrl") { const p = toScr({ x: 0.35, y: 0.15 }); ctx.fillStyle = `rgba(255,80,60,${0.15 + 0.15 * Math.sin(t * 9)})`; ctx.beginPath(); ctx.arc(p.x, p.y, 40 * sc * 1.5, 0, Math.PI * 2); ctx.fill(); }
+  // étincelles du sabotage
+  if (A.gerald.vis && roomOf(A.gerald) === "ctrl" && near(A.gerald, P.cabinet) && !S.sabDone && Math.random() < 0.35) { for (let i = 0; i < 4; i++) sparks.push({ x: 0.35 + (Math.random() - 0.5) * 0.02, y: 0.16, vx: (Math.random() - 0.5) * 0.12, vy: -Math.random() * 0.12, life: 0.6 }); if (Math.random() < 0.15) Snd.zap(); }
+  for (const s of sparks) { s.x += s.vx * real; s.y += s.vy * real; s.vy += 0.4 * real; s.life -= real; }
+  while (sparks.length && sparks[0].life <= 0) sparks.shift();
+  ctx.globalCompositeOperation = "lighter";
+  for (const s of sparks) { const p = toScr(s); ctx.fillStyle = `rgba(255,${180 + Math.random() * 60 | 0},90,${Math.max(0, s.life * 1.6)})`; ctx.fillRect(p.x, p.y, 2.4, 2.4); }
+  // halos des néons (avec le néon défaillant) et poussière dans la lumière
+  for (const l of LIGHTS) { const k = flick(l, t), p = toScr(l), R = l.r * IW * S2(), g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, R); g.addColorStop(0, `rgba(${l.c},${0.12 * k})`); g.addColorStop(1, `rgba(${l.c},0)`); ctx.fillStyle = g; ctx.fillRect(p.x - R, p.y - R, R * 2, R * 2); }
+  if (dust.length < 60) { const l = LIGHTS[Math.floor(Math.random() * LIGHTS.length)]; dust.push({ x: l.x + (Math.random() - 0.5) * l.r, y: l.y + (Math.random() - 0.5) * l.r, ph: Math.random() * 6, life: 4 + Math.random() * 4 }); }
+  for (const d of dust) { d.life -= real; d.x += Math.sin(t * 0.5 + d.ph) * 0.002 * real; d.y -= 0.004 * real; const p = toScr(d); ctx.fillStyle = `rgba(230,240,235,${Math.min(0.5, d.life * 0.12)})`; ctx.fillRect(p.x, p.y, 1.6, 1.6); }
+  while (dust.length && dust[0].life <= 0) dust.shift();
+  // phares de la rame
+  if (rame.state === "arriving" || rame.state === "leaving") { const c = toScr(trackPoint(rame.y + (rame.state === "arriving" ? 0.13 : -0.13))), g = ctx.createRadialGradient(c.x, c.y, 0, c.x, c.y, 160 * S2()); g.addColorStop(0, "rgba(255,240,200,.45)"); g.addColorStop(1, "rgba(255,240,200,0)"); ctx.fillStyle = g; ctx.fillRect(c.x - 160 * S2(), c.y - 160 * S2(), 320 * S2(), 320 * S2()); }
+  ctx.globalCompositeOperation = "source-over";
   // bulles
-  for (const bb of bubbles) { if (!bb.a.vis) continue; const p = toScr(bb.a), h = 0.15 * IH * sc; ctx.font = `600 ${Math.max(12, Math.round(14 * Math.min(1.2, sc * 1.4)))}px Inter, sans-serif`; const w = Math.min(ctx.measureText(bb.txt).width + 16, VW - 20); const x = Math.max(10 + w / 2, Math.min(VW - 10 - w / 2, p.x)), y = p.y - h - 10;
-    ctx.globalAlpha = Math.min(1, bb.life); ctx.fillStyle = "rgba(8,12,14,.9)"; ctx.fillRect(x - w / 2, y - 22, w, 26); ctx.strokeStyle = "#f2b45a"; ctx.strokeRect(x - w / 2 + 0.5, y - 21.5, w - 1, 25); ctx.fillStyle = "#e8e4da"; ctx.textAlign = "center"; ctx.fillText(bb.txt, x, y - 4, w - 12); ctx.globalAlpha = 1; }
-  // ambiance : vignette et clignotement d'urgence à l'approche de 22 h
-  const vg = ctx.createRadialGradient(VW / 2, VH / 2, Math.min(VW, VH) * 0.3, VW / 2, VH / 2, Math.max(VW, VH) * 0.75); vg.addColorStop(0, "rgba(0,0,0,0)"); vg.addColorStop(1, "rgba(0,0,0,.55)"); ctx.fillStyle = vg; ctx.fillRect(0, 0, VW, VH);
+  for (const bb of bubbles) { if (!bb.a.vis) continue; const p = toScr(bb.a), h = 0.15 * IH * S2(), pop = Math.min(1, (4.5 - bb.life) * 5); ctx.font = `600 ${Math.max(12, Math.round(14 * Math.min(1.3, S2() * 1.4)))}px Inter, sans-serif`; const w = Math.min(ctx.measureText(bb.txt).width + 16, VW - 20); const x = Math.max(10 + w / 2, Math.min(VW - 10 - w / 2, p.x)), y = p.y - h - 10 - (1 - pop) * 8;
+    ctx.globalAlpha = Math.min(1, bb.life) * pop; ctx.fillStyle = "rgba(8,12,14,.92)"; ctx.fillRect(x - w / 2, y - 22, w, 26); ctx.strokeStyle = "#f2b45a"; ctx.strokeRect(x - w / 2 + 0.5, y - 21.5, w - 1, 25); ctx.fillStyle = "#e8e4da"; ctx.textAlign = "center"; ctx.fillText(bb.txt, x, y - 4, w - 12); ctx.globalAlpha = 1; }
+  ctx.restore();
+  // vignette, alerte de fin de boucle, alarme
+  const vg = ctx.createRadialGradient(VW / 2, VH / 2, Math.min(VW, VH) * 0.3, VW / 2, VH / 2, Math.max(VW, VH) * 0.75); vg.addColorStop(0, "rgba(0,0,0,0)"); vg.addColorStop(1, `rgba(0,0,0,${S.t > 340 ? 0.7 : 0.55})`); ctx.fillStyle = vg; ctx.fillRect(0, 0, VW, VH);
   if (S.t > 345 && !S.over) { ctx.fillStyle = `rgba(160,20,10,${0.08 + 0.08 * Math.sin(t * 6)})`; ctx.fillRect(0, 0, VW, VH); }
   if (S.alarm) { ctx.fillStyle = `rgba(255,40,20,${0.12 + 0.12 * Math.sin(t * 8)})`; ctx.fillRect(0, 0, VW, VH); }
-  if (shake > 0) { shake -= 0.016; }
+  // bandes cinéma pendant les dialogues
+  const lb = focus ? Math.min(1, (zoom - 1) / 0.3) : Math.max(0, (zoom - 1.08) / 0.3);
+  if (lb > 0.01) { ctx.fillStyle = "#000"; ctx.fillRect(0, 0, VW, VH * 0.07 * lb); ctx.fillRect(0, VH - VH * 0.07 * lb, VW, VH * 0.07 * lb); }
+  // rembobinage : lignes de balayage, décalage chromatique, bruit
+  if (rewindT > 0) {
+    const k = rewindT / 1.6; ctx.fillStyle = `rgba(160,220,255,${0.12 * k})`;
+    for (let y = (t * 900) % 6; y < VH; y += 6) ctx.fillRect(0, y, VW, 2);
+    for (let i = 0; i < 6; i++) { const y = Math.random() * VH; ctx.fillStyle = `rgba(255,255,255,${0.25 * k})`; ctx.fillRect(0, y, VW, 2 + Math.random() * 6); }
+    ctx.globalCompositeOperation = "lighter"; ctx.globalAlpha = 0.25 * k; ctx.drawImage(cv, 0, 0, cv.width, cv.height, 8 * k, 0, VW, VH); ctx.globalAlpha = 1; ctx.globalCompositeOperation = "source-over";
+  }
+  if (shake > 0) shake = Math.max(0, shake - real * 0.8);
+}
+// démarche : rebond, balancement, inclinaison ; à l'arrêt, respiration
+function pose(a, t) {
+  const moving = a.path.length > 0, ph = (a.walk || 0) * 11, seed = a.x * 13 + a.img.length;
+  if (moving) return { bob: Math.abs(Math.sin(ph)) * 0.035, rot: Math.sin(ph) * 0.045 + a.dir * 0.04, sy: 1 - Math.abs(Math.cos(ph)) * 0.025, sx: 1 + Math.abs(Math.cos(ph)) * 0.012 };
+  return { bob: 0, rot: Math.sin(t * 0.9 + seed) * 0.012, sy: 1 + Math.sin(t * 1.9 + seed) * 0.008, sx: 1 - Math.sin(t * 1.9 + seed) * 0.004 };
+}
+function drawReflection(a, t) {
+  const im = IMG[a.img]; if (!im || roomOf(a) === "ctrl") return;
+  const p = toScr(a), h = 0.15 * IH * S2(), w = (h * im.width) / im.height, ps = pose(a, t), wet = a.y > 0.55 ? 0.22 : 0.12;
+  ctx.save(); ctx.beginPath(); ctx.rect(p.x - w, p.y, w * 2, h * 0.55); ctx.clip();
+  ctx.translate(p.x, p.y); ctx.rotate(-ps.rot * 0.6); ctx.scale(a.dir < 0 ? -ps.sx : ps.sx, -ps.sy); ctx.globalAlpha = wet; ctx.drawImage(im, -w / 2, -h, w, h); ctx.restore();
+  ctx.globalAlpha = 1;
 }
 function drawAgent(a, t) {
-  const p = toScr(a), h = 0.15 * IH * sc, im = IMG[a.img];
-  const bob = a.path.length ? Math.abs(Math.sin((a.walk || 0) * 9)) * h * 0.02 : 0;
-  ctx.fillStyle = "rgba(0,0,0,.45)"; ctx.beginPath(); ctx.ellipse(p.x, p.y, h * 0.2, h * 0.06, 0, 0, Math.PI * 2); ctx.fill();
-  if (im) { const w = (h * im.width) / im.height; ctx.save(); ctx.translate(p.x, p.y - bob); if (a.dir < 0) ctx.scale(-1, 1); ctx.drawImage(im, -w / 2, -h, w, h); ctx.restore(); }
+  const p = toScr(a), h = 0.15 * IH * S2(), im = IMG[a.img], ps = pose(a, t);
+  ctx.fillStyle = "rgba(0,0,0,.45)"; ctx.beginPath(); ctx.ellipse(p.x, p.y, h * 0.2 * (1 - ps.bob * 2), h * 0.06, 0, 0, Math.PI * 2); ctx.fill();
+  if (im) { const w = (h * im.width) / im.height; ctx.save(); ctx.translate(p.x, p.y - ps.bob * h); ctx.rotate(ps.rot); ctx.scale(a.dir < 0 ? -ps.sx : ps.sx, ps.sy); ctx.drawImage(im, -w / 2, -h, w, h); ctx.restore(); }
   else { ctx.fillStyle = a === A.player ? "#e8e4da" : "#6fd3c8"; ctx.beginPath(); ctx.arc(p.x, p.y - h * 0.5, h * 0.2, 0, Math.PI * 2); ctx.fill(); }
-  if (a === A.player) { ctx.strokeStyle = "rgba(242,180,90,.7)"; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(p.x, p.y, h * 0.24, h * 0.07, 0, 0, Math.PI * 2); ctx.stroke(); }
+  if (a === A.player) { ctx.strokeStyle = `rgba(242,180,90,${0.5 + 0.25 * Math.sin(t * 3)})`; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(p.x, p.y, h * 0.24, h * 0.07, 0, 0, Math.PI * 2); ctx.stroke(); }
 }
 // la voie monte vers le haut à droite ; la rame glisse le long de cet axe
 function trackPoint(v) { const a = { x: 0.7, y: 1.05 }, b = { x: 0.95, y: -0.05 }, k = (v - a.y) / (b.y - a.y); return { x: a.x + (b.x - a.x) * k + 0.085, y: v }; }
+let cableOff = 0;
+function drawTrackCable(t) {
+  if (rame.state === "arriving" || rame.state === "leaving") cableOff += 2.5;
+  const a = toScr(trackPoint(1.05)), b = toScr(trackPoint(-0.1));
+  ctx.save(); ctx.setLineDash([10, 8]); ctx.lineDashOffset = rame.state === "leaving" ? cableOff : -cableOff; ctx.strokeStyle = "rgba(170,180,185,.35)"; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke(); ctx.restore();
+}
 function drawRame(v, t) {
-  const c = toScr(trackPoint(v)), c2 = toScr(trackPoint(v - 0.1)), ang = Math.atan2(c2.y - c.y, c2.x - c.x), L = 0.26 * IH * sc, Wd = 0.085 * IH * sc;
-  ctx.save(); ctx.translate(c.x, c.y); ctx.rotate(ang);
+  const moving = rame.state === "arriving" || rame.state === "leaving", jit = moving ? Math.sin(t * 40) * 0.6 : 0;
+  const c = toScr(trackPoint(v)), c2 = toScr(trackPoint(v - 0.1)), ang = Math.atan2(c2.y - c.y, c2.x - c.x), L = 0.26 * IH * S2(), Wd = 0.085 * IH * S2();
+  ctx.save(); ctx.translate(c.x + jit, c.y); ctx.rotate(ang);
   ctx.fillStyle = "rgba(0,0,0,.5)"; ctx.fillRect(-L / 2 + 6, -Wd / 2 + 8, L, Wd);
   const gr = ctx.createLinearGradient(0, -Wd / 2, 0, Wd / 2); gr.addColorStop(0, "#f6f3ec"); gr.addColorStop(1, "#bdb8ae");
-  ctx.fillStyle = gr; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(-L / 2, -Wd / 2, L, Wd, Wd * 0.35) : ctx.rect(-L / 2, -Wd / 2, L, Wd); ctx.fill();
+  ctx.fillStyle = gr; ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(-L / 2, -Wd / 2, L, Wd, Wd * 0.35); else ctx.rect(-L / 2, -Wd / 2, L, Wd); ctx.fill();
   ctx.fillStyle = "#c0392b"; ctx.fillRect(-L / 2, Wd * 0.18, L, Wd * 0.12);
   ctx.fillStyle = "rgba(255,226,160,.9)"; for (let i = 0; i < 4; i++) ctx.fillRect(-L / 2 + L * 0.08 + i * L * 0.22, -Wd * 0.32, L * 0.16, Wd * 0.34);
+  // portes qui s'ouvrent à quai, côté quai
+  if (rame.state === "dock") { const k = Math.min(1, (S.t - 300) / 2) * (S.t > 356 ? Math.max(0, (358 - S.t) / 2) : 1), gap = L * 0.14 * k; ctx.fillStyle = "#1b1712"; ctx.fillRect(-gap / 2, Wd * 0.32, gap, Wd * 0.18); ctx.fillStyle = "rgba(255,226,160,.6)"; ctx.fillRect(-gap / 2, Wd * 0.42, gap, Wd * 0.08); }
+  // feux avant et arrière
+  ctx.fillStyle = "rgba(255,245,210,.95)"; ctx.fillRect(L / 2 - 3, -Wd * 0.3, 3, Wd * 0.16); ctx.fillRect(L / 2 - 3, Wd * 0.14, 3, Wd * 0.16);
+  ctx.fillStyle = "rgba(230,60,40,.95)"; ctx.fillRect(-L / 2, -Wd * 0.3, 3, Wd * 0.16); ctx.fillRect(-L / 2, Wd * 0.14, 3, Wd * 0.16);
   ctx.restore();
 }
-let shake = 0;
 
 /* ================= Interface ================= */
 const $clock = document.getElementById("clock"), $loop = document.getElementById("loopLbl"), $inv = document.getElementById("inv"), $sheet = document.getElementById("sheet"), $toast = document.getElementById("toast"), $hint = document.getElementById("hint"), $jr = document.getElementById("journal"), $jbox = document.getElementById("jbox"), $ov = document.getElementById("overlay");
@@ -328,7 +406,7 @@ function sheet(title, text, opts) {
   for (const o of opts.concat([{ l: "Partir", close: true }])) { const b = document.createElement("button"); b.type = "button"; b.className = "opt" + (o.give ? " give" : "") + (o.close ? " close" : ""); b.textContent = o.l; b.addEventListener("click", () => { if (o.close) return closeSheet(); o.fx(); }); box.appendChild(b); }
   box.querySelector("button").focus();
 }
-function closeSheet() { $sheet.hidden = true; paused = false; }
+function closeSheet() { $sheet.hidden = true; paused = false; focus = null; zoomT = 1; }
 
 /* ================= Dialogues et examens ================= */
 function talk(id) {
@@ -417,7 +495,7 @@ function pick(x, y) {
 cv.addEventListener("pointerdown", e => {
   if (S.over || !$sheet.hidden) return;
   const r = cv.getBoundingClientRect(), hit = pick(e.clientX - r.left, e.clientY - r.top);
-  if (hit.kind === "floor") { pending = null; goTo(A.player, hit.w); Snd.step(); return; }
+  if (hit.kind === "floor") { pending = null; goTo(A.player, hit.w); ripples.push({ x: hit.w.x, y: hit.w.y, k: 0 }); return; }
   if (hit.kind === "agent") { const a = A[hit.id]; pending = { kind: "agent", id: hit.id }; goTo(A.player, { x: a.x + (A.player.x < a.x ? -0.035 : 0.035), y: a.y + 0.01 }); if (hit.id === "odile" && roomOf(A.odile) === "ctrl") goTo(A.player, P.window); return; }
   pending = { kind: "hot", id: hit.id }; goTo(A.player, hit.at);
 });
@@ -429,7 +507,7 @@ cv.addEventListener("pointermove", e => {
 });
 function arrive() {
   if (!pending) return; const p = pending; pending = null;
-  if (p.kind === "agent") { const a = A[p.id]; if (!a.vis) return; if (Math.hypot(A.player.x - a.x, (A.player.y - a.y) * 0.56) > 0.09) return toast(`${a.name} est trop loin`); A.player.dir = a.x > A.player.x ? 1 : -1; talk(p.id); }
+  if (p.kind === "agent") { const a = A[p.id]; if (!a.vis) return; if (Math.hypot(A.player.x - a.x, (A.player.y - a.y) * 0.56) > 0.09) return toast(`${a.name} est trop loin`); A.player.dir = a.x > A.player.x ? 1 : -1; a.dir = -A.player.dir; focus = { x: (a.x + A.player.x) / 2, y: (a.y + A.player.y) / 2 - 0.04 }; zoomT = 1.35; talk(p.id); }
   else examine(p.id);
 }
 
@@ -451,13 +529,14 @@ function endLoop() {
     alarm: ["22:00:00", ["Les sirènes hurlent. Le dernier départ est annulé.", "Dans la confusion, l'homme au gilet jaune s'est volatilisé.", "Rien n'est réglé. Rien ne l'est jamais.", "Tout recommence."], "Recommencer"],
     win: ["Le dernier voyage", ["Odile réarme le frein de secours d'une main tremblante.", "Deux agents de sécurité retiennent l'homme au gilet jaune à la sortie.", "À 22 h 00, la dernière rame monte vers la ville haute, sous les applaudissements de Mme Delattre.", "Bastien filme tout. La boucle est brisée."], null]
   }[kind];
-  setTimeout(() => showOverlay(T[0], T[1], T[2], kind), kind === "chute" ? 900 : 300);
+  if (kind === "chute") { shake = 1.2; zoomT = 1.12; paused = false; }
+  setTimeout(() => { shake = 0; showOverlay(T[0], T[1], T[2], kind); }, kind === "chute" ? 1600 : 300);
 }
 function showOverlay(title, lines, btn, kind) {
   $ov.hidden = false;
   $ov.innerHTML = `<div><p class="t">${title}</p><div class="lines">${lines.map((l, i) => `<p style="animation-delay:${0.4 + i * 1.3}s">${l}</p>`).join("")}</div>${btn ? `<button class="go" type="button" style="animation-delay:${0.6 + lines.length * 1.3}s">${btn}</button>` : `<button class="go" type="button" style="animation-delay:${0.6 + lines.length * 1.3}s">Rejouer depuis le début</button><p class="small">Fins découvertes : ${M.endings.length}/4. Fiction : le POMA 2000 a réellement relié la gare à la ville haute de Laon de 1989 à 2016 ; personnages et événements sont inventés.</p>`}</div>`;
   $ov.querySelector(".go").addEventListener("click", () => {
-    if (btn) { M.loops++; saveM(); Snd.rewind(); $ov.hidden = true; newLoop(); paused = false; toast("21 h 54. Encore. Le carnet garde ce que vous avez appris."); }
+    if (btn) { M.loops++; saveM(); Snd.rewind(); $ov.hidden = true; newLoop(); rewindT = 1.6; zoom = 1.25; zoomT = 1; paused = false; toast("21 h 54. Encore. Le carnet garde ce que vous avez appris."); }
     else { M.clues = []; M.loops = 1; saveM(); $ov.hidden = true; newLoop(); paused = false; }
   });
 }
@@ -480,6 +559,8 @@ function frame(now) {
     const dt = real * (fast ? 6 : 1);
     S.t += dt;
     if (stepAgent(A.player, dt, 0.11) && pending) arrive();
+    if (A.player.path.length) { A.player.stepAcc = (A.player.stepAcc || 0) + real; if (A.player.stepAcc > 0.3) { A.player.stepAcc = 0; Snd.step(); if (A.player.y > 0.6) ripples.push({ x: A.player.x, y: A.player.y, k: 0.55 }); } }
+    if (!focus) zoomT = S.t > 340 ? 1.1 : 1;
     updateAgents(dt);
     if (Math.floor(S.t) !== lastSec) { lastSec = Math.floor(S.t); if (S.t > 350) Snd.tick(); }
     if (S.fixed && !S.gerCaught && A.gerald.vis) { S.gerCaught = true; say(A.gerald, "Lâchez-moi !"); }
@@ -488,7 +569,8 @@ function frame(now) {
   for (const b of bubbles) b.life -= real; while (bubbles.length && bubbles[0].life <= 0) bubbles.shift();
   if (toastT > 0) { toastT -= real; if (toastT <= 0) $toast.hidden = true; }
   $clock.textContent = fmtT(S.t); $clock.classList.toggle("late", S.t > 345);
-  render(now); requestAnimationFrame(frame);
+  if (rewindT > 0) rewindT = Math.max(0, rewindT - real);
+  render(now, real); requestAnimationFrame(frame);
 }
 
 resize(); newLoop();
