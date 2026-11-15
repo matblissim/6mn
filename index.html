@@ -94,7 +94,7 @@ button:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
 <div id="app">
   <canvas id="cv" aria-label="La station basse du POMA, vue de dessus. Touchez un lieu ou un personnage."></canvas>
   <div id="hud">
-    <div><div class="clock" id="clock">21:54:00</div><div class="loop" id="loopLbl">Boucle 1</div><div class="goal" id="goal"></div></div>
+    <div><div class="clock" id="clock">21:54:00</div><div class="loop" id="loopLbl"></div><div class="goal" id="goal"></div></div>
     <div class="btns">
       <button class="hb" id="bWait" type="button">Attendre ⏱</button>
       <button class="hb" id="bFast" type="button" aria-pressed="false">Avancer ⏩</button>
@@ -155,6 +155,7 @@ const CLUES = {
 const ENDINGS = ["chute", "sursis", "alarm", "aveux", "win", "arrestation", "repere", "verite"];
 // piste du moment : ce que le joueur devrait chercher, selon ce qu'il sait déjà
 function goal() {
+  if (!revealed() && !knows("chute")) return "Prendre la dernière rame de 22 h 00. Vous avez un peu de temps devant vous.";
   if (!knows("chute")) return "Observez. Que se passe-t-il à 22 h 00 ?";
   if (!knows("local")) return "Qui s'approche du local technique quand Odile part au café, vers 21 h 57 ?";
   if (!knows("frein")) return "Qu'a fait le gilet jaune dans l'armoire ? Allez voir après son passage.";
@@ -189,7 +190,7 @@ const ACHS = [
   { k: "verite", t: "La vérité", d: "Briser la boucle" },
   { k: "eclair", t: "Éclair", d: "Briser la boucle en 5 boucles ou moins" }
 ];
-function award(k) { M.ach = M.ach || []; if (M.ach.includes(k)) return; M.ach.push(k); saveM(); const a = ACHS.find(x => x.k === k); setTimeout(() => toast(`🏆 Succès : ${a.t}`), 900); }
+function award(k) { M.ach = M.ach || []; if (M.ach.includes(k)) return; M.ach.push(k); saveM(); const a = ACHS.find(x => x.k === k); if (revealed()) setTimeout(() => toast(`🏆 Succès : ${a.t}`), 900); }
 function logEv(txt) { if (S && !S.log.some(e => e.txt === txt)) S.log.push({ t: S.t, txt }); }
 function learn(k, silent) { if (M.clues.includes(k)) return; M.clues.push(k); saveM(); updateGoal(); if (M.clues.length >= 25) award("archiviste"); if (!silent) toast("Nouvel indice noté dans le carnet"); Snd.note(); }
 const knows = k => M.clues.includes(k);
@@ -668,7 +669,9 @@ function drawRame(v, t) {
 /* ================= Interface ================= */
 const $clock = document.getElementById("clock"), $loop = document.getElementById("loopLbl"), $inv = document.getElementById("inv"), $sheet = document.getElementById("sheet"), $toast = document.getElementById("toast"), $hint = document.getElementById("hint"), $jr = document.getElementById("journal"), $jbox = document.getElementById("jbox"), $ov = document.getElementById("overlay");
 const fmtT = t => { const s = 21 * 3600 + 54 * 60 + Math.floor(t), h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), x = s % 60; return `${h}:${String(m).padStart(2, "0")}:${String(x).padStart(2, "0")}`; };
-function updateLoopLbl() { $loop.textContent = `Boucle ${M.loops}`; }
+// tant que le joueur n'a pas vécu la première fin, rien ne dit que la soirée se répète
+const revealed = () => M.loops > 1;
+function updateLoopLbl() { $loop.textContent = revealed() ? `Boucle ${M.loops}` : ""; }
 function updateGoal() { const el = document.getElementById("goal"); if (el) el.textContent = goal(); }
 const $hide = document.getElementById("hideBar"); let hideKey = "";
 function updateHideBar() {
@@ -827,7 +830,7 @@ function examine(id) {
   if (id === "board") return sheet("Tableau des départs", `DERNIER DÉPART : 22:00. ${t >= 300 && t < 358 ? "La rame est à quai, portes ouvertes." : "La ligne fermera ensuite définitivement."}`, []);
   if (id === "exit") return sheet("Sortie", "Partir ? Non. Pas tant que cette rame n'est pas partie.", []);
   if (id === "alarm") return sheet("Arrêt d'urgence", "Un gros bouton rouge sous un clapet. « À n'utiliser qu'en cas de danger grave. »", S.alarm ? [] : [{ l: "Appuyer", give: true, fx: () => { S.alarm = true; Snd.alarm(); closeSheet(); say(A.odile, "Qui a déclenché l'arrêt d'urgence ?!"); toast("Alarme : le dernier départ est suspendu"); } }]);
-  if (id === "rame") return sheet("La rame", rame.state === "dock" ? "Petite cabine blanche et rouge, portes ouvertes. À l'intérieur, l'odeur du plastique chaud." : "La voie monte dans la nuit vers la ville haute.", []);
+  if (id === "rame") return sheet("La rame", rame.state === "dock" ? "Petite cabine blanche et rouge, portes ouvertes. À l'intérieur, l'odeur du plastique chaud." : "La voie monte dans la nuit vers la ville haute.", rame.state === "dock" ? [{ l: "Monter à bord", give: true, fx: () => { closeSheet(); S.aboard = true; A.player.vis = false; A.player.path = []; S.follow = null; S.skipTo = 359; toast("Vous prenez place. Les portes vont se fermer."); } }] : []);
   if (id === "bag") { if (!S.bagOnBench) return; learn("drone"); return sheet("Sac de sport", "Le sac est entrouvert : un drone plié, deux batteries, une petite caméra. Bastien a bien caché son jeu.", []); }
   if (id === "door") {
     const g = A.gerald, inside = g.vis && roomOf(g) === "ctrl";
@@ -863,7 +866,7 @@ function pick(x, y) {
   return { kind: "floor", w };
 }
 cv.addEventListener("pointerdown", e => {
-  if (S.over || !$sheet.hidden || S.hidden) return;
+  if (S.over || !$sheet.hidden || S.hidden || S.aboard) return;
   const r = cv.getBoundingClientRect(), hit = pick(e.clientX - r.left, e.clientY - r.top);
   if (hit.kind !== "agent" || hit.id !== S.follow) S.follow = null;
   if (hit.kind === "floor") { pending = null; goTo(A.player, hit.w); ripples.push({ x: hit.w.x, y: hit.w.y, k: 0 }); return; }
@@ -899,7 +902,7 @@ function endLoop() {
   if (kind === "chute") { Snd.crash(); learn("chute", true); }
   if (kind === "sursis") learn("sursis", true);
   if (!M.endings.includes(kind)) M.endings.push(kind);
-  award("premiere"); if (ENDINGS.every(e => M.endings.includes(e))) award("toutes");
+  if (ENDINGS.every(e => M.endings.includes(e))) award("toutes");
   if (kind === "verite") { award("verite"); if (M.loops <= 5) award("eclair"); }
   if (S.hunt && has("enveloppe")) award("insaisissable");
   Snd.tension(0); saveM();
@@ -913,6 +916,7 @@ function endLoop() {
     arrestation: ["22:00:00", ["Deux agents de sécurité plaquent l'homme au gilet jaune contre la vitre.", "Par précaution, le dernier départ est annulé. Mme Delattre pleure sur le quai.", "Le gilet jaune ne dira pas un mot. Son commanditaire dormira tranquille.", "Tout recommence."], "Recommencer"],
     verite: ["La vérité", ["Odile réarme le frein de secours, puis décroche le téléphone et raconte tout.", "La vidéo de Bastien, l'enveloppe signée « V. », ses aveux : la police n'a besoin de rien d'autre.", "À 22 h 00, la dernière rame monte vers la ville haute, sous les applaudissements de Mme Delattre.", "Au matin, Vasseur sera arrêté. La boucle se brise enfin."], null]
   }[kind];
+  if (kind === "chute" && S.aboard) T[1] = ["Les portes se ferment. La cabine s'élance, les lumières de la ville basse s'éloignent.", "À mi-pente, un claquement sec. La cabine s'immobilise… puis glisse en arrière.", "Mme Delattre vous agrippe le bras. Le frein de secours ne répond pas.", "Noir."];
   if (kind === "repere") { learn("dos", true); shake = 0.8; }
   if (kind === "chute") { shake = 1.2; zoomT = 1.12; paused = false; }
   setTimeout(() => { shake = 0; showOverlay(T[0], T[1], T[2], kind); }, kind === "chute" ? 1600 : 300);
@@ -920,7 +924,7 @@ function endLoop() {
 // ce que cette boucle a appris, et un conseil pour la suivante
 function loopSummary() {
   const nw = M.clues.filter(k => !S.cluesAtStart.includes(k));
-  return `<div class="sum" style="animation-delay:${0.6 + 4 * 1.3}s"><b>Cette boucle :</b> ${nw.length ? nw.length + " nouvel" + (nw.length > 1 ? "s" : "") + " indice" + (nw.length > 1 ? "s" : "") + " — " + nw.slice(0, 3).map(k => CLUES[k].split(/[.:]/)[0]).join(" · ") + (nw.length > 3 ? "…" : "") : "aucun nouvel indice."}<br><b>Piste :</b> ${goal()}</div>`;
+  return `<div class="sum" style="animation-delay:${0.6 + 4 * 1.3}s"><b>${revealed() ? "Cette fois" : "Ce que vous avez remarqué"} :</b> ${nw.length ? nw.length + " nouvel" + (nw.length > 1 ? "s" : "") + " indice" + (nw.length > 1 ? "s" : "") + " — " + nw.filter(k => k !== "chute").slice(0, 3).map(k => CLUES[k].split(/[.:]/)[0]).join(" · ") + (nw.length > 3 ? "…" : "") : "aucun nouvel indice."}${revealed() ? `<br><b>Piste :</b> ${goal()}` : ""}</div>`;
 }
 function finalStats() {
   const mins = Math.round((M.playS || 0) / 60), rank = M.loops <= 3 ? "Détective légendaire" : M.loops <= 6 ? "Fin limier" : M.loops <= 10 ? "Enquêteur tenace" : "Témoin obstiné";
@@ -928,12 +932,21 @@ function finalStats() {
 }
 function showOverlay(title, lines, btn, kind) {
   $ov.hidden = false;
+  if (btn && !revealed()) btn = "Rouvrir les yeux";
   $ov.innerHTML = `<div><p class="t">${title}</p><div class="lines">${lines.map((l, i) => `<p style="animation-delay:${0.4 + i * 1.3}s">${l}</p>`).join("")}</div>${btn ? loopSummary() : finalStats()}${btn ? `<button class="go" type="button" style="animation-delay:${0.6 + lines.length * 1.3}s">${btn}</button>` : `<button class="go" type="button" style="animation-delay:${0.6 + lines.length * 1.3}s">Rejouer depuis le début</button><p class="small">Fins découvertes : ${M.endings.length}/${ENDINGS.length}. Fiction : le POMA 2000 a réellement relié la gare à la ville haute de Laon de 1989 à 2016 ; personnages et événements sont inventés.</p>`}</div>`;
     $ov.querySelector(".go").addEventListener("click", () => {
     Voice.stop();
-    if (btn) { M.loops++; saveM(); Snd.rewind(); $ov.hidden = true; newLoop(); rewindT = 1.6; zoom = 1.25; zoomT = 1; paused = false; toast("21 h 54. Encore. Le carnet garde ce que vous avez appris."); }
+    if (btn && !revealed()) { M.loops++; saveM(); Snd.rewind(); newLoop(); award("premiere"); revealOverlay(); }
+    else if (btn) { M.loops++; saveM(); Snd.rewind(); $ov.hidden = true; newLoop(); rewindT = 1.6; zoom = 1.25; zoomT = 1; paused = false; toast("21 h 54. Encore. Le carnet garde ce que vous avez appris."); }
     else { M.clues = []; M.ded = []; M.loops = 1; M.playS = 0; saveM(); $ov.hidden = true; newLoop(); paused = false; }
   });
+}
+
+// la révélation : on se réveille à 21:54, et tout est exactement pareil
+function revealOverlay() {
+  paused = true; $ov.hidden = false;
+  $ov.innerHTML = `<div><p class="t">21:54:00</p><div class="lines"><p style="animation-delay:.4s">Le néon grésille. La pluie tombe sur le parvis.</p><p style="animation-delay:1.9s">Derrière sa vitre, Odile ajuste ses lunettes. Exactement comme tout à l'heure.</p><p style="animation-delay:3.4s">Mme Delattre serre son sac contre elle. Le même geste. Le même soupir.</p><p style="animation-delay:5s">Vous avez déjà vécu ces six minutes.</p></div><button class="go" type="button" style="animation-delay:6.4s">…Encore ?</button><p class="small" style="opacity:0;animation:up 1s ease-out 6.8s forwards">Ce que vous avez vu reste dans votre carnet. Le reste du monde, lui, a tout oublié.</p></div>`;
+  $ov.querySelector(".go").addEventListener("click", () => { $ov.hidden = true; paused = false; rewindT = 1.6; zoom = 1.25; zoomT = 1; updateLoopLbl(); updateGoal(); toast("Boucle 2. Le carnet garde ce que vous avez appris."); });
 }
 
 /* ================= Carnet ================= */
@@ -945,10 +958,10 @@ function openJournal() {
   const tl = S.log.length ? `<ol class="tl">${S.log.map(e => `<li><b>${fmtT(e.t)}</b><span>${e.txt}</span></li>`).join("")}</ol>` : `<p class="none">Rien de remarquable pour l'instant.</p>`;
   $jbox.innerHTML = `<h2>Carnet</h2><p class="piste"><b>Piste :</b> ${goal()}</p>
     <h3>Déductions</h3>${dedHtml}
-    <h3>Cette boucle</h3>${tl}
+    <h3>${revealed() ? "Cette boucle" : "Ce soir"}</h3>${tl}
     <h3>Indices (${M.clues.length})</h3>${M.clues.length ? `<ol>${M.clues.map(k => `<li>${CLUES[k]}</li>`).join("")}</ol>` : `<p class="none">Rien encore. Observez, écoutez, fouillez. Le temps est compté.</p>`}
-    <h3>Succès (${(M.ach || []).length}/${ACHS.length})</h3><div class="ach">${ACHS.map(a => `<div class="${(M.ach || []).includes(a.k) ? "on" : ""}"><b>${(M.ach || []).includes(a.k) ? "🏆 " : ""}${a.t}</b>${a.d}</div>`).join("")}</div>
-    <p class="end">Boucle ${M.loops} · fins découvertes : ${M.endings.length}/${ENDINGS.length}</p><div class="opts" style="margin-top:14px"><button class="opt close" type="button" id="jClose">Fermer le carnet</button></div>`;
+    ${revealed() ? `<h3>Succès (${(M.ach || []).length}/${ACHS.length})</h3><div class="ach">${ACHS.map(a => `<div class="${(M.ach || []).includes(a.k) ? "on" : ""}"><b>${(M.ach || []).includes(a.k) ? "🏆 " : ""}${a.t}</b>${a.d}</div>`).join("")}</div>
+    <p class="end">Boucle ${M.loops} · fins découvertes : ${M.endings.length}/${ENDINGS.length}</p>` : ""}<div class="opts" style="margin-top:14px"><button class="opt close" type="button" id="jClose">Fermer le carnet</button></div>`;
   for (const b of $jbox.querySelectorAll("[data-ded]")) b.addEventListener("click", () => { M.ded = M.ded || []; M.ded.push(b.dataset.ded); saveM(); Snd.note(); if (DEDS.every(d => M.ded.includes(d.k))) award("logicien"); openJournal(); });
   document.getElementById("jClose").addEventListener("click", () => { $jr.hidden = true; paused = !$sheet.hidden; });
 }
@@ -958,7 +971,7 @@ const MOMENTS = [[60, "21:55:00 · le coup de fil du gilet jaune"], [90, "21:55:
 document.getElementById("bWait").addEventListener("click", () => {
   if (S.over || S.hidden || !$sheet.hidden) return;
   const o = MOMENTS.filter(([t]) => t > S.t + 3).map(([t, l]) => ({ l: `Attendre jusqu'à ${l}`, fx: () => { S.skipTo = t; S.follow = null; closeSheet(); } }));
-  if (M.loops > 1 || M.endings.length) o.push({ l: "⟲ Rembobiner maintenant (on garde le carnet)", fx: () => { closeSheet(); rewindNow(); } });
+  if (revealed()) o.push({ l: "⟲ Rembobiner maintenant (on garde le carnet)", fx: () => { closeSheet(); rewindNow(); } });
   sheet("Attendre", "Le temps file à toute vitesse jusqu'au moment choisi. Les autres vivent leur soirée sans vous attendre.", o);
 });
 function rewindNow() { const learned = M.clues.filter(k => !S.cluesAtStart.includes(k)).length; M.loops++; saveM(); Snd.rewind(); newLoop(); rewindT = 1.6; zoom = 1.25; zoomT = 1; paused = false; toast(`21 h 54. Encore. ${learned ? learned + " indice" + (learned > 1 ? "s" : "") + " de plus dans le carnet." : "Rien de neuf cette fois."}`); }
@@ -999,7 +1012,7 @@ resize(); newLoop();
 if (location.hash === "#debug") window.__dbg = { get S() { return S; }, A, M, P, award, openJournal, rewindNow, DEDS, talk, examine, goTo, learn, give, has, endLoop, walkable, clampWalk, route, HOT, NODES };
 if (!M.seenIntro) {
   paused = true; $ov.hidden = false;
-  $ov.innerHTML = `<div><p class="t">La Dernière Rame</p><div class="lines"><p style="animation-delay:.3s">Laon, samedi 27 août 2016. Station basse du POMA.</p><p style="animation-delay:1.5s">À 22 h 00, la toute dernière rame doit monter vers la ville haute. Puis la ligne fermera pour toujours.</p><p style="animation-delay:2.9s">Vous avez six minutes. Et vous allez les revivre. Encore. Et encore.</p></div><button class="go" type="button" style="animation-delay:4.2s">Entrer dans la station</button><p class="small">Touchez le sol pour marcher, un objet ou une personne pour interagir. « Avancer » accélère le temps. Fiction inspirée d'un lieu réel.</p></div>`;
+  $ov.innerHTML = `<div><p class="t">La Dernière Rame</p><div class="lines"><p style="animation-delay:.3s">Laon, samedi 27 août 2016. Station basse du POMA.</p><p style="animation-delay:1.5s">À 22 h 00, la toute dernière rame doit monter vers la ville haute. Puis la ligne fermera pour toujours.</p><p style="animation-delay:2.9s">Vous êtes venu pour ce dernier voyage. Six minutes à attendre, rien de plus.</p></div><button class="go" type="button" style="animation-delay:4.2s">Entrer dans la station</button><p class="small">Touchez le sol pour marcher, un objet ou une personne pour interagir. « Avancer » accélère le temps. Fiction inspirée d'un lieu réel.</p></div>`;
   $ov.querySelector(".go").addEventListener("click", () => { M.seenIntro = true; saveM(); $ov.hidden = true; paused = false; Snd.init(); Snd.chime(); });
 }
 requestAnimationFrame(frame);
