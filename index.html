@@ -391,6 +391,9 @@ const WHO = { "Odile": "odile", "L'homme au gilet jaune": "gerald", "Bastien": "
 const IMG = {};
 [["bg", "img/station.jpg"], ["joueur", "img/joueur.webp"], ["odile", "img/odile.webp"], ["bastien", "img/bastien.webp"], ["delattre", "img/delattre.webp"], ["gerald", "img/gerald.webp"], ["rame", "img/rame.webp"]].forEach(([k, s]) => { const im = new Image(); im.onload = () => { IMG[k] = im; }; im.src = s; });
 for (const n of ["joueur", "odile", "bastien", "delattre", "gerald"]) for (const v of ["f", "b", "s", "w"]) { const im = new Image(); im.onload = () => { IMG[`${n}_${v}`] = im; }; im.src = `img/${n}_${v}.webp`; }
+for (const n of ["rame2", "voiture", "drone", "sacoche", "goupille", "helice"]) { const im = new Image(); im.onload = () => { IMG[n] = im; }; im.src = `img/${n}.webp`; }
+// accessoire peint, posé au sol avec une petite ombre de contact
+function drawProp(n, pos, wpx, lift) { const im = IMG[n]; if (!im) return; const p = toScr(pos), w = wpx * S2(), h = (w * im.height) / im.width; ctx.fillStyle = "rgba(0,0,0,.4)"; ctx.beginPath(); ctx.ellipse(p.x, p.y, w * 0.42, w * 0.13, 0, 0, Math.PI * 2); ctx.fill(); ctx.drawImage(im, p.x - w / 2, p.y - h * 0.82 - (lift || 0), w, h); }
 for (const n of ["gerald_phone", "gerald_work", "odile_cafe", "bastien_sit", "bastien_drone", "delattre_point"]) { const im = new Image(); im.onload = () => { IMG[n] = im; }; im.src = `img/${n}.webp`; }
 // poses particulières (à l'arrêt) : hauteur relative et décalage pour s'asseoir sur le banc
 const POSE = { gerald_phone: { h: 1 }, gerald_work: { h: 0.9, dy: 0.004 }, odile_cafe: { h: 0.97 }, bastien_sit: { h: 0.8, dx: -0.03, dy: -0.035 }, bastien_drone: { h: 1.05 }, delattre_point: { h: 1 } };
@@ -658,11 +661,9 @@ function render(now, real) {
   // flaques près de l'entrée : ronds dans l'eau
   for (const [px, py, ph] of [[0.24, 0.88, 0], [0.3, 0.95, 1.7], [0.18, 0.92, 3.1]]) { const k = ((t * 0.6 + ph) % 1), p = toScr({ x: px, y: py }); ctx.strokeStyle = `rgba(200,230,235,${0.35 * (1 - k)})`; ctx.lineWidth = 1; ctx.beginPath(); ctx.ellipse(p.x, p.y, 4 + k * 26 * S2(), (4 + k * 26 * S2()) * 0.45, 0, 0, Math.PI * 2); ctx.stroke(); }
   // la berline de Vasseur, sous la pluie devant l'entrée
-  if (S.t >= 330 && !S.alarm && !S.vasGone) { const k = Math.min(1, (S.t - 330) / 3), c = toScr({ x: 0.045, y: 0.66 + (1 - k) * 0.3 }), u = S2();
-    ctx.save(); ctx.translate(c.x, c.y); ctx.rotate(-0.5); ctx.fillStyle = "rgba(0,0,0,.5)"; ctx.fillRect(-48 * u, -12 * u, 100 * u, 44 * u);
-    ctx.fillStyle = "#0b0d10"; ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(-50 * u, -20 * u, 100 * u, 42 * u, 12 * u); else ctx.rect(-50 * u, -20 * u, 100 * u, 42 * u); ctx.fill();
-    ctx.fillStyle = "#1c2733"; ctx.fillRect(-22 * u, -14 * u, 44 * u, 30 * u); ctx.fillStyle = "rgba(255,240,200,.9)"; ctx.fillRect(46 * u, -16 * u, 4 * u, 8 * u); ctx.fillRect(46 * u, 10 * u, 4 * u, 8 * u); ctx.fillStyle = "rgba(230,50,40,.9)"; ctx.fillRect(-50 * u, -16 * u, 3 * u, 8 * u); ctx.fillRect(-50 * u, 10 * u, 3 * u, 8 * u);
-    const g = ctx.createRadialGradient(70 * u, 0, 0, 70 * u, 0, 90 * u); g.addColorStop(0, "rgba(255,240,200,.28)"); g.addColorStop(1, "rgba(255,240,200,0)"); ctx.fillStyle = g; ctx.fillRect(40 * u, -70 * u, 130 * u, 140 * u); ctx.restore(); }
+  if (S.t >= 330 && !S.alarm && !S.vasGone && IMG.voiture) { const k = Math.min(1, (S.t - 330) / 3), pos = { x: 0.035 - (1 - k) * 0.03, y: 0.74 + (1 - k) * 0.3 }, c = toScr(pos), u = S2(), w = 230 * u, h = (w * IMG.voiture.height) / IMG.voiture.width;
+    ctx.fillStyle = "rgba(0,0,0,.45)"; ctx.beginPath(); ctx.ellipse(c.x, c.y, w * 0.46, w * 0.16, -0.4, 0, Math.PI * 2); ctx.fill(); ctx.drawImage(IMG.voiture, c.x - w / 2, c.y - h * 0.7, w, h);
+    const g = ctx.createRadialGradient(c.x - w * 0.42, c.y + h * 0.12, 0, c.x - w * 0.42, c.y + h * 0.12, 80 * u); g.addColorStop(0, "rgba(255,240,200,.25)"); g.addColorStop(1, "rgba(255,240,200,0)"); ctx.fillStyle = g; ctx.fillRect(c.x - w, c.y - h, w * 1.2, h * 2); }
   // la rame sur sa voie
   drawTrackCable(t);
   if (rame.state !== "away") drawRame(rame.y, t);
@@ -673,17 +674,15 @@ function render(now, real) {
   // reflets puis personnages, triés par profondeur
   const list = Object.values(A).filter(a => a.vis).sort((a, b) => a.y - b.y);
   for (const a of list) drawReflection(a, t);
-  if (S.propDown && !S.propTaken) { const p = toScr({ x: 0.335, y: 0.545 }), u = S2(); ctx.strokeStyle = "#0c0e10"; ctx.lineWidth = 3 * u; ctx.beginPath(); ctx.moveTo(p.x - 7 * u, p.y - 2 * u); ctx.lineTo(p.x + 7 * u, p.y + 2 * u); ctx.stroke(); ctx.fillStyle = "#555c62"; ctx.beginPath(); ctx.arc(p.x, p.y, 2 * u, 0, Math.PI * 2); ctx.fill(); }
-  if (!S.pinTaken) { const p = toScr({ x: 0.487, y: 0.585 }); ctx.fillStyle = "#d8402c"; ctx.fillRect(p.x - 4 * S2(), p.y - 1.5 * S2(), 8 * S2(), 3 * S2()); ctx.strokeStyle = "#f08a78"; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(p.x + 5 * S2(), p.y, 2.5 * S2(), 0, Math.PI * 2); ctx.stroke(); }
-  if (S.toolbagDown) { const p = toScr({ x: 0.41, y: 0.43 }); ctx.fillStyle = "#3a2c1e"; ctx.fillRect(p.x - 12 * S2(), p.y - 9 * S2(), 24 * S2(), 11 * S2()); ctx.fillStyle = "#c9a24a"; ctx.fillRect(p.x - 2 * S2(), p.y - 9 * S2(), 4 * S2(), 3 * S2()); }
+  if (S.propDown && !S.propTaken) drawProp("helice", { x: 0.335, y: 0.545 }, 26);
+  if (!S.pinTaken) drawProp("goupille", { x: 0.487, y: 0.585 }, 20);
+  if (S.toolbagDown) drawProp("sacoche", { x: 0.41, y: 0.435 }, 58);
   if (S.bagOnBench) { const p = toScr({ x: 0.25, y: 0.43 }); ctx.fillStyle = "#121416"; ctx.beginPath(); ctx.ellipse(p.x, p.y, 22 * S2(), 11 * S2(), -0.2, 0, Math.PI * 2); ctx.fill(); ctx.strokeStyle = "rgba(255,255,255,.18)"; ctx.stroke(); }
   for (const a of list) drawAgent(a, t);
-  // le drone de Bastien, en vol stationnaire devant le local
-  if (S.bastFilm && S.t >= 200 && S.t < 290 && near(A.bastien, P.film, 0.04)) { const dp = toScr({ x: 0.405 + Math.sin(t * 0.9) * 0.012, y: 0.36 + Math.sin(t * 1.7) * 0.006 }), u = S2(), hy = 70 * u;
-    ctx.fillStyle = "rgba(0,0,0,.35)"; ctx.beginPath(); ctx.ellipse(dp.x, dp.y + hy, 16 * u, 5 * u, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = "#15191c"; ctx.fillRect(dp.x - 7 * u, dp.y - 3 * u, 14 * u, 6 * u); ctx.strokeStyle = "#2a3135"; ctx.lineWidth = 2 * u; ctx.beginPath(); ctx.moveTo(dp.x - 14 * u, dp.y - 7 * u); ctx.lineTo(dp.x + 14 * u, dp.y + 7 * u); ctx.moveTo(dp.x + 14 * u, dp.y - 7 * u); ctx.lineTo(dp.x - 14 * u, dp.y + 7 * u); ctx.stroke();
-    ctx.fillStyle = "rgba(200,210,215,.25)"; for (const [ox, oy] of [[-14, -7], [14, 7], [14, -7], [-14, 7]]) { ctx.beginPath(); ctx.ellipse(dp.x + ox * u, dp.y + oy * u, 8 * u, 3 * u, t * 20, 0, Math.PI * 2); ctx.fill(); }
-    ctx.fillStyle = Math.sin(t * 8) > 0 ? "#ff3b2f" : "#3bff7a"; ctx.beginPath(); ctx.arc(dp.x, dp.y, 2 * u, 0, Math.PI * 2); ctx.fill(); }
+  // le drone de Bastien, en vol stationnaire devant le local : il flotte, son ombre reste au sol
+  if (S.bastFilm && S.t >= 200 && S.t < 290 && near(A.bastien, P.film, 0.04) && IMG.drone) { const gp = { x: 0.475 + Math.sin(t * 0.9) * 0.012, y: 0.43 + Math.sin(t * 0.6) * 0.004 }, p = toScr(gp), u = S2(), w = 92 * u, h = (w * IMG.drone.height) / IMG.drone.width, lift = (96 + Math.sin(t * 1.7) * 6) * u;
+    ctx.fillStyle = "rgba(0,0,0,.3)"; ctx.beginPath(); ctx.ellipse(p.x, p.y, w * 0.3, w * 0.09, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.save(); ctx.translate(p.x, p.y - lift); ctx.rotate(Math.sin(t * 1.3) * 0.04); ctx.drawImage(IMG.drone, -w / 2, -h / 2, w, h); ctx.restore(); }
   for (const a of list) if (a !== A.player) drawTag(a, t);
   // repères sur les objets à portée : un point qui pulse, et le nom du plus proche
   if (!S.hidden && !S.aboard && $sheet.hidden) { let best = null, bd = 9;
@@ -808,21 +807,17 @@ function drawAgent(a, t) {
 }
 // la voie monte vers le haut à droite ; la rame glisse le long de cet axe
 // axe des rails relevé sur l'illustration : x = 0,65 en bas (y = 0,9), x = 0,87 en haut (y = 0,1)
+const RAME_SX = 0.6, RAME_SH = 0.63;
 function trackPoint(v) { return { x: 0.65 + (0.9 - v) * 0.275, y: v }; }
 let cableOff = 0;
 // rame peinte : légère inclinaison dans l'axe de la voie, plus petite en s'éloignant vers le haut, portes qui s'ouvrent à quai
 function drawRameSprite(v, t) {
-  const im = IMG.rame, moving = rame.state === "arriving" || rame.state === "leaving", c = toScr(trackPoint(v));
-  const k = Math.max(0.55, Math.min(1.05, 0.62 + v * 0.95)), w = 0.17 * IW * S2() * k, h = (w * im.height) / im.width, jit = moving ? Math.sin(t * 38) * 0.8 : 0;
-  ctx.save(); ctx.translate(c.x + jit, c.y - h * 0.15); ctx.rotate(-0.55); if (rame.state !== "leaving") ctx.scale(-1, 1);
-  ctx.fillStyle = "rgba(0,0,0,.45)"; ctx.beginPath(); ctx.ellipse(0, h * 0.42, w * 0.5, h * 0.16, 0, 0, Math.PI * 2); ctx.fill();
-  ctx.drawImage(im, -w / 2, -h / 2, w, h);
-  if (rame.state === "dock") {
-    const o = Math.min(1, Math.max(0, (S.t - 300) / 2)) * (S.t > 356 ? Math.max(0, (358 - S.t) / 2) : 1), dx = -w / 2 + w * 0.47, dw = w * 0.17, dy = -h / 2 + h * 0.2, dh = h * 0.7;
-    ctx.fillStyle = "rgba(20,16,12,.92)"; ctx.fillRect(dx + dw / 2 - (dw / 2) * o, dy, dw * o, dh);
-    ctx.fillStyle = `rgba(255,214,140,${0.5 * o})`; ctx.fillRect(dx + dw / 2 - (dw / 2) * o, dy + dh * 0.75, dw * o, dh * 0.25);
-  }
-  ctx.restore();
+  const im = IMG.rame2 || IMG.rame, moving = rame.state === "arriving" || rame.state === "leaving", c = toScr(trackPoint(v));
+  if (!IMG.rame2) return;
+  // le dessin est fait à 31° ; la voie monte à 64°. On l'incline sans faire pencher ses lignes verticales.
+  const k = Math.max(0.6, Math.min(1.05, 0.66 + v * 0.8)), w = 0.27 * IW * S2() * k, h = (w * im.height) / im.width, jit = moving ? Math.sin(t * 38) * 0.7 : 0;
+  ctx.save(); ctx.translate(c.x + jit, c.y); ctx.transform(RAME_SX, -RAME_SH, 0, 1, 0, 0);
+  ctx.drawImage(im, -w / 2, -h * 0.56, w, h); ctx.restore();
 }
 function drawTrackCable(t) {
   if (rame.state === "arriving" || rame.state === "leaving") cableOff += 2.5;
