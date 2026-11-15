@@ -48,18 +48,18 @@ td.t { font-family: var(--f-mono); white-space: nowrap; color: var(--teal); }
 </style>
 
 <div class="wrap">
-  <p class="kick">La Dernière Rame · version 2 (trois étages)</p>
+  <p class="kick">La Dernière Rame · version 3 (plusieurs chemins)</p>
   <h1>Graphe de résolution</h1>
-  <p class="lede">La solution complète : chaque indice, chaque objet, chaque action, avec ses dépendances et ses horaires, et le chemin exact de chacune des six fins.</p>
+  <p class="lede">La solution complète : chaque indice, chaque objet, chaque action, avec ses dépendances et ses horaires, et le chemin exact de chacune des huit fins. La version 3 ajoute des objets à fouiller, des actions risquées, des pistes affichées et plusieurs façons d'obtenir chaque élément de la vérité.</p>
 
   <div class="tiles">
-    <div class="tile"><b>6</b><span>fins, dont 1 vraie fin</span></div>
-    <div class="tile"><b>16</b><span>indices dans le carnet</span></div>
-    <div class="tile"><b>4</b><span>objets (perdus à chaque boucle)</span></div>
-    <div class="tile"><b>3</b><span>étages de vérité</span></div>
+    <div class="tile"><b>8</b><span>fins, dont 1 vraie fin</span></div>
+    <div class="tile"><b>31</b><span>indices dans le carnet</span></div>
+    <div class="tile"><b>8</b><span>objets (perdus à chaque boucle)</span></div>
+    <div class="tile"><b>3</b><span>preuves possibles du sabotage</span></div>
+    <div class="tile"><b>4</b><span>façons de faire avouer Odile</span></div>
     <div class="tile"><b>2</b><span>boucles minimum pour la vraie fin</span></div>
-    <div class="tile"><b>11</b><span>interactions dans la boucle finale</span></div>
-    <div class="tile"><b>5</b><span>fenêtres de temps à enchaîner</span></div>
+    <div class="tile"><b>9</b><span>lieux ou objets à fouiller</span></div>
   </div>
 
   <h2>Le graphe complet</h2>
@@ -73,28 +73,48 @@ flowchart TD
     Echute --> Kchute{{Indice · la rame chute à 22:00}}
     Kcafe{{21:57:20 · Odile part au café}}
     Kcafe --> vitre[21:57:30–21:58:30 · rester près du local] --> Klocal{{Indice · le gilet jaune fouille l'armoire}}
-    sac[21:56–21:59 · regarder le sac sur le banc] --> Kdrone{{Indice · drone de Bastien}}
-    Kdrone --> confiance[« Je sais pour le drone »]
-    confiance --> filmer
-    Klocal --> filmer[Avant 21:57:25 · « Filmez la porte du local »]
-    filmer --> laisser[Laisser le sabotage avoir lieu] --> video[Après 21:58:40 · récupérer la vidéo] --> Ivideo[(Vidéo)]
     Klocal -.-> armoire[Après le sabotage · regarder l'armoire] --> Kfrein{{Indice · frein désarmé}}
+  end
+
+  subgraph P[Trois preuves possibles du sabotage]
+    sac[21:56–21:59 · regarder le sac sur le banc] --> Kdrone{{Indice · drone de Bastien}}
+    Kdrone --> confiance[« Je sais pour le drone »] --> filmer[Avant 21:57:25 · « Filmez la porte du local »]
+    Klocal --> filmer
+    filmer --> video[Après 21:58:40 · « Vous avez filmé ? »] --> Ivideo[(Vidéo de Bastien)]
+    ecrans[Écrans d'Odile, depuis la vitre] --> Krec{{Indice · caméra du local coupée}}
+    Krec --> relancer[Avant 21:57:20 · « Votre caméra n'enregistre plus »] --> rejouer[Après 21:58:38 · « Repassez-moi la caméra »] --> Ibande[(Enregistrement du local)]
+    recoin[21:57:20–21:57:30 · se cacher derrière les armoires] --> Kcache{{Indice · cachette}}
+    recoin --> photo[Photographier quand il a le dos tourné] --> Icliche[(Photo du sabotage)]
+    photo -->|il regarde| Erepere([Repéré])
+    Erepere --> Kdos{{Indice · il se retourne toutes les 10 s}}
   end
 
   subgraph E2[Étage 2 · le commanditaire]
     appel[21:55:00–21:55:20 · être près de l'entrée] --> Kappel{{Indice · appel à « monsieur Vasseur »}}
+    poubelle[Poubelle près du pilier] --> Kjournal{{Indice · journal · Vasseur rachète le dépôt}}
+    poubelle --> Ijournal[(Journal plié)]
+    poubelle -->|après 21:55:35| Kcarte{{Indice · carte « Vasseur Immobilier » + numéro}}
     sacoche[21:57:35–21:58:15 · fouiller la sacoche devant le local] --> Ienv[(Enveloppe signée V.)]
-    Ienv --> Kenv{{Indice · 5 000 € et « Que la dernière rame ne monte jamais »}}
     Kappel --> delV[Demander à Mme Delattre] --> Kvasseur{{Indice · Vasseur, le promoteur}}
     Ienv --> delV
+    Kjournal --> Kvasseur
+    Kcarte --> tel[Téléphone de service · composer le numéro]
+    tel --> bluff[Se faire passer pour le gilet jaune] --> Kcomplot{{Indice · Vasseur : « Odile part à 57 »}}
+    tel --> menace[Menacer Vasseur] --> Kvoix{{Indice · il prévient son homme}}
   end
 
   subgraph E3[Étage 3 · la complice]
-    bureau[21:57:22–21:57:35 · entrer dans le local vide et regarder le bureau] --> Ksms{{Indice · SMS « 21h57. Deux minutes. — V. »}}
-    Ksms --> confronter[Après le sabotage · « Qui vous envoie des SMS signés V. ? »] --> Kaveux{{Aveux d'Odile}}
+    bureau[À partir de 21:57:15, local vide · regarder le bureau] --> Ksms{{Indice · SMS « 21h57. Deux minutes. — V. »}}
+    bureau --> tiroir[Ouvrir le tiroir] --> Kdette{{Indice · 18 000 € de dettes, « V. s'en occupe »}}
+    guichet[21:55:30 · près de la vitre] --> Kguichet{{Indice · « à 57, comme prévu »}}
+    Ksms --> aveux[Faire avouer Odile]
+    Kcomplot --> aveux
+    Kdette --> aveux
+    Kvasseur --> aveux
+    aveux --> Kaveux{{Aveux d'Odile}}
   end
 
-  S --> obs & Kcafe & sac & appel & sacoche & bureau
+  S --> obs & Kcafe & sac & appel & sacoche & bureau & poubelle & ecrans & guichet
   S --> delattre[Parler à Mme Delattre] --> Kintrus{{Indice · le gilet jaune n'est pas un agent}}
   Kfrein --> accuser[Accuser sans preuve] --> Kpreuve{{Odile exige une preuve}}
   Kintrus --> accuser
@@ -103,10 +123,19 @@ flowchart TD
   Icafe -->|avant 21:57:20| offrir[Offrir le café à Odile] --> Esursis([Sursis])
   vitre --> entrer[Entrer pendant le sabotage] --> Esursis
   Klocal -->|avant 21:57| prevenir[Parler du local au gilet jaune] --> Kmef{{Indice · méfiance}} --> Esursis
+  Kvoix --> Esursis
+  Ijournal --> coincer[Coincer la porte du local] --> Kporte{{Indice · porte coincée}} --> Esursis
+  coffret[Coffret électrique · couper la lumière] --> Knoir{{Indice · dans le noir il ne travaille pas}} --> Esursis
+  badge[Lui prendre son badge pendant l'appel ou dans le noir] --> Ibadge[(Badge TechniRail)] --> Kfaux{{Indice · société fictive}} --> Esursis
   S --> alarme[Arrêt d'urgence] --> Ealarme([Alarme])
   Ksms -->|avant 21:57:20| tropTot[Confronter Odile trop tôt] --> Eaveux([Aveux sans preuve])
 
-  Ivideo --> montrer[Montrer la vidéo à Odile]
+  Ivideo --> preuve[Une preuve en main]
+  Ibande --> preuve
+  Icliche --> preuve
+  preuve --> secu[Appeler la sécurité] --> Earrest([Arrestation])
+  S --> secuVide[Appeler la sécurité sans preuve] --> Ksecu{{Indice · ils raccrochent}}
+  preuve --> montrer[Montrer la preuve à Odile]
   Kpreuve -.-> montrer
   montrer --> Ewin([Le dernier voyage · la boucle continue])
   Ewin --> Kinc{{Indice · la vérité est incomplète}}
@@ -119,46 +148,73 @@ flowchart TD
   classDef fail fill:#f6e2de,stroke:#b2402c,color:#3a140c
   classDef mid fill:#fbf0df,stroke:#b8731d,color:#3a2610
   classDef win fill:#e3f0e0,stroke:#3f7a3a,color:#16300f
-  class Kchute,Kcafe,Klocal,Kdrone,Kfrein,Kappel,Kenv,Kvasseur,Ksms,Kaveux,Kintrus,Kpreuve,Kmef,Kinc clue
-  class Ivideo,Ienv,Ipiece,Icafe item
-  class Echute,Esursis,Ealarme,Eaveux fail
+  class Kchute,Kcafe,Klocal,Kdrone,Kfrein,Kappel,Kvasseur,Ksms,Kaveux,Kintrus,Kpreuve,Kmef,Kinc,Krec,Kcache,Kdos,Kjournal,Kcarte,Kcomplot,Kvoix,Kdette,Kguichet,Kporte,Knoir,Kfaux,Ksecu clue
+  class Ivideo,Ienv,Ipiece,Icafe,Ibande,Icliche,Ijournal,Ibadge item
+  class Echute,Esursis,Ealarme,Eaveux,Erepere,Earrest fail
   class Ewin mid
   class Everite win
 </pre>
   </div>
   <p class="legend"><span><i style="background:#e6f3f1;border:1px solid #1f7f78"></i>indice (gardé d'une boucle à l'autre)</span><span><i style="background:#fbf0df;border:1px solid #b8731d"></i>objet (perdu à chaque boucle)</span><span><i style="background:#f6e2de;border:1px solid #b2402c"></i>fin qui relance la boucle</span><span><i style="background:#e3f0e0;border:1px solid #3f7a3a"></i>vraie fin</span><span>pointillés : utile mais pas obligatoire</span></p>
 
+  <h2>Ce qui aide le joueur</h2>
+  <ol>
+    <li><b>Piste affichée</b> sous l'horloge et en haut du carnet : elle change selon les indices déjà connus (8 étapes, de « Observez » à « Vous avez tout »).</li>
+    <li><b>Étiquettes</b> : chaque personnage a son nom et un anneau de couleur (gilet jaune en jaune). Hors de l'écran, une flèche colorée indique où il se trouve.</li>
+    <li><b>Petites phrases</b> : en passant près des personnages, ils parlent tout seuls (environ toutes les 9 à 16 secondes).</li>
+    <li><b>Événements</b> : annonces à 21:54:20, 21:58:00 et 21:59:30 ; le téléphone du guichet sonne à 21:55:30 ; micro-coupure de lumière à 21:56:30 (Odile parle alors du coffret du hall, ce qui l'indique au joueur) ; Mme Delattre salue la rame à 21:59:00.</li>
+  </ol>
+
   <h2>Solution complète de chaque fin</h2>
 
   <div class="end win"><h3>La vérité · la seule fin qui brise la boucle</h3>
-    <p class="tag">Pré-requis : connaître « le gilet jaune fouille l'armoire » (indice d'une boucle précédente). Tout le reste peut se faire dans la même boucle.</p>
+    <p class="tag">Il faut, dans la même boucle : une preuve du sabotage, l'enveloppe de V., et les aveux d'Odile, puis lui montrer l'enveloppe et la preuve. Pré-requis d'une boucle précédente : l'indice « le gilet jaune fouille l'armoire ».</p>
+    <p><b>Chemin conseillé (vidéo de Bastien + SMS) :</b></p>
     <ol>
       <li><b>Boucle précédente, 21:57:30 :</b> se placer près de la vitre du local technique quand Odile est partie au café. L'indice « le gilet jaune fouille l'armoire » s'ajoute au carnet. Laisser la boucle finir (Chute).</li>
       <li><b>Boucle finale, 21:56:00–21:57:20 :</b> Bastien laisse son sac sur le banc et part sur le quai. Regarder le sac : indice « drone ».</li>
       <li>Aller voir Bastien sur le quai : « Je sais pour le drone », puis <b>avant 21:57:25</b> : « Filmez la porte du local technique à 21 h 57 ».</li>
-      <li><b>21:57:20</b> : Odile part au café. <b>Entre 21:57:22 et 21:57:35</b>, entrer dans le local (porte → « Entrer ») et regarder le bureau : indice « SMS de V. ». Ressortir aussitôt, sinon le gilet jaune n'entre pas et la preuve n'existera jamais.</li>
+      <li><b>21:57:20</b> : Odile part au café. <b>Entre 21:57:20 et 21:57:30</b>, entrer dans le local (porte → « Entrer ») et regarder le bureau : indice « SMS de V. ». Ressortir aussitôt, sinon le gilet jaune n'entre pas et la preuve n'existera jamais.</li>
       <li><b>21:57:35–21:58:15</b> : le gilet jaune trafique l'armoire. Sa sacoche est posée devant la porte du local : la fouiller et <b>prendre l'enveloppe</b>. Ne pas entrer dans le local.</li>
       <li><b>Après 21:58:40</b> : demander à Bastien « Alors, vous avez filmé ? » → objet « vidéo ».</li>
       <li>Aller à la vitre d'Odile, <b>dans cet ordre</b> : « Qui vous envoie des SMS signés V. ? » (aveux), puis montrer l'enveloppe, puis montrer la vidéo. Le faire avant 21:59:50 environ : Odile a besoin d'environ 6 secondes pour réarmer le frein.</li>
       <li>22:00 : la rame monte, le gilet jaune est arrêté, Vasseur le sera au matin. <b>Fin du jeu.</b></li>
     </ol>
+    <p><b>Variantes pour la preuve</b> (à la place de Bastien) :</p>
+    <ol>
+      <li><b>La caméra d'Odile.</b> Regarder les écrans depuis la vitre : la caméra du local est coupée (indice). Avant 21:57:20, dire à Odile « Votre caméra du local n'enregistre plus » : elle la relance. Laisser le sabotage durer au moins 8 secondes. Après son retour (21:58:38), « Repassez-moi la caméra du local » : elle voit le sabotage, garde l'enregistrement et file réarmer le frein. Il ne reste qu'à obtenir ses aveux et lui montrer l'enveloppe.</li>
+      <li><b>La cachette.</b> Entre 21:57:20 et 21:57:30, entrer dans le local vide et se cacher dans le recoin derrière les armoires. Quand le gilet jaune travaille, il a le dos tourné 7 secondes sur 10 : « Le prendre en photo » à ce moment-là. S'il regarde derrière lui, fin « Repéré ». Attention : en se cachant, on ne peut pas prendre l'enveloppe pendant le sabotage. Il faut donc sortir après la photo et attraper la sacoche avant qu'il ne la reprenne (vers 21:58:35). Odile vous trouve si vous êtes encore caché à son retour.</li>
+    </ol>
+    <p><b>Variantes pour les aveux</b> (à la place du SMS) :</p>
+    <ol>
+      <li><b>Le bluff au téléphone.</b> Fouiller la poubelle après 21:55:35 : carte de Vasseur avec un numéro. Au téléphone de service, composer le numéro et « se faire passer pour le gilet jaune » : Vasseur lâche le plan. Dire à Odile « Vasseur m'a dit que vous partiriez à 57 ».</li>
+      <li><b>Les dettes.</b> Ouvrir le tiroir du bureau quand le local est vide (lettre de la banque, post-it « V. s'en occupe »), et connaître le nom de Vasseur (journal, Mme Delattre ou appel). Dire à Odile « Vasseur paie vos dettes, c'est ça ? ».</li>
+    </ol>
   </div>
 
   <div class="end mid"><h3>Le dernier voyage · la rame est sauvée, mais la boucle continue</h3>
-    <ol><li>Même chemin que ci-dessus pour la vidéo (étapes 1 à 3, puis 6).</li><li>Montrer la vidéo à Odile sans avoir obtenu ses aveux <i>ou</i> sans lui montrer l'enveloppe.</li><li>La rame part sans danger et le gilet jaune est retenu, mais « quelqu'un l'a payé » : nouvel indice « la vérité est incomplète », et la boucle recommence.</li></ol>
+    <ol><li>Obtenir une preuve (vidéo, enregistrement ou photo) et la montrer à Odile, sans ses aveux <i>ou</i> sans lui montrer l'enveloppe.</li><li>La rame part sans danger et le gilet jaune est retenu, mais « quelqu'un l'a payé » : nouvel indice « la vérité est incomplète », et la boucle recommence.</li></ol>
   </div>
+
+  <div class="end"><h3>Arrestation · le saboteur est pris, le commanditaire reste libre</h3><ol><li>Avoir une preuve en main (vidéo, enregistrement ou photo), puis appeler la sécurité au téléphone de service. Les agents arrivent 40 secondes plus tard et arrêtent le gilet jaune.</li><li>Si le frein n'a pas été réarmé, le départ est annulé par précaution. Vasseur n'est pas inquiété, et la boucle recommence.</li></ol></div>
+
+  <div class="end"><h3>Repéré</h3><ol><li>Caché derrière les armoires, prendre la photo pendant que le gilet jaune regarde derrière lui. Il vous assomme : la boucle s'arrête tout de suite. Indice « il se retourne toutes les 10 secondes ».</li></ol></div>
 
   <div class="end"><h3>Chute · la fin par défaut</h3><ol><li>Ne rien empêcher. Odile part au café à 21:57:20, le gilet jaune désarme le frein de secours en 40 secondes, la rame s'arrête dans la pente puis glisse en arrière. Indice « la rame chute ».</li></ol></div>
 
-  <div class="end"><h3>Sursis · le sabotage est empêché, le saboteur repart libre</h3><p>Trois façons d'y arriver :</p>
+  <div class="end"><h3>Sursis · le sabotage est empêché, le saboteur repart libre</h3><p>Sept façons d'y arriver :</p>
     <ol><li><b>Le café :</b> regarder le banc → prendre la pièce → l'insérer dans le distributeur → offrir le café à Odile <b>avant 21:57:20</b>. Elle ne quitte plus son poste.</li>
-    <li><b>L'irruption :</b> entrer dans le local pendant que le gilet jaune y travaille. Il s'enfuit avant d'avoir fini.</li>
-    <li><b>La mise en garde :</b> lui dire « Je sais ce que vous allez faire dans le local » <b>avant 21:57</b>. Il se méfie et quitte la station (indice « méfiance »).</li></ol>
+    <li><b>L'irruption :</b> entrer dans le local pendant que le gilet jaune y travaille, ou le surprendre depuis la cachette. Il s'enfuit avant d'avoir fini.</li>
+    <li><b>La mise en garde :</b> lui dire « Je sais ce que vous allez faire dans le local » <b>avant 21:57</b>. Il se méfie et quitte la station (indice « méfiance »).</li>
+    <li><b>La menace :</b> appeler Vasseur au numéro de la carte et le menacer <b>avant 21:57:20</b> : il prévient son homme, qui renonce.</li>
+    <li><b>Le badge :</b> le lui prendre pendant son coup de fil (21:54:56–21:55:22) ou dans le noir, puis le montrer à Odile avant 21:57:20 : elle refuse de quitter son poste. Raté, il vous attrape le poignet et se méfie.</li>
+    <li><b>La porte et la lumière :</b> prendre le journal dans la poubelle, coincer la porte du local avant son arrivée (il perd 20 s à la forcer), puis couper la lumière au coffret pendant qu'il travaille (3 fois 10 s au maximum). Il lui faut 40 s de travail avant 21:58:35 : avec la porte et deux ou trois coupures, il n'y arrive pas.</li>
+    <li><b>Le suivre de trop près</b> plus de 7 secondes avant 21:57:20 : il s'en rend compte et s'en va.</li></ol>
   </div>
 
   <div class="end"><h3>Alarme</h3><ol><li>Appuyer sur l'arrêt d'urgence près du quai, à n'importe quel moment. Le départ est annulé et le gilet jaune s'échappe dans la confusion.</li></ol></div>
 
-  <div class="end"><h3>Aveux sans preuve</h3><ol><li>Connaître le SMS, d'une boucle précédente, et confronter Odile <b>avant 21:57:20</b>. Elle avoue et ne quitte plus son poste, donc le sabotage n'a pas lieu et la vidéo n'existera pas. La rame monte, mais Vasseur ne sera jamais inquiété.</li></ol></div>
+  <div class="end"><h3>Aveux sans preuve</h3><ol><li>Faire avouer Odile <b>avant 21:57:20</b> (SMS, bluff ou dettes, connus d'une boucle précédente). Elle ne quitte plus son poste, donc le sabotage n'a pas lieu et aucune preuve n'existera. La rame monte, mais Vasseur ne sera jamais inquiété.</li></ol></div>
 
   <h2>Tous les indices</h2>
   <div class="tbl"><table>
@@ -167,16 +223,29 @@ flowchart TD
       <tr><td>La rame chute</td><td>Laisser la boucle aller au bout avec le frein désarmé</td><td class="t">22:00</td><td>Point de départ narratif</td></tr>
       <tr><td>Odile part au café</td><td>Automatique, elle l'annonce à voix haute</td><td class="t">21:57:20</td><td>Révèle la fenêtre du sabotage</td></tr>
       <tr><td>Pièce sous le banc</td><td>Regarder le banc</td><td class="t">toute la boucle</td><td>Voie « Sursis » par le café</td></tr>
-      <tr><td>Gilet jaune dans le local</td><td>Être près de la vitre, ou dans le local, pendant le sabotage</td><td class="t">21:57:30–21:58:30</td><td><b>Indispensable</b> (demande à Bastien)</td></tr>
+      <tr><td>Gilet jaune dans le local</td><td>Être près de la vitre, ou dans le local, pendant le sabotage</td><td class="t">21:57:30–21:58:30</td><td><b>Indispensable</b></td></tr>
       <tr><td>Frein désarmé</td><td>Regarder l'armoire après le sabotage</td><td class="t">après ~21:58:15</td><td>Fausse piste : Odile exige une preuve</td></tr>
       <tr><td>Intrus</td><td>Demander à Mme Delattre si elle connaît le personnel</td><td class="t">toute la boucle</td><td>Fausse piste : Odile exige une preuve</td></tr>
-      <tr><td>Odile exige une preuve</td><td>Accuser devant Odile (frein ou intrus)</td><td class="t">toute la boucle</td><td>Oriente vers la vidéo</td></tr>
-      <tr><td>Drone de Bastien</td><td>Regarder le sac laissé sur le banc</td><td class="t">21:56–21:59</td><td><b>Indispensable</b> (confiance de Bastien)</td></tr>
+      <tr><td>Odile exige une preuve</td><td>Accuser devant Odile (frein ou intrus)</td><td class="t">toute la boucle</td><td>Oriente vers une preuve filmée</td></tr>
+      <tr><td>Drone de Bastien</td><td>Regarder le sac laissé sur le banc</td><td class="t">21:56–21:59</td><td>Preuve n° 1 (vidéo)</td></tr>
+      <tr><td>Caméra du local coupée</td><td>Regarder les écrans d'Odile depuis la vitre (Bastien met sur la piste)</td><td class="t">toute la boucle</td><td>Preuve n° 2 (enregistrement)</td></tr>
+      <tr><td>Cachette</td><td>Regarder le recoin derrière les armoires, dans le local</td><td class="t">local vide</td><td>Preuve n° 3 (photo)</td></tr>
+      <tr><td>Il se retourne toutes les 10 s</td><td>Réussir la photo, ou se faire repérer</td><td class="t">pendant le sabotage</td><td>Règle de la cachette</td></tr>
       <tr><td>Appel à Vasseur</td><td>Être près de l'entrée quand le gilet jaune téléphone</td><td class="t">21:55:00–21:55:20</td><td>Ouvre la piste du commanditaire</td></tr>
+      <tr><td>Journal</td><td>Fouiller la poubelle près du pilier</td><td class="t">toute la boucle</td><td>Donne le nom de Vasseur + objet « journal »</td></tr>
+      <tr><td>Carte de Vasseur</td><td>Fouiller sous les gobelets de la poubelle</td><td class="t">après 21:55:35</td><td>Ouvre le téléphone vers Vasseur</td></tr>
+      <tr><td>Complot</td><td>Appeler Vasseur en se faisant passer pour le gilet jaune</td><td class="t">toute la boucle</td><td>Aveux, variante 1</td></tr>
+      <tr><td>Vasseur prévient son homme</td><td>Appeler Vasseur et le menacer</td><td class="t">toute la boucle</td><td>Mise en garde (Sursis si avant 21:57:20)</td></tr>
       <tr><td>Enveloppe de V.</td><td>Fouiller la sacoche posée devant le local</td><td class="t">21:57:35–21:58:15</td><td><b>Indispensable</b> (objet de la vraie fin)</td></tr>
-      <tr><td>Vasseur, le promoteur</td><td>Demander à Mme Delattre (après l'appel ou avec l'enveloppe)</td><td class="t">toute la boucle</td><td>Donne le mobile</td></tr>
-      <tr><td>SMS de V.</td><td>Regarder le bureau d'Odile quand le local est vide</td><td class="t">21:57:22–21:57:35 (ou après 21:58:15)</td><td><b>Indispensable</b> (aveux)</td></tr>
-      <tr><td>Aveux d'Odile</td><td>« Qui vous envoie des SMS signés V. ? »</td><td class="t">après le sabotage</td><td><b>Indispensable</b></td></tr>
+      <tr><td>Vasseur, le promoteur</td><td>Mme Delattre (après l'appel ou avec l'enveloppe), ou le journal</td><td class="t">toute la boucle</td><td>Donne le mobile</td></tr>
+      <tr><td>SMS de V.</td><td>Regarder le bureau d'Odile quand le local est vide</td><td class="t">à partir de 21:57:15</td><td>Aveux, chemin principal</td></tr>
+      <tr><td>Dettes d'Odile</td><td>Ouvrir le tiroir du bureau</td><td class="t">local vide</td><td>Aveux, variante 2 (avec le nom de Vasseur)</td></tr>
+      <tr><td>Appel au guichet</td><td>Être près de la vitre quand le téléphone sonne</td><td class="t">21:55:30</td><td>Soupçon sur Odile (elle ment)</td></tr>
+      <tr><td>Aveux d'Odile</td><td>SMS, bluff ou dettes</td><td class="t">après le sabotage</td><td><b>Indispensable</b></td></tr>
+      <tr><td>Société fictive</td><td>Montrer le badge volé à Odile</td><td class="t">toute la boucle</td><td>Odile reste à son poste (Sursis)</td></tr>
+      <tr><td>Coupure de lumière</td><td>Utiliser le coffret électrique du hall</td><td class="t">toute la boucle</td><td>Ralentit le sabotage, permet de voler le badge</td></tr>
+      <tr><td>Porte coincée</td><td>Coincer la porte du local avec le journal</td><td class="t">avant 21:57:30</td><td>Ralentit le sabotage de 20 s</td></tr>
+      <tr><td>Sécurité</td><td>Appeler la sécurité sans preuve</td><td class="t">toute la boucle</td><td>Montre qu'il faut une preuve</td></tr>
       <tr><td>Méfiance</td><td>Parler du local au gilet jaune avant 21:57</td><td class="t">avant 21:57</td><td>Mise en garde : ne pas le prévenir</td></tr>
       <tr><td>Sursis</td><td>Empêcher le sabotage sans preuve</td><td class="t">22:00</td><td>Montre qu'il faut le laisser faire</td></tr>
       <tr><td>Vérité incomplète</td><td>Fin « Le dernier voyage »</td><td class="t">22:00</td><td>Pousse vers les étages 2 et 3</td></tr>
@@ -188,17 +257,22 @@ flowchart TD
     <thead><tr><th>Heure</th><th>Odile</th><th>Gilet jaune</th><th>Bastien</th><th>Mme Delattre</th></tr></thead>
     <tbody>
       <tr><td class="t">21:54:00</td><td>Au poste</td><td>Dehors</td><td>Sur le banc, sac à l'épaule</td><td>Près des billets</td></tr>
+      <tr><td class="t">21:54:20</td><td colspan="4">Annonce : dernier départ à 22 h 00</td></tr>
       <tr><td class="t">21:54:48</td><td></td><td>Entre, s'arrête à l'entrée</td><td></td><td></td></tr>
-      <tr><td class="t">21:55:00</td><td></td><td>Appelle « monsieur Vasseur »</td><td></td><td></td></tr>
-      <tr><td class="t">21:55:22</td><td></td><td>Attend près du quai</td><td></td><td></td></tr>
+      <tr><td class="t">21:54:56</td><td></td><td>Appelle « monsieur Vasseur » (badge volable jusqu'à 21:55:22)</td><td></td><td></td></tr>
+      <tr><td class="t">21:55:22</td><td></td><td>Traverse le hall, jette la carte dans la poubelle, attend en haut du quai</td><td></td><td></td></tr>
+      <tr><td class="t">21:55:30</td><td>Téléphone du guichet : « à 57, comme prévu »</td><td></td><td></td><td></td></tr>
       <tr><td class="t">21:56:00</td><td></td><td></td><td>Laisse le sac sur le banc, va au quai</td><td></td></tr>
-      <tr><td class="t">21:57:20</td><td>Part au café (sauf café offert ou aveux)</td><td></td><td>Va filmer le local (si demandé)</td><td></td></tr>
-      <tr><td class="t">21:57:30</td><td></td><td>Entre dans le local, pose sa sacoche devant la porte</td><td></td><td></td></tr>
-      <tr><td class="t">21:58:15</td><td></td><td>Frein désarmé (40 s à l'armoire)</td><td></td><td></td></tr>
-      <tr><td class="t">21:58:35</td><td></td><td>Ressort, reprend sa sacoche, va au bout du quai</td><td></td><td></td></tr>
-      <tr><td class="t">21:58:40</td><td>Revient au poste</td><td></td><td></td><td></td></tr>
+      <tr><td class="t">21:56:30</td><td>Parle du coffret du hall</td><td colspan="2">Micro-coupure de lumière</td><td>« Oh ! Les lumières… »</td></tr>
+      <tr><td class="t">21:57:15</td><td>Reçoit le SMS de V.</td><td></td><td></td><td></td></tr>
+      <tr><td class="t">21:57:20</td><td>Part au café (sauf café offert, badge montré ou aveux)</td><td></td><td>Va filmer le local (si demandé)</td><td></td></tr>
+      <tr><td class="t">21:57:30</td><td></td><td>Entre dans le local, pose sa sacoche devant la porte (ou force la porte coincée)</td><td></td><td></td></tr>
+      <tr><td class="t">21:58:00</td><td colspan="4">Annonce : la rame arrive</td></tr>
+      <tr><td class="t">21:58:10+</td><td></td><td>Frein désarmé après 40 s de travail (sans compter les coupures)</td><td></td><td></td></tr>
+      <tr><td class="t">21:58:35</td><td></td><td>Dernière limite : ressort, reprend sa sacoche, va au bout du quai</td><td></td><td></td></tr>
+      <tr><td class="t">21:58:40</td><td>Revient au poste (trouve le joueur caché)</td><td></td><td></td><td></td></tr>
+      <tr><td class="t">21:59:00</td><td colspan="3">La rame arrive à quai, portes ouvertes</td><td>« La voilà ! »</td></tr>
       <tr><td class="t">21:59:00</td><td></td><td></td><td>Revient chercher son sac</td><td></td></tr>
-      <tr><td class="t">21:59:00</td><td colspan="4">La rame arrive à quai, portes ouvertes</td></tr>
       <tr><td class="t">21:59:30</td><td></td><td></td><td>Va au quai</td><td>Va au quai</td></tr>
       <tr><td class="t">21:59:40</td><td></td><td>Quitte la station</td><td></td><td></td></tr>
       <tr><td class="t">22:00:00</td><td colspan="4">Départ de la dernière rame</td></tr>
@@ -207,12 +281,12 @@ flowchart TD
 
   <h2>Diagnostic de complexité et de profondeur</h2>
   <div class="score">
-    <div class="sc"><h3>Longueur du chemin critique <span class="delta">↑ de 6 à 11</span></h3><div class="bar"><i style="width:60%"></i></div><p>11 interactions dans la boucle finale, sur 2 boucles au minimum. Pour un joueur qui découvre le jeu, comptez 45 à 90 minutes.</p></div>
-    <div class="sc"><h3>Étages de vérité <span class="delta">↑ de 1 à 3</span></h3><div class="bar"><i style="width:65%"></i></div><p>Le sabotage, puis le commanditaire, puis la complice. Chaque fin intermédiaire pousse vers l'étage suivant.</p></div>
-    <div class="sc"><h3>Pression temporelle <span class="delta">↑</span></h3><div class="bar"><i style="width:80%"></i></div><p>Cinq fenêtres à enchaîner dans la même boucle, dont deux de 13 et 40 secondes collées l'une à l'autre (le bureau, puis la sacoche).</p></div>
-    <div class="sc"><h3>Ordre des actions <span class="delta">nouveau</span></h3><div class="bar"><i style="width:70%"></i></div><p>Confronter Odile trop tôt l'empêche de partir, donc la preuve n'existe plus. Prévenir le gilet jaune le fait fuir. L'ordre compte vraiment.</p></div>
-    <div class="sc"><h3>Contre-intuition</h3><div class="bar"><i style="width:80%"></i></div><p>Laisser le sabotage avoir lieu, ressortir du local juste avant l'arrivée du saboteur, ne pas l'interrompre : la vraie fin exige de laisser le crime se produire.</p></div>
-    <div class="sc"><h3>Personnages qui réagissent <span class="delta">nouveau</span></h3><div class="bar"><i style="width:45%"></i></div><p>Le gilet jaune fuit s'il est prévenu ou surpris, panique s'il perd son enveloppe. Odile reste à son poste après un café ou des aveux. C'est encore limité à ces deux personnages.</p></div>
+    <div class="sc"><h3>Choses à faire <span class="delta">↑ de 13 à 30 interactions</span></h3><div class="bar"><i style="width:75%"></i></div><p>9 lieux à fouiller, une vingtaine de nouvelles répliques, des petites phrases en passant, 4 annonces ou événements. Chaque minute de la boucle a désormais quelque chose à offrir.</p></div>
+    <div class="sc"><h3>Plusieurs chemins <span class="delta">nouveau</span></h3><div class="bar"><i style="width:75%"></i></div><p>3 preuves possibles, 4 façons de faire avouer Odile, 7 façons d'empêcher le sabotage. Le joueur peut résoudre à sa manière.</p></div>
+    <div class="sc"><h3>Prise de risque <span class="delta">nouveau</span></h3><div class="bar"><i style="width:65%"></i></div><p>Se cacher, voler un badge, suivre quelqu'un, couper la lumière, bluffer au téléphone. Un échec se paie : méfiance, poignet attrapé, ou fin « Repéré ».</p></div>
+    <div class="sc"><h3>Lisibilité <span class="delta">↑</span></h3><div class="bar"><i style="width:80%"></i></div><p>Piste affichée en permanence, noms et anneaux de couleur, flèches vers les personnages hors champ. On ne perd plus le gilet jaune.</p></div>
+    <div class="sc"><h3>Pression temporelle</h3><div class="bar"><i style="width:80%"></i></div><p>Toujours cinq fenêtres à enchaîner pour la vraie fin. La cachette ajoute un vrai test de timing : 10 secondes pour entrer, puis attendre qu'il ait le dos tourné.</p></div>
+    <div class="sc"><h3>Personnages qui réagissent <span class="delta">↑</span></h3><div class="bar"><i style="width:65%"></i></div><p>Odile chasse les intrus de son local et trouve les gens cachés. Le gilet jaune repère les filatures, peste contre le noir et la porte, abandonne s'il manque de temps. Bastien et Mme Delattre donnent des pistes.</p></div>
   </div>
-  <p style="margin-top:14px"><b>En résumé :</b> la version 2 passe d'un seul étage à <b>trois étages imbriqués</b>. Les fenêtres de temps s'enchaînent, l'ordre des actions compte, et le joueur doit laisser le crime se produire tout en restant juste à côté. Il reste à rendre Bastien et Mme Delattre plus réactifs, et à ajouter un acte final dans la cabine.</p>
+  <p style="margin-top:14px"><b>En résumé :</b> la version 3 garde la même vérité à trois étages, mais multiplie les façons d'y arriver et les choses à faire en attendant. Le joueur voit toujours quelle piste suivre, et peut choisir entre la méthode patiente (Bastien), technique (caméra), ou risquée (cachette).</p>
 </div>
