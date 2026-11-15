@@ -48,14 +48,14 @@ td.t { font-family: var(--f-mono); white-space: nowrap; color: var(--teal); }
 </style>
 
 <div class="wrap">
-  <p class="kick">La Dernière Rame · version 6 (fausses pistes)</p>
+  <p class="kick">La Dernière Rame · version 8 (lieu vivant)</p>
   <h1>Graphe de résolution</h1>
-  <p class="lede">La solution complète : chaque indice, chaque objet, chaque action, avec ses dépendances et ses horaires, et le chemin exact de chacune des onze fins. La version 3 ajoute des objets à fouiller, des actions risquées, des pistes affichées et plusieurs façons d'obtenir chaque élément de la vérité.</p>
+  <p class="lede">La solution complète : chaque indice, chaque objet, chaque action, avec ses dépendances et ses horaires, et le chemin exact de chacune des treize fins. La version 3 ajoute des objets à fouiller, des actions risquées, des pistes affichées et plusieurs façons d'obtenir chaque élément de la vérité.</p>
 
   <div class="tiles">
-    <div class="tile"><b>11</b><span>fins, dont 2 qui brisent la boucle</span></div>
+    <div class="tile"><b>13</b><span>fins, dont 2 qui brisent la boucle</span></div>
     <div class="tile"><b>4</b><span>fausses pistes</span></div>
-    <div class="tile"><b>45</b><span>indices dans le carnet</span></div>
+    <div class="tile"><b>50</b><span>indices dans le carnet</span></div>
     <div class="tile"><b>8</b><span>objets (perdus à chaque boucle)</span></div>
     <div class="tile"><b>3</b><span>preuves possibles du sabotage</span></div>
     <div class="tile"><b>4</b><span>façons de faire avouer Odile</span></div>
@@ -186,6 +186,21 @@ flowchart TD
     <li><b>Le silence</b> (effacer les messages) : Odile est épargnée et touche sa retraite, le gilet jaune tombe seul, Vasseur n'est pas inquiété et la station est rasée six mois plus tard.</li>
   </ol>
 
+  <h2>Les trois premières minutes</h2>
+  <div class="tbl"><table>
+    <thead><tr><th>Heure</th><th>Ce qui se passe</th><th>Ce qu'on peut faire</th><th>Ce que ça apporte</th></tr></thead>
+    <tbody>
+      <tr><td class="t">21:54:05</td><td>Odile vous fait signe</td><td>La saluer, puis « Je peux t'aider ? » : elle demande son registre, oublié sur le banc. Le prendre sur le banc et le lui rendre</td><td>Indice « registre » (une visite non notée) et Odile bien disposée (+3)</td></tr>
+      <tr><td class="t">dès 21:54</td><td>Mme Delattre attend, puis va regarder la pluie (21:54:30–21:55:10)</td><td>« Je peux faire quelque chose pour vous ? » → prendre sa photo</td><td>Une pièce de 2 €, et elle accepte ensuite de retenir le gilet jaune</td></tr>
+      <tr><td class="t">21:55:02</td><td>Bastien se lève et fait les cent pas : une hélice tombe de sa poche</td><td>Ramasser l'hélice par terre, la lui rendre</td><td>Il avoue le drone et vous fait confiance, sans fouiller son sac</td></tr>
+      <tr><td class="t">21:55:44</td><td>Le gilet jaune vient observer le local à travers la vitre</td><td>Le regarder faire</td><td>Noté dans la chronologie du carnet</td></tr>
+      <tr><td class="t">21:55:48</td><td>Odile se lève vérifier ses voyants</td><td>—</td><td>Ambiance</td></tr>
+    </tbody>
+  </table></div>
+
+  <h2>Le ton avec Odile</h2>
+  <p>Odile a une humeur. L'écouter la rend disponible : la saluer (+1), « Ça va aller, demain ? » (+1), lui proposer de l'aide (+1), lui rendre son registre (+2), lui offrir un café (+2). La brusquer la ferme : « La rame va tomber » (−1), « Le gilet jaune n'est pas de chez vous » (−1). Si son humeur est négative au moment de la confronter, elle refuse de répondre (« Laisse-moi travailler »). Il faut alors choisir « Pardon, Maman. Je m'inquiète pour toi », puis reposer la question.</p>
+
   <h2>Les fausses pistes</h2>
   <div class="tbl"><table>
     <thead><tr><th>Ce qu'on voit</th><th>Où</th><th>Ce que ça laisse croire</th><th>La vérité, et comment l'apprendre</th></tr></thead>
@@ -211,6 +226,10 @@ flowchart TD
     <li><b>Carnet enrichi</b> : la piste, six déductions à relier quand on a les deux indices, la chronologie de la boucle en cours (heure par heure), tous les indices et douze succès.</li>
     <li><b>Résumé de fin de boucle</b> : nouveaux indices appris et piste suivante. Écran final avec boucles, temps de jeu, fins, succès et rang.</li>
     <li><b>Tension</b> : battements de cœur près du gilet jaune, en cachette ou pendant la traque ; nappe sonore qui monte de 21:58 à 22:00. Le drone de Bastien est visible au-dessus du hall quand il filme.</li>
+    <li><b>Coup de pouce</b> : après deux soirées sans nouvel indice, l'onglet « Piste » du carnet propose une aide précise, qu'on est libre de ne pas demander.</li>
+    <li><b>Revoir</b> : un onglet du carnet rejoue en accéléré, sur un plan, les déplacements de tout le monde pendant la soirée précédente.</li>
+    <li><b>Mode histoire</b> : dans le menu pause, ralentit le temps d'un tiers.</li>
+    <li><b>Déjà-vu</b> : à partir de la boucle 3, les personnages ont des impressions de déjà-vu ; à la boucle 4, Mme Delattre en parle.</li>
     <li><b>Événements</b> : annonces à 21:54:20, 21:58:00 et 21:59:30 ; le téléphone du guichet sonne à 21:55:30 ; micro-coupure de lumière à 21:56:30 (Odile parle alors du coffret du hall, ce qui l'indique au joueur) ; Mme Delattre salue la rame à 21:59:00.</li>
   </ol>
 
@@ -256,6 +275,11 @@ flowchart TD
   <div class="end"><h3>Erreur judiciaire · un innocent arrêté</h3><ol><li>Regarder le sac de Bastien et <b>prendre la pince</b>, sans lui demander à quoi elle sert.</li><li>Dire à Odile « Je sais qui va saboter la rame » → « Bastien », pince en main. Ou le dénoncer au téléphone de service.</li><li>25 secondes plus tard, la sécurité emmène Bastien. Le gilet jaune agit tranquillement : si rien d'autre ne l'arrête, la rame tombe quand même.</li></ol></div>
 
   <div class="end mid"><h3>Dans l'ombre · la rame est sauvée, personne ne paie</h3><ol><li>Ramasser la vieille goupille rouge par terre dans le hall.</li><li>Laisser le sabotage se faire, puis entrer dans le local avant le retour d'Odile (entre 21:58:15 et 21:58:40 environ).</li><li>À l'armoire, suivre le schéma : <b>1. disjoncteur bleu, 2. goupille, 3. levier rouge</b>. Une erreur d'ordre fait perdre 6 secondes.</li><li>La rame monte. Le gilet jaune et Vasseur ne sont pas inquiétés, et la boucle continue. Si vous obtenez en plus les aveux et montrez l'enveloppe, vous arrivez au choix final.</li></ol></div>
+
+  <div class="end mid"><h3>À la main · sauvés de l'intérieur</h3><ol><li>Laisser le sabotage se faire, puis monter à bord de la rame à quai (après 21:59:00).</li><li>La cabine s'arrête dans la pente et glisse en arrière : 30 secondes. Dans l'ordre : <b>rassurer Mme Delattre</b> (sinon elle vous agrippe et vous perdez 6 s), <b>casser la vitre</b> (2 coups), <b>tirer la poignée</b> (2 fois). L'interphone fait perdre 5 s pour rien.</li><li>Réussite : tout le monde est vivant, mais personne ne sait qui a voulu ça. La boucle continue. Échec : la chute.</li></ol></div>
+
+  <div class="end"><h3>Le prix · acheté par Vasseur</h3><ol><li>Avoir l'enveloppe sur soi à 21:59:30, quand la berline noire s'arrête devant l'entrée.</li><li>Toucher la sortie pour aller lui parler : « J'ai votre enveloppe » → il propose 10 000 € → « Lui donner l'enveloppe ».</li><li>Vous repartez avec un chèque. Si le frein n'a pas été réarmé, la rame tombe sous ses yeux.</li></ol>
+  <p>Avec Vasseur, on peut aussi : refuser son argent, lui annoncer que le frein est réarmé (il s'en va, furieux), ou simplement constater sa présence (indice).</p></div>
 
   <div class="end"><h3>Repéré</h3><ol><li>Caché derrière les armoires, prendre la photo pendant que le gilet jaune regarde derrière lui. Il vous assomme : la boucle s'arrête tout de suite. Indice « il se retourne toutes les 10 secondes ».</li></ol></div>
 
@@ -383,7 +407,8 @@ flowchart TD
     <div class="sc"><h3>Pression temporelle</h3><div class="bar"><i style="width:80%"></i></div><p>Toujours cinq fenêtres à enchaîner pour la vraie fin. La cachette ajoute un vrai test de timing : 10 secondes pour entrer, puis attendre qu'il ait le dos tourné.</p></div>
     <div class="sc"><h3>Personnages qui réagissent <span class="delta">↑</span></h3><div class="bar"><i style="width:65%"></i></div><p>Odile chasse les intrus de son local et trouve les gens cachés. Le gilet jaune repère les filatures, peste contre le noir et la porte, abandonne s'il manque de temps. Bastien et Mme Delattre donnent des pistes.</p></div>
   </div>
-  <p style="margin-top:14px"><b>Version 7 (finition) :</b> la solution ne change pas. Le texte des dialogues s'écrit lettre par lettre, la voix robotique est supprimée (seules les 22 répliques doublées par des acteurs sont parlées), des gros plans marquent les aveux et les preuves, un tutoriel guide la première minute, le carnet a des onglets (piste, indices, déductions, chronologie, personnes, succès), l'inventaire a des icônes, et un menu pause regroupe les réglages (son, voix, taille du texte, tremblements, rembobiner, nouvelle partie).</p>
+  <p style="margin-top:14px"><b>Version 8 :</b> la station vit dès la première minute (trois petites quêtes, personnages qui se déplacent et réagissent), la cabine se joue de l'intérieur, Vasseur apparaît en personne, Odile a une humeur, et l'écran final raconte le sort de chacun. Deux nouvelles fins. Correctif important : sur téléphone, le texte de la piste n'empêche plus de toucher Odile.</p>
+  <p><b>Version 7 (finition) :</b> la solution ne change pas. Le texte des dialogues s'écrit lettre par lettre, la voix robotique est supprimée (seules les 22 répliques doublées par des acteurs sont parlées), des gros plans marquent les aveux et les preuves, un tutoriel guide la première minute, le carnet a des onglets (piste, indices, déductions, chronologie, personnes, succès), l'inventaire a des icônes, et un menu pause regroupe les réglages (son, voix, taille du texte, tremblements, rembobiner, nouvelle partie).</p>
   <p style="margin-top:14px"><b>Version 6 :</b> quatre fausses pistes rendent trois personnages suspects, se tromper a des conséquences (innocents vexés, erreur judiciaire), et le joueur peut agir de ses mains : casse-tête du frein, casier à code, reçu du distributeur. Deux nouvelles fins.</p>
   <p><b>Version 5 :</b> l'histoire devient personnelle (vous êtes l'enfant d'Odile), chaque personnage a un secret, et la fin est un dilemme sans bonne réponse. Côté forme : écran-titre, portraits avec expressions dans les dialogues, poses animées, caméra rapprochée, repères sur les objets, ambiance musicale, et 22 répliques clés doublées par des acteurs.</p>
   <p><b>Version 4 :</b> le carnet devient un outil d'enquête (déductions, chronologie), l'attente se saute, le gilet jaune peut vous traquer, Mme Delattre devient une alliée, et l'ambiance sonore suit la tension. Le joueur a désormais toujours quelque chose à faire, et une raison de rejouer (succès, rang).</p>
