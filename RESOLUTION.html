@@ -48,13 +48,14 @@ td.t { font-family: var(--f-mono); white-space: nowrap; color: var(--teal); }
 </style>
 
 <div class="wrap">
-  <p class="kick">La Dernière Rame · version 5 (histoire personnelle)</p>
+  <p class="kick">La Dernière Rame · version 6 (fausses pistes)</p>
   <h1>Graphe de résolution</h1>
-  <p class="lede">La solution complète : chaque indice, chaque objet, chaque action, avec ses dépendances et ses horaires, et le chemin exact de chacune des neuf fins. La version 3 ajoute des objets à fouiller, des actions risquées, des pistes affichées et plusieurs façons d'obtenir chaque élément de la vérité.</p>
+  <p class="lede">La solution complète : chaque indice, chaque objet, chaque action, avec ses dépendances et ses horaires, et le chemin exact de chacune des onze fins. La version 3 ajoute des objets à fouiller, des actions risquées, des pistes affichées et plusieurs façons d'obtenir chaque élément de la vérité.</p>
 
   <div class="tiles">
-    <div class="tile"><b>9</b><span>fins, dont 2 qui brisent la boucle</span></div>
-    <div class="tile"><b>33</b><span>indices dans le carnet</span></div>
+    <div class="tile"><b>11</b><span>fins, dont 2 qui brisent la boucle</span></div>
+    <div class="tile"><b>4</b><span>fausses pistes</span></div>
+    <div class="tile"><b>45</b><span>indices dans le carnet</span></div>
     <div class="tile"><b>8</b><span>objets (perdus à chaque boucle)</span></div>
     <div class="tile"><b>3</b><span>preuves possibles du sabotage</span></div>
     <div class="tile"><b>4</b><span>façons de faire avouer Odile</span></div>
@@ -185,6 +186,18 @@ flowchart TD
     <li><b>Le silence</b> (effacer les messages) : Odile est épargnée et touche sa retraite, le gilet jaune tombe seul, Vasseur n'est pas inquiété et la station est rasée six mois plus tard.</li>
   </ol>
 
+  <h2>Les fausses pistes</h2>
+  <div class="tbl"><table>
+    <thead><tr><th>Ce qu'on voit</th><th>Où</th><th>Ce que ça laisse croire</th><th>La vérité, et comment l'apprendre</th></tr></thead>
+    <tbody>
+      <tr><td>Une pince coupante et un tract « par tous les moyens »</td><td>Sac de Bastien, sur le banc (21:56–21:59)</td><td>Bastien est le saboteur</td><td>La pince sert aux hélices du drone. Lui demander gentiment « Cette pince, c'est pour quoi ? »</td></tr>
+      <tr><td>Mme Delattre essaie une clé sur la porte du local</td><td>Devant le local, 21:56:12–21:56:42 (être à proximité)</td><td>Elle veut entrer trafiquer l'armoire</td><td>C'est la clé de son mari Henri, ancien agent. Lui demander « Que faisiez-vous à la porte ? », ou en parler à Odile</td></tr>
+      <tr><td>Un message de « Marc » : « rien qu'à nous deux »</td><td>Téléphone d'Odile, sur son bureau (local vide)</td><td>Une liaison, ou un second complice</td><td>Marc est son délégué syndical. Lui demander « C'est qui, Marc ? »</td></tr>
+      <tr><td>Une goupille rouge par terre dès 21:54</td><td>Hall, près du distributeur de boissons</td><td>Le sabotage a déjà eu lieu</td><td>C'est l'ancienne goupille, changée le 12/08 (schéma sur l'armoire). Elle sert à réarmer le frein soi-même</td></tr>
+    </tbody>
+  </table></div>
+  <p><b>Se tromper coûte cher.</b> Accuser Bastien en face (« C'est vous qui allez saboter la rame ») ou Mme Delattre (« Vous vouliez trafiquer l'armoire ») les vexe : ils ne vous parlent plus de la boucle. Plus de drone, plus de distraction, et Mme Delattre vous rend l'enveloppe si elle la gardait.</p>
+
   <h2>La découverte de la boucle</h2>
   <p>Rien ne dit au joueur que la soirée se répète. L'intro dit seulement que vous avez promis à votre mère d'être là : « six minutes à attendre, rien de plus ». Sous l'horloge, aucun compteur. La piste dit : « Allez la saluer, puis montez à bord ». Le carnet n'affiche ni boucle ni succès, et « Attendre » ne propose pas de rembobiner. À 21:59, on peut monter à bord : la chute se vit alors de l'intérieur.</p>
   <p>À la première fin, quelle qu'elle soit, le seul bouton est « Rouvrir les yeux ». Puis un écran affiche <b>21:54:00</b> : « Votre mère ajuste ses lunettes. Exactement comme tout à l'heure… Vous avez déjà vécu ces six minutes. » Le bouton « …Encore ? » lance la boucle 2. Le compteur de boucles, les succès et le rembobinage n'apparaissent qu'à partir de là.</p>
@@ -225,6 +238,8 @@ flowchart TD
     </ol>
     <p><b>Variantes pour les aveux</b> (à la place du SMS) :</p>
     <ol>
+      <li><b>Le casier.</b> Dans le local vide, ouvrir le casier d'Odile avec le code <b>1989</b> (l'année de l'inauguration, donnée par l'affiche et par Mme Delattre ; un mauvais code coûte 8 secondes). Il contient la promesse de vente à Vasseur. Dire à Odile « J'ai lu la promesse de vente ».</li>
+      <li><b>Le reçu.</b> Au distributeur de billets, imprimer l'historique des accès : le badge TechniRail a ouvert le local à 21:31, « autorisé par le poste ». Dire à Odile « À 21 h 31, c'est toi qui lui as ouvert ».</li>
       <li><b>La déduction « café prévu ».</b> Entendre l'appel du guichet à 21:55:30 (près de la vitre), connaître le café de 57, relier les deux dans le carnet, puis dire à Odile « Ton café de 57, c'était prévu ».</li>
       <li><b>Le gilet jaune qui craque.</b> Relier l'enveloppe et l'appel à Vasseur (déduction « payé »), puis lui demander « Cinq mille euros pour faire tomber une cabine ? » : il lâche le plan de Vasseur (indice « complot »), qu'on peut ensuite répéter à Odile.</li>
       <li><b>Le bluff au téléphone.</b> Fouiller la poubelle après 21:55:35 : carte de Vasseur avec un numéro. Au téléphone de service, composer le numéro et « se faire passer pour le gilet jaune » : Vasseur lâche le plan. Dire à Odile « Vasseur a tout dit. Tu pars à 57 ».</li>
@@ -237,6 +252,10 @@ flowchart TD
   </div>
 
   <div class="end"><h3>Arrestation · le saboteur est pris, le commanditaire reste libre</h3><ol><li>Avoir une preuve en main (vidéo, enregistrement ou photo), puis appeler la sécurité au téléphone de service. Les agents arrivent 40 secondes plus tard et arrêtent le gilet jaune.</li><li>Si le frein n'a pas été réarmé, le départ est annulé par précaution. Vasseur n'est pas inquiété, et la boucle recommence.</li></ol></div>
+
+  <div class="end"><h3>Erreur judiciaire · un innocent arrêté</h3><ol><li>Regarder le sac de Bastien et <b>prendre la pince</b>, sans lui demander à quoi elle sert.</li><li>Dire à Odile « Je sais qui va saboter la rame » → « Bastien », pince en main. Ou le dénoncer au téléphone de service.</li><li>25 secondes plus tard, la sécurité emmène Bastien. Le gilet jaune agit tranquillement : si rien d'autre ne l'arrête, la rame tombe quand même.</li></ol></div>
+
+  <div class="end mid"><h3>Dans l'ombre · la rame est sauvée, personne ne paie</h3><ol><li>Ramasser la vieille goupille rouge par terre dans le hall.</li><li>Laisser le sabotage se faire, puis entrer dans le local avant le retour d'Odile (entre 21:58:15 et 21:58:40 environ).</li><li>À l'armoire, suivre le schéma : <b>1. disjoncteur bleu, 2. goupille, 3. levier rouge</b>. Une erreur d'ordre fait perdre 6 secondes.</li><li>La rame monte. Le gilet jaune et Vasseur ne sont pas inquiétés, et la boucle continue. Si vous obtenez en plus les aveux et montrez l'enveloppe, vous arrivez au choix final.</li></ol></div>
 
   <div class="end"><h3>Repéré</h3><ol><li>Caché derrière les armoires, prendre la photo pendant que le gilet jaune regarde derrière lui. Il vous assomme : la boucle s'arrête tout de suite. Indice « il se retourne toutes les 10 secondes ».</li></ol></div>
 
@@ -364,7 +383,8 @@ flowchart TD
     <div class="sc"><h3>Pression temporelle</h3><div class="bar"><i style="width:80%"></i></div><p>Toujours cinq fenêtres à enchaîner pour la vraie fin. La cachette ajoute un vrai test de timing : 10 secondes pour entrer, puis attendre qu'il ait le dos tourné.</p></div>
     <div class="sc"><h3>Personnages qui réagissent <span class="delta">↑</span></h3><div class="bar"><i style="width:65%"></i></div><p>Odile chasse les intrus de son local et trouve les gens cachés. Le gilet jaune repère les filatures, peste contre le noir et la porte, abandonne s'il manque de temps. Bastien et Mme Delattre donnent des pistes.</p></div>
   </div>
-  <p style="margin-top:14px"><b>Version 5 :</b> l'histoire devient personnelle (vous êtes l'enfant d'Odile), chaque personnage a un secret, et la fin est un dilemme sans bonne réponse. Côté forme : écran-titre, portraits avec expressions dans les dialogues, poses animées, caméra rapprochée, repères sur les objets, ambiance musicale, et 22 répliques clés doublées par des acteurs.</p>
+  <p style="margin-top:14px"><b>Version 6 :</b> quatre fausses pistes rendent trois personnages suspects, se tromper a des conséquences (innocents vexés, erreur judiciaire), et le joueur peut agir de ses mains : casse-tête du frein, casier à code, reçu du distributeur. Deux nouvelles fins.</p>
+  <p><b>Version 5 :</b> l'histoire devient personnelle (vous êtes l'enfant d'Odile), chaque personnage a un secret, et la fin est un dilemme sans bonne réponse. Côté forme : écran-titre, portraits avec expressions dans les dialogues, poses animées, caméra rapprochée, repères sur les objets, ambiance musicale, et 22 répliques clés doublées par des acteurs.</p>
   <p><b>Version 4 :</b> le carnet devient un outil d'enquête (déductions, chronologie), l'attente se saute, le gilet jaune peut vous traquer, Mme Delattre devient une alliée, et l'ambiance sonore suit la tension. Le joueur a désormais toujours quelque chose à faire, et une raison de rejouer (succès, rang).</p>
   <p><b>En résumé (version 3) :</b> la version 3 garde la même vérité à trois étages, mais multiplie les façons d'y arriver et les choses à faire en attendant. Le joueur voit toujours quelle piste suivre, et peut choisir entre la méthode patiente (Bastien), technique (caméra), ou risquée (cachette).</p>
 </div>
