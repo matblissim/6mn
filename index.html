@@ -64,6 +64,22 @@ button:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
 .jbox li { line-height: 1.45; }
 .jbox .none { color: var(--muted); font-style: italic; }
 .jbox .end { margin-top: 14px; color: var(--muted); font-size: 14px; }
+.jbox h3 { font-family: var(--f-title); font-size: 18px; letter-spacing: .08em; text-transform: uppercase; color: var(--amber); margin: 18px 0 8px; }
+.jbox .tl { list-style: none; padding: 0; font-size: 14px; }
+.jbox .tl li { display: flex; gap: 10px; }
+.jbox .tl b { font-family: var(--f-mono); font-weight: 500; color: var(--teal); flex: none; }
+.ded { border: 1px solid var(--edge); border-radius: 4px; padding: 8px 10px; margin-bottom: 6px; font-size: 14px; line-height: 1.4; }
+.ded.ok { border-color: rgba(111,211,200,.5); }
+.ded .opt { margin-top: 6px; }
+.ach { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; }
+.ach div { border: 1px solid var(--edge); border-radius: 4px; padding: 6px 8px; font-size: 12px; color: var(--muted); }
+.ach div.on { border-color: var(--amber); color: var(--bone); }
+.ach div b { display: block; font-size: 13px; }
+#overlay .sum { margin: 16px auto 0; max-width: 52ch; text-align: left; font-size: 14px; color: #b7c2c4; border-top: 1px solid #24323a; padding-top: 12px; opacity: 0; animation: up 1s ease-out forwards; }
+#overlay .sum b { color: var(--amber); }
+#overlay .stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; max-width: 420px; margin: 16px auto 0; opacity: 0; animation: up 1s ease-out forwards; }
+#overlay .stats div { border: 1px solid #24323a; border-radius: 4px; padding: 8px; font-size: 13px; color: #8fa0a6; }
+#overlay .stats b { display: block; font-family: var(--f-mono); font-size: 22px; font-weight: 500; color: var(--bone); }
 .jbox .piste { margin: 0 0 14px; padding: 10px 12px; border: 1px solid rgba(242,180,90,.4); border-radius: 4px; color: var(--amber); line-height: 1.45; }
 
 #overlay { position: absolute; inset: 0; background: #000; display: grid; place-items: center; text-align: center; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
@@ -80,6 +96,7 @@ button:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
   <div id="hud">
     <div><div class="clock" id="clock">21:54:00</div><div class="loop" id="loopLbl">Boucle 1</div><div class="goal" id="goal"></div></div>
     <div class="btns">
+      <button class="hb" id="bWait" type="button">Attendre ⏱</button>
       <button class="hb" id="bFast" type="button" aria-pressed="false">Avancer ⏩</button>
       <button class="hb" id="bJournal" type="button">Carnet</button>
       <button class="hb" id="bVoice" type="button" aria-pressed="true">Voix</button>
@@ -101,7 +118,7 @@ button:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
 /* ================= Données ================= */
 const IW = 1920, IH = 1084, LOOP = 360;
 const KEY = "derniere-rame-v1";
-const M = (() => { try { return Object.assign({ clues: [], loops: 1, endings: [], seenIntro: false, sound: true }, JSON.parse(localStorage.getItem(KEY) || "{}")); } catch (e) { return { clues: [], loops: 1, endings: [], seenIntro: false, sound: true }; } })();
+const M = (() => { try { return Object.assign({ clues: [], loops: 1, endings: [], seenIntro: false, sound: true, ded: [], ach: [], playS: 0 }, JSON.parse(localStorage.getItem(KEY) || "{}")); } catch (e) { return { clues: [], loops: 1, endings: [], seenIntro: false, sound: true, ded: [], ach: [], playS: 0 }; } })();
 const saveM = () => { try { localStorage.setItem(KEY, JSON.stringify(M)); } catch (e) {} };
 
 const CLUES = {
@@ -148,45 +165,72 @@ function goal() {
   if (!knows("aveux")) return "Faites parler Odile : elle sait qui est « V. ».";
   return "Vous avez tout. Preuve filmée, enveloppe, aveux : la vérité avant 22 h 00.";
 }
-function learn(k, silent) { if (M.clues.includes(k)) return; M.clues.push(k); saveM(); updateGoal(); if (!silent) toast("Nouvel indice noté dans le carnet"); Snd.note(); }
+// déductions : relier des indices du carnet ; chacune ouvre de nouvelles répliques
+const DEDS = [
+  { k: "paye", t: "Le sabotage est payé", needs: ["enveloppe", "appel"], txt: "5 000 € et un appel à Vasseur : le gilet jaune est un exécutant. On peut le faire craquer." },
+  { k: "complice", t: "Le café de 57 était prévu", needs: ["cafe", "guichet"], txt: "Odile annonce son café, et au téléphone elle confirme « à 57, comme prévu ». Elle sait." },
+  { k: "ficelles", t: "Vasseur tire les ficelles", needs: ["vasseur", "carte"], txt: "Le promoteur qui veut raser la station a écrit l'heure et le lieu du sabotage. Mme Delattre le déteste : elle pourrait vous aider." },
+  { k: "chrono", t: "Il lui faut 40 secondes", needs: ["frein", "local"], txt: "Le sabotage prend 40 secondes et doit finir avant 21:58:35. Chaque seconde volée compte : porte, lumière, distraction." },
+  { k: "cameras", t: "Il a peur des caméras", needs: ["rec", "drone"], txt: "Il a coupé la caméra du local et demandé à Bastien s'il filmait. Une image de lui suffira." },
+  { k: "achetee", t: "Odile a été achetée", needs: ["dette", "vasseur"], txt: "18 000 € de dettes, « V. s'en occupe ». Vasseur a acheté deux minutes d'absence." }
+];
+const knowsDed = k => (M.ded || []).includes(k);
+const ACHS = [
+  { k: "premiere", t: "Premier réveil", d: "Terminer une boucle" },
+  { k: "fantome", t: "Fantôme", d: "Photographier le sabotage sans être vu" },
+  { k: "electricien", t: "Électricien", d: "Couper la lumière trois fois dans une boucle" },
+  { k: "pickpocket", t: "Pickpocket", d: "Voler le badge du gilet jaune" },
+  { k: "imitateur", t: "Imitateur", d: "Faire parler Vasseur au téléphone" },
+  { k: "ange", t: "Ange gardien", d: "Confier l'enveloppe à Mme Delattre" },
+  { k: "insaisissable", t: "Insaisissable", d: "Garder l'enveloppe alors qu'il vous traque" },
+  { k: "logicien", t: "Logicien", d: "Trouver les six déductions" },
+  { k: "archiviste", t: "Archiviste", d: "Noter 25 indices" },
+  { k: "toutes", t: "Collectionneur", d: "Voir les huit fins" },
+  { k: "verite", t: "La vérité", d: "Briser la boucle" },
+  { k: "eclair", t: "Éclair", d: "Briser la boucle en 5 boucles ou moins" }
+];
+function award(k) { M.ach = M.ach || []; if (M.ach.includes(k)) return; M.ach.push(k); saveM(); const a = ACHS.find(x => x.k === k); setTimeout(() => toast(`🏆 Succès : ${a.t}`), 900); }
+function logEv(txt) { if (S && !S.log.some(e => e.txt === txt)) S.log.push({ t: S.t, txt }); }
+function learn(k, silent) { if (M.clues.includes(k)) return; M.clues.push(k); saveM(); updateGoal(); if (M.clues.length >= 25) award("archiviste"); if (!silent) toast("Nouvel indice noté dans le carnet"); Snd.note(); }
 const knows = k => M.clues.includes(k);
 
-/* Plan de la station (coordonnées normalisées sur l'illustration) */
-const WALK = [
-  { x0: 0.2, y0: 0.42, x1: 0.6, y1: 0.93, room: "hall" },
-  { x0: 0.42, y0: 0.21, x1: 0.6, y1: 0.44, room: "hall" },
-  { x0: 0.12, y0: 0.58, x1: 0.22, y1: 0.9, room: "hall" },
-  { x0: 0.628, y0: 0.26, x1: 0.77, y1: 0.53, room: "hall", plat: true }, // quai, à droite du pilier
-  { x0: 0.6, y0: 0.52, x1: 0.7, y1: 0.7, room: "hall", plat: true },
-  { x0: 0.25, y0: 0.2, x1: 0.4, y1: 0.33, room: "ctrl" }
-];
-const DOOR_IN = { x: 0.365, y: 0.3 }, DOOR_OUT = { x: 0.37, y: 0.44 };
+/* Plan de la station (coordonnées normalisées sur l'illustration), relevé sur l'image :
+   un seul contour pour le hall, le local (relié par sa porte) et le quai, plus le distributeur de boissons comme obstacle. */
+const FLOOR = [
+  [0.42, 0.27], [0.545, 0.27], [0.545, 0.49], [0.585, 0.495], [0.585, 0.55], [0.635, 0.55], [0.638, 0.38], [0.69, 0.375], [0.70, 0.30], [0.705, 0.20],
+  [0.772, 0.20], [0.617, 0.70], [0.56, 0.74], [0.535, 0.76], [0.535, 0.935], [0.32, 0.935], [0.245, 0.83], [0.13, 0.65], [0.215, 0.645], [0.218, 0.48],
+  [0.265, 0.478], [0.27, 0.43], [0.35, 0.425], [0.35, 0.37], [0.29, 0.37], [0.29, 0.20], [0.395, 0.20], [0.395, 0.37], [0.385, 0.37], [0.385, 0.425], [0.415, 0.425]
+].map(([x, y]) => ({ x, y }));
+const BLOCKS = [{ x0: 0.41, y0: 0.665, x1: 0.53, y1: 0.915 }]; // distributeur de boissons
+const CTRL = { x0: 0.285, y0: 0.195, x1: 0.4, y1: 0.372 };
+const DOOR_IN = { x: 0.367, y: 0.33 }, DOOR_OUT = { x: 0.367, y: 0.45 }, ENTRANCE = { x: 0.18, y: 0.69 };
 const P = {
-  start: { x: 0.16, y: 0.8 }, outside: { x: 0.05, y: 0.84 },
-  desk: { x: 0.3, y: 0.25 }, cabinet: { x: 0.35, y: 0.22 }, window: { x: 0.33, y: 0.44 },
-  vending: { x: 0.47, y: 0.92 }, bench: { x: 0.28, y: 0.46 }, ticket: { x: 0.22, y: 0.6 },
-  gerWait: { x: 0.68, y: 0.32 }, gerDoor: { x: 0.46, y: 0.44 }, gerEnd: { x: 0.6, y: 0.68 },
-  bastPlat: { x: 0.635, y: 0.57 }, film: { x: 0.45, y: 0.5 }, board: { x: 0.66, y: 0.47 }, delWait: { x: 0.23, y: 0.62 }
+  start: { x: 0.2, y: 0.7 }, outside: { x: 0.05, y: 0.84 },
+  desk: { x: 0.3, y: 0.25 }, cabinet: { x: 0.35, y: 0.215 }, window: { x: 0.33, y: 0.445 },
+  vending: { x: 0.47, y: 0.925 }, bench: { x: 0.28, y: 0.465 }, ticket: { x: 0.235, y: 0.6 },
+  gerWait: { x: 0.712, y: 0.29 }, gerDoor: { x: 0.46, y: 0.45 }, gerEnd: { x: 0.6, y: 0.68 }, gerCall: { x: 0.2, y: 0.72 },
+  bastPlat: { x: 0.635, y: 0.58 }, film: { x: 0.45, y: 0.5 }, board: { x: 0.66, y: 0.47 }, delWait: { x: 0.235, y: 0.62 }, delBoard: { x: 0.645, y: 0.52 }
 };
+// chaque élément : où se placer devant lui (at) et dans quel sens le regarder (face : b = de dos, s = de profil ; dir : 1 droite, -1 gauche)
 const HOT = [
-  { id: "screens", name: "Écrans de surveillance", x: 0.25, y: 0.215, r: 0.02, at: P.window },
-  { id: "door", name: "Porte du local technique", x: 0.37, y: 0.39, r: 0.04, at: DOOR_OUT },
-  { id: "cabinet", name: "Armoire électrique", x: 0.35, y: 0.14, r: 0.045, at: P.cabinet },
-  { id: "bench", name: "Banc", x: 0.23, y: 0.4, r: 0.045, at: P.bench },
-  { id: "ticket", name: "Distributeur de billets", x: 0.17, y: 0.52, r: 0.04, at: P.ticket },
-  { id: "vending", name: "Distributeur de boissons", x: 0.47, y: 0.74, r: 0.055, at: P.vending },
-  { id: "alarm", name: "Arrêt d'urgence", x: 0.62, y: 0.39, r: 0.03, at: { x: 0.645, y: 0.42 } },
-  { id: "board", name: "Tableau des départs", x: 0.66, y: 0.24, r: 0.035, at: { x: 0.65, y: 0.3 } },
-  { id: "poster", name: "Affiche", x: 0.19, y: 0.31, r: 0.03, at: { x: 0.23, y: 0.46 } },
-  { id: "exit", name: "Sortie", x: 0.1, y: 0.72, r: 0.05, at: { x: 0.15, y: 0.77 } },
-  { id: "rame", name: "La rame", x: 0.76, y: 0.48, r: 0.07, at: P.board },
-  { id: "bag", name: "Sac de sport", x: 0.25, y: 0.43, r: 0.03, at: P.bench },
-  { id: "toolbag", name: "Sacoche à outils", x: 0.41, y: 0.43, r: 0.025, at: { x: 0.43, y: 0.47 } },
-  { id: "desk", name: "Bureau d'Odile", x: 0.27, y: 0.17, r: 0.035, at: { x: 0.29, y: 0.25 } },
-  { id: "trash", name: "Poubelle", x: 0.565, y: 0.43, r: 0.025, at: { x: 0.545, y: 0.47 } },
-  { id: "fuse", name: "Coffret électrique", x: 0.455, y: 0.14, r: 0.03, at: { x: 0.46, y: 0.25 } },
-  { id: "phone", name: "Téléphone de service", x: 0.575, y: 0.24, r: 0.025, at: { x: 0.56, y: 0.3 } },
-  { id: "hide", name: "Recoin sombre", x: 0.39, y: 0.245, r: 0.022, at: { x: 0.385, y: 0.26 } }
+  { id: "screens", name: "Écrans de surveillance", x: 0.25, y: 0.215, r: 0.02, at: P.window, face: "b", dir: -1 },
+  { id: "door", name: "Porte du local technique", x: 0.37, y: 0.39, r: 0.04, at: DOOR_OUT, face: "b", dir: 1 },
+  { id: "cabinet", name: "Armoire électrique", x: 0.35, y: 0.14, r: 0.045, at: P.cabinet, face: "b", dir: 1 },
+  { id: "bench", name: "Banc", x: 0.23, y: 0.4, r: 0.045, at: P.bench, face: "s", dir: -1 },
+  { id: "ticket", name: "Distributeur de billets", x: 0.17, y: 0.52, r: 0.04, at: P.ticket, face: "s", dir: -1 },
+  { id: "vending", name: "Distributeur de boissons", x: 0.47, y: 0.74, r: 0.055, at: P.vending, face: "b", dir: 1 },
+  { id: "alarm", name: "Arrêt d'urgence", x: 0.62, y: 0.39, r: 0.03, at: { x: 0.652, y: 0.42 }, face: "s", dir: -1 },
+  { id: "board", name: "Tableau des départs", x: 0.665, y: 0.27, r: 0.035, at: { x: 0.703, y: 0.34 }, face: "s", dir: -1 },
+  { id: "poster", name: "Affiche", x: 0.19, y: 0.31, r: 0.03, at: { x: 0.278, y: 0.455 }, face: "b", dir: -1 },
+  { id: "exit", name: "Sortie", x: 0.1, y: 0.72, r: 0.05, at: { x: 0.185, y: 0.69 }, face: "s", dir: -1 },
+  { id: "rame", name: "La rame", x: 0.76, y: 0.48, r: 0.07, at: { x: 0.668, y: 0.5 }, face: "s", dir: 1 },
+  { id: "bag", name: "Sac de sport", x: 0.25, y: 0.43, r: 0.03, at: P.bench, face: "s", dir: -1 },
+  { id: "toolbag", name: "Sacoche à outils", x: 0.41, y: 0.43, r: 0.025, at: { x: 0.435, y: 0.46 }, face: "s", dir: -1 },
+  { id: "desk", name: "Bureau d'Odile", x: 0.27, y: 0.17, r: 0.035, at: { x: 0.305, y: 0.26 }, face: "b", dir: -1 },
+  { id: "trash", name: "Poubelle", x: 0.565, y: 0.43, r: 0.025, at: { x: 0.528, y: 0.45 }, face: "s", dir: 1 },
+  { id: "fuse", name: "Coffret électrique", x: 0.455, y: 0.14, r: 0.03, at: { x: 0.455, y: 0.285 }, face: "b", dir: 1 },
+  { id: "phone", name: "Téléphone de service", x: 0.575, y: 0.24, r: 0.025, at: { x: 0.53, y: 0.3 }, face: "s", dir: 1 },
+  { id: "hide", name: "Recoin sombre", x: 0.39, y: 0.245, r: 0.022, at: { x: 0.388, y: 0.235 }, face: "f", dir: -1 }
 ];
 
 /* ================= Sons ================= */
@@ -211,6 +255,10 @@ const Snd = {
   alarm() { for (let i = 0; i < 6; i++) this.tone(i % 2 ? 660 : 880, 0.3, { type: "square", vol: 0.05, delay: i * 0.32 }); },
   rewind() { this.tone(1800, 1.4, { type: "sawtooth", to: 120, vol: 0.05 }); this.noise(1.4, 3000, 0.08); },
   zap() { this.noise(0.08, 4000, 0.05); },
+  heart(k) { this.tone(58, 0.12, { type: "sine", vol: 0.22 * k }); this.tone(52, 0.14, { type: "sine", vol: 0.16 * k, delay: 0.2 }); },
+  buzz() { this.tone(240, 0.5, { type: "sawtooth", to: 260, vol: 0.008 }); },
+  tension(k) { if (!this.ctx) return; if (!this.rise) { const c = this.ctx, o = c.createOscillator(), o2 = c.createOscillator(), g = c.createGain(); o.type = "triangle"; o2.type = "sine"; o.frequency.value = 110; o2.frequency.value = 164.8; g.gain.value = 0; o.connect(g); o2.connect(g); g.connect(this.master); o.start(); o2.start(); this.rise = { o, o2, g }; }
+    const t = this.ctx.currentTime; this.rise.g.gain.setTargetAtTime(0.035 * k, t, 0.5); this.rise.o.frequency.setTargetAtTime(110 + 40 * k, t, 0.5); this.rise.o2.frequency.setTargetAtTime(164.8 + 70 * k, t, 0.5); },
   ring() { for (let i = 0; i < 4; i++) { this.tone(880, 0.35, { type: "square", vol: 0.03, delay: i * 0.5 }); this.tone(1100, 0.35, { type: "square", vol: 0.02, delay: i * 0.5 }); } },
   click() { this.noise(0.05, 6000, 0.12); }
 };
@@ -258,7 +306,8 @@ function newLoop() {
     bastTrust: false, bastFilm: false, filmed: 0, photo: null, photoGiven: false, alarm: false, odileKnows: false, over: false, sawLocal: false, said: {},
     gerWary: false, toolbagDown: false, envTaken: false, smsSeen: false, odileConfess: false, envShown: false,
     dark: 0, fuseUses: 0, hidden: false, caughtHiding: false, follow: null, followNear: 0, recOn: false, recShown: false, doorBlocked: false, forcing: 0,
-    cardInTrash: false, secuAt: 0, secuArrived: false, barkT: 6, barked: {}, kickT: 0, badgeTried: false };
+    cardInTrash: false, secuAt: 0, secuArrived: false, barkT: 6, barked: {}, kickT: 0, badgeTried: false,
+    log: [], cluesAtStart: [...M.clues], skipTo: 0, hunt: false, huntT: 0, huntUsed: false, delKeeps: false, delDistract: false, distractLeft: 15, heartT: 0 };
   A.player = { x: P.start.x, y: P.start.y, path: [], vis: true, name: "Toi", img: "joueur", dir: 1 };
   A.odile = { x: P.desk.x, y: P.desk.y, path: [], vis: true, name: "Odile", img: "odile", dir: 1, goal: null };
   A.gerald = { x: P.outside.x, y: P.outside.y, path: [], vis: false, name: "L'homme au gilet jaune", img: "gerald", dir: 1, goal: null };
@@ -271,27 +320,41 @@ const A = {};
 const rame = { y: -0.3, state: "away" };
 
 /* ================= Déplacements ================= */
-const CTRL = WALK.find(r => r.room === "ctrl");
 const roomOf = p => (CTRL.x0 <= p.x && p.x <= CTRL.x1 && CTRL.y0 <= p.y && p.y <= CTRL.y1 ? "ctrl" : "hall");
-// bord jaune du quai mesuré sur l'illustration (diagonale) ; on garde une marge pour rester sur le carrelage clair
-const platEdge = y => 0.787 - (y - 0.25) * 0.31, platMax = y => platEdge(y) - 0.045;
-const onUpperPlat = p => p.x > 0.615 && p.y < 0.53;
+// sol praticable : dans le contour, hors obstacles
+function inPoly(p, poly) { let c = false; for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) { const a = poly[i], b = poly[j]; if ((a.y > p.y) !== (b.y > p.y) && p.x < ((b.x - a.x) * (p.y - a.y)) / (b.y - a.y) + a.x) c = !c; } return c; }
+const blocked = p => BLOCKS.some(r => p.x > r.x0 && p.x < r.x1 && p.y > r.y0 && p.y < r.y1);
+const walkable = p => inPoly(p, FLOOR) && !blocked(p);
+function nearestOnSeg(p, a, b) { const dx = b.x - a.x, dy = b.y - a.y, k = Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / (dx * dx + dy * dy || 1))); return { x: a.x + dx * k, y: a.y + dy * k }; }
+function nudgeIn(q) { if (walkable(q)) return q; for (const r of [0.004, 0.008, 0.014]) for (let i = 0; i < 12; i++) { const c = { x: q.x + Math.cos(i * Math.PI / 6) * r, y: q.y + Math.sin(i * Math.PI / 6) * r }; if (walkable(c)) return c; } return q; }
 function clampWalk(p) {
-  let best = null, bd = 9;
-  for (const r of WALK) {
-    const y = Math.max(r.y0, Math.min(r.y1, p.y)), x1 = r.plat ? Math.min(r.x1, platMax(y)) : r.x1;
-    const x = Math.max(r.x0, Math.min(x1, p.x)), d = Math.hypot(x - p.x, (y - p.y) * 0.56);
-    if (d < bd) { bd = d; best = { x, y }; }
-  }
-  return best;
+  if (walkable(p)) return { x: p.x, y: p.y };
+  let best = null, bd = 9; const segs = [];
+  for (let i = 0; i < FLOOR.length; i++) segs.push([FLOOR[i], FLOOR[(i + 1) % FLOOR.length]]);
+  for (const r of BLOCKS) { const c = [{ x: r.x0, y: r.y0 }, { x: r.x1, y: r.y0 }, { x: r.x1, y: r.y1 }, { x: r.x0, y: r.y1 }]; for (let i = 0; i < 4; i++) segs.push([c[i], c[(i + 1) % 4]]); }
+  for (const [a, b] of segs) { const q = nudgeIn(nearestOnSeg(p, a, b)); if (!walkable(q)) continue; const d = Math.hypot(q.x - p.x, (q.y - p.y) * 0.56); if (d < bd) { bd = d; best = q; } }
+  return best || { x: p.x, y: p.y };
+}
+const clear = (a, b) => { const n = Math.max(2, Math.ceil(Math.hypot(b.x - a.x, b.y - a.y) / 0.005)); for (let i = 1; i < n; i++) if (!walkable({ x: a.x + (b.x - a.x) * i / n, y: a.y + (b.y - a.y) * i / n })) return false; return true; };
+// nœuds de passage : les coins du contour et de l'obstacle, rentrés d'un pas dans le sol praticable
+const NODES = [...FLOOR, ...BLOCKS.flatMap(r => [{ x: r.x0, y: r.y0 }, { x: r.x1, y: r.y0 }, { x: r.x1, y: r.y1 }, { x: r.x0, y: r.y1 }])].map(q => nudgeIn(q)).filter(walkable);
+const LINKS = NODES.map((a, i) => NODES.map((b, j) => (i !== j && clear(a, b) ? Math.hypot(b.x - a.x, (b.y - a.y) * 0.56) : 0)));
+function route(a, b) {
+  if (clear(a, b)) return [b];
+  const n = NODES.length, dist = new Array(n + 2).fill(Infinity), prev = new Array(n + 2).fill(-1), done = new Array(n + 2).fill(false), S0 = n, G = n + 1;
+  const pt = i => (i === S0 ? a : i === G ? b : NODES[i]);
+  const w = (i, j) => { if (i < n && j < n) return LINKS[i][j]; const p = pt(i), q = pt(j); return clear(p, q) ? Math.hypot(q.x - p.x, (q.y - p.y) * 0.56) : 0; };
+  dist[S0] = 0;
+  for (;;) { let u = -1; for (let i = 0; i < n + 2; i++) if (!done[i] && dist[i] < Infinity && (u < 0 || dist[i] < dist[u])) u = i; if (u < 0 || u === G) break; done[u] = true;
+    for (let v = 0; v < n + 2; v++) { if (done[v] || v === S0 || v === u) continue; const c = w(u, v); if (c > 0 && dist[u] + c < dist[v]) { dist[v] = dist[u] + c; prev[v] = u; } } }
+  if (prev[G] < 0) return [b];
+  const out = []; for (let v = G; v !== S0; v = prev[v]) out.unshift(pt(v)); return out;
 }
 function goTo(a, target) {
-  const tgt = target === P.outside ? { ...target } : clampWalk(target), from = roomOf(a), to = target === P.outside ? "hall" : roomOf(tgt);
-  a.path = from === to ? [tgt] : from === "ctrl" ? [DOOR_IN, DOOR_OUT, tgt] : [DOOR_OUT, DOOR_IN, tgt];
-  // contourner le pilier : passage hall ↔ haut du quai par le bas du pilier
-  const out = []; let prev = a;
-  for (const q of a.path) { if (onUpperPlat(prev) !== onUpperPlat(q) && Math.min(prev.x, q.x) < 0.6) out.push({ x: 0.62, y: 0.6 }); out.push(q); prev = q; }
-  a.path = out;
+  const out = target === P.outside;
+  const from = walkable(a) ? { x: a.x, y: a.y } : ENTRANCE, to = out ? ENTRANCE : clampWalk(target);
+  a.path = (walkable(a) ? [] : [ENTRANCE]).concat(route(from, to)).concat(out ? [{ ...P.outside }] : []);
+  a.goalKey = target.x + "," + target.y;
 }
 function stepAgent(a, dt, speed) {
   if (!a.path.length) return true;
@@ -302,7 +365,7 @@ function stepAgent(a, dt, speed) {
   a.x += (dx / d) * s; a.y += (dy / 0.56 / d) * s; a.walk = (a.walk || 0) + dt; return false;
 }
 const near = (a, p, r = 0.025) => Math.hypot(a.x - p.x, (a.y - p.y) * 0.56) < r;
-function want(a, p) { const last = a.path.length ? a.path[a.path.length - 1] : { x: a.x, y: a.y }; if (Math.hypot(last.x - p.x, last.y - p.y) > 0.01) goTo(a, p); }
+function want(a, p) { if (a.goalKey === p.x + "," + p.y && (a.path.length || near(a, clampWalk(p), 0.02))) return; goTo(a, p); }
 
 /* ================= Emplois du temps ================= */
 function updateAgents(dt) {
@@ -310,7 +373,7 @@ function updateAgents(dt) {
   // Odile
   if (S.odileKnows && !S.fixed) { want(o, P.cabinet); if (near(o, P.cabinet)) { S.fixT += dt; if (S.fixT > 6) { S.fixed = true; S.sabDone = false; say(o, "Frein réarmé. Sécurité, retenez l'homme au gilet !"); } } }
   else if (S.odileStays || S.odileConfess || t < 200 || t >= 280 || S.odileKnows) want(o, P.desk);
-  else { want(o, P.vending); if (t >= 200 && !S.said.cafe) { S.said.cafe = 1; say(o, "Je file me chercher un café. Deux minutes."); learn("cafe", true); } }
+  else { want(o, P.vending); if (t >= 200 && !S.said.cafe) { S.said.cafe = 1; logEv("Odile quitte son poste pour un café"); say(o, "Je file me chercher un café. Deux minutes."); learn("cafe", true); } }
   stepAgent(o, dt, 0.06);
   // Odile ne laisse personne entrer dans son local ; elle trouve le joueur caché en revenant
   S.kickT -= dt;
@@ -322,11 +385,11 @@ function updateAgents(dt) {
   }
   // événements : annonces, téléphone du guichet, micro-coupure
   if (t >= 20 && !S.said.pa1) { S.said.pa1 = 1; toast("📢 « Mesdames et messieurs, dernier départ du POMA à 22 h 00. Merci pour ces vingt-sept ans. »"); }
-  if (t >= 90 && !S.said.ring) { S.said.ring = 1; Snd.ring(); const heard = Math.hypot(me.x - P.window.x, (me.y - P.window.y) * 0.56) < 0.12 || roomOf(me) === "ctrl"; say(o, heard ? "Oui… À 57, comme prévu. Oui." : "Allô ?"); if (heard) learn("guichet"); }
+  if (t >= 90 && !S.said.ring) { S.said.ring = 1; Snd.ring(); logEv("Le téléphone du guichet sonne"); const heard = Math.hypot(me.x - P.window.x, (me.y - P.window.y) * 0.56) < 0.12 || roomOf(me) === "ctrl"; say(o, heard ? "Oui… À 57, comme prévu. Oui." : "Allô ?"); if (heard) learn("guichet"); }
   if (t >= 150 && !S.said.flick) { S.said.flick = 1; S.dark = Math.max(S.dark, 1.4); Snd.zap(); say(d, "Oh ! Les lumières…"); }
   if (t >= 152 && !S.said.flick2) { S.said.flick2 = 1; say(o, "Ce coffret du hall va nous lâcher un de ces jours."); }
   if (t >= 240 && !S.said.pa2) { S.said.pa2 = 1; toast("📢 « La dernière rame entrera en gare dans quelques instants. »"); }
-  if (t >= 300 && !S.said.dock) { S.said.dock = 1; say(d, "La voilà ! Ma petite rame…"); }
+  if (t >= 300 && !S.said.dock) { S.said.dock = 1; logEv("La rame arrive à quai"); say(d, "La voilà ! Ma petite rame…"); }
   if (t >= 330 && !S.said.pa3) { S.said.pa3 = 1; toast("📢 « Prenez place. Départ imminent. »"); }
   if (S.dark > 0) S.dark = Math.max(0, S.dark - dt);
   // Gérald
@@ -336,16 +399,25 @@ function updateAgents(dt) {
     if (S.gerCaught) { want(g, { x: 0.3, y: 0.7 }); }
     else if (S.gerFled || S.alarm || t >= 340) { want(g, P.outside); if (!g.path.length && near(g, P.outside, 0.03)) { g.vis = false; S.gerGone = true; } }
     else if (S.gerWary && t >= 180) { want(g, P.outside); if (!S.said.wary) { S.said.wary = 1; say(g, "Laissez tomber. Pas ce soir."); learn("mefiance", true); } if (!g.path.length && near(g, P.outside, 0.03)) { g.vis = false; S.gerGone = true; } }
-    else if (t >= 48 && t < 82) { want(g, { x: 0.15, y: 0.75 }); if (t >= 56 && !S.said.call) { S.said.call = 1; say(g, "Oui, monsieur Vasseur. Ce soir, c'est la dernière. Personne ne verra rien."); if (Math.hypot(me.x - 0.15, (me.y - 0.75) * 0.56) < 0.14) learn("appel"); } }
+    else if (S.hunt) {
+      S.huntT -= dt; if (S.huntT <= 0) { S.huntT = 0.6; goTo(g, { x: me.x, y: me.y }); }
+      if (!has("enveloppe") || S.hidden || t >= 335) { S.hunt = false; if (has("enveloppe") && t >= 335) award("insaisissable"); }
+      else if (Math.hypot(me.x - g.x, (me.y - g.y) * 0.56) < 0.035) { take("enveloppe"); S.hunt = false; say(g, "Donne-moi ça !"); toast("Il vous a arraché l'enveloppe"); logEv("Le gilet jaune vous reprend l'enveloppe"); shake = 0.4; }
+    }
+    else if (t >= 48 && t < 82) { want(g, P.gerCall); if (t >= 50) logEv("Le gilet jaune entre dans la station"); if (t >= 56 && !S.said.call) { S.said.call = 1; say(g, "Oui, monsieur Vasseur. Ce soir, c'est la dernière. Personne ne verra rien."); if (Math.hypot(me.x - P.gerCall.x, (me.y - P.gerCall.y) * 0.56) < 0.14) { learn("appel"); logEv("Il appelle « monsieur Vasseur »"); } } }
+    else if (S.delDistract && S.distractLeft > 0 && t >= 200 && t < 275 && near(d, g, 0.07)) {
+      g.path = []; S.distractLeft -= dt; if (!S.said.dis1) { S.said.dis1 = 1; say(d, "Jeune homme ! Vous êtes de la maintenance ? J'ai une question sur les cabines…"); logEv("Mme Delattre retient le gilet jaune"); }
+      if (S.distractLeft < 8 && !S.said.dis2) { S.said.dis2 = 1; say(g, "Madame, je n'ai pas le temps !"); }
+    }
     else if (t >= 210 && t < 275 && !S.gerInterrupted && !S.sabDone) {
       if (!oIn && !meIn && S.doorBlocked && roomOf(g) !== "ctrl") {
         want(g, DOOR_OUT);
         if (near(g, DOOR_OUT, 0.04)) { S.forcing += dt; if (!S.said.force) { S.said.force = 1; say(g, "Bloquée ?! Saleté de porte…"); learn("porte", true); } if (S.forcing > 20) { S.doorBlocked = false; say(g, "Ça y est."); } }
       }
-      else if (!oIn && !meIn) { want(g, P.cabinet); if (roomOf(g) === "ctrl") S.toolbagDown = true;
+      else if (!oIn && !meIn) { want(g, P.cabinet); if (roomOf(g) === "ctrl") { S.toolbagDown = true; logEv("Le gilet jaune entre dans le local, sacoche posée devant la porte"); }
         if (near(g, P.cabinet) && !g.path.length) {
           if (S.dark > 0) { if (!S.said["dk" + S.fuseUses]) { S.said["dk" + S.fuseUses] = 1; say(g, "Qui a coupé le jus ?!"); } }
-          else { S.sab += dt; if (S.sab >= 40) S.sabDone = true; }
+          else { S.sab += dt; if (S.sab >= 40) { S.sabDone = true; logEv("Le frein de secours est désarmé"); } }
           // il travaille dos tourné, et jette un œil derrière lui toutes les dix secondes
           g.face = (S.sab % 10) < 7 ? "b" : "f";
         } }
@@ -356,7 +428,7 @@ function updateAgents(dt) {
     else want(g, P.gerEnd);
     if (t >= 275 && !S.sabDone && S.sab > 0 && !S.said.giveup) { S.said.giveup = 1; say(g, "Trop tard… Il va me tuer."); }
     stepAgent(g, dt, 0.065);
-    if (S.toolbagDown && roomOf(g) !== "ctrl" && near(g, { x: 0.41, y: 0.44 }, 0.06)) { S.toolbagDown = false; if (S.envTaken && !S.said.miss) { S.said.miss = 1; say(g, "Où est passée l'enveloppe ?!"); } }
+    if (S.toolbagDown && roomOf(g) !== "ctrl" && near(g, { x: 0.41, y: 0.44 }, 0.06)) { S.toolbagDown = false; if (S.envTaken && !S.said.miss) { S.said.miss = 1; say(g, "Où est passée l'enveloppe ?!"); logEv("Il découvre que l'enveloppe a disparu"); if (has("enveloppe") && !S.gerFled && !S.gerCaught) { S.hunt = true; S.huntUsed = true; toast("Il vous cherche. Ne vous laissez pas attraper avec l'enveloppe."); } } }
     if (roomOf(g) === "ctrl" && near(g, P.cabinet) && (near(me, DOOR_OUT, 0.12) || roomOf(me) === "ctrl" || Math.hypot(me.x - 0.37, me.y - 0.4) < 0.16)) { if (!S.sawLocal) { S.sawLocal = true; learn("local"); } }
   }
   // Bastien
@@ -368,8 +440,10 @@ function updateAgents(dt) {
   else if (t < 355) want(b, P.board); else if (rame.state === "dock") b.vis = false;
   stepAgent(b, dt, 0.06);
   if (S.bastFilm && near(b, P.film, 0.03) && roomOf(g) === "ctrl" && near(g, P.cabinet)) S.filmed += dt;
+  if (S.bastFilm && near(b, P.film, 0.03) && t < 290 && Math.random() < dt * 0.5) Snd.buzz();
   // Mme Delattre
-  if (t < 330) want(d, P.delWait); else if (t < 355) want(d, { x: 0.64, y: 0.52 }); else if (rame.state === "dock") d.vis = false;
+  if (S.delDistract && S.distractLeft > 0 && t >= 190 && t < 275 && A.gerald.vis) want(d, { x: A.gerald.x - 0.035, y: A.gerald.y + 0.01 });
+  else if (t < 330) want(d, P.delWait); else if (t < 355) want(d, P.delBoard); else if (rame.state === "dock") d.vis = false;
   stepAgent(d, dt, 0.04);
   // la rame
   if (t >= 285 && t < 300) { rame.state = "arriving"; rame.y = -0.25 + ((t - 285) / 15) * 0.75; if (!S.said.rame) { S.said.rame = 1; Snd.rame(); } }
@@ -456,6 +530,12 @@ function render(now, real) {
   if (S.toolbagDown) { const p = toScr({ x: 0.41, y: 0.43 }); ctx.fillStyle = "#3a2c1e"; ctx.fillRect(p.x - 12 * S2(), p.y - 9 * S2(), 24 * S2(), 11 * S2()); ctx.fillStyle = "#c9a24a"; ctx.fillRect(p.x - 2 * S2(), p.y - 9 * S2(), 4 * S2(), 3 * S2()); }
   if (S.bagOnBench) { const p = toScr({ x: 0.25, y: 0.43 }); ctx.fillStyle = "#121416"; ctx.beginPath(); ctx.ellipse(p.x, p.y, 22 * S2(), 11 * S2(), -0.2, 0, Math.PI * 2); ctx.fill(); ctx.strokeStyle = "rgba(255,255,255,.18)"; ctx.stroke(); }
   for (const a of list) drawAgent(a, t);
+  // le drone de Bastien, en vol stationnaire devant le local
+  if (S.bastFilm && S.t >= 200 && S.t < 290 && near(A.bastien, P.film, 0.04)) { const dp = toScr({ x: 0.405 + Math.sin(t * 0.9) * 0.012, y: 0.36 + Math.sin(t * 1.7) * 0.006 }), u = S2(), hy = 70 * u;
+    ctx.fillStyle = "rgba(0,0,0,.35)"; ctx.beginPath(); ctx.ellipse(dp.x, dp.y + hy, 16 * u, 5 * u, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "#15191c"; ctx.fillRect(dp.x - 7 * u, dp.y - 3 * u, 14 * u, 6 * u); ctx.strokeStyle = "#2a3135"; ctx.lineWidth = 2 * u; ctx.beginPath(); ctx.moveTo(dp.x - 14 * u, dp.y - 7 * u); ctx.lineTo(dp.x + 14 * u, dp.y + 7 * u); ctx.moveTo(dp.x + 14 * u, dp.y - 7 * u); ctx.lineTo(dp.x - 14 * u, dp.y + 7 * u); ctx.stroke();
+    ctx.fillStyle = "rgba(200,210,215,.25)"; for (const [ox, oy] of [[-14, -7], [14, 7], [14, -7], [-14, 7]]) { ctx.beginPath(); ctx.ellipse(dp.x + ox * u, dp.y + oy * u, 8 * u, 3 * u, t * 20, 0, Math.PI * 2); ctx.fill(); }
+    ctx.fillStyle = Math.sin(t * 8) > 0 ? "#ff3b2f" : "#3bff7a"; ctx.beginPath(); ctx.arc(dp.x, dp.y, 2 * u, 0, Math.PI * 2); ctx.fill(); }
   for (const a of list) if (a !== A.player) drawTag(a, t);
   // étincelles du sabotage
   if (A.gerald.vis && roomOf(A.gerald) === "ctrl" && near(A.gerald, P.cabinet) && !S.sabDone && Math.random() < 0.35) { for (let i = 0; i < 4; i++) sparks.push({ x: 0.35 + (Math.random() - 0.5) * 0.02, y: 0.16, vx: (Math.random() - 0.5) * 0.12, vy: -Math.random() * 0.12, life: 0.6 }); if (Math.random() < 0.15) Snd.zap(); }
@@ -597,7 +677,7 @@ function updateHideBar() {
   if (key === hideKey) return; hideKey = key; $hide.hidden = !S.hidden; if (!S.hidden) return;
   $hide.innerHTML = `<div class="tag">${busy ? "Le gilet jaune est à l'armoire, à deux mètres de vous. Agissez quand il a le dos tourné." : "Vous êtes caché derrière les armoires. Le temps passe…"}</div>`;
   const btn = (l, fx, give) => { const b = document.createElement("button"); b.type = "button"; b.className = "opt" + (give ? " give" : ""); b.textContent = l; b.addEventListener("click", fx); $hide.appendChild(b); };
-  if (busy && !has("cliche")) btn("Le prendre en photo", () => { Snd.click(); if (g.face === "b") { give("cliche"); learn("dos", true); toast("Photo prise. Il n'a rien entendu."); hideKey = ""; } else { S.caughtHiding = true; endLoop(); } }, true);
+  if (busy && !has("cliche")) btn("Le prendre en photo", () => { Snd.click(); if (g.face === "b") { give("cliche"); learn("dos", true); award("fantome"); toast("Photo prise. Il n'a rien entendu."); hideKey = ""; } else { S.caughtHiding = true; endLoop(); } }, true);
   if (busy) btn("Le surprendre", () => { S.hidden = false; A.player.vis = true; S.gerInterrupted = true; S.gerFled = true; say(g, "Merde ! Qui êtes-vous ?!"); toast("Il s'enfuit en laissant tout en plan"); hideKey = ""; updateHideBar(); });
   btn("Sortir de la cachette", () => { S.hidden = false; A.player.vis = true; hideKey = ""; updateHideBar(); });
 }
@@ -634,11 +714,12 @@ function talk(id) {
     const o = [{ l: "« Vous travaillez ici ? »", fx: () => sheet("L'homme au gilet jaune", "« Sous-traitance. Vérifications de fin d'exploitation. Écartez-vous, s'il vous plaît. »", []) }];
     if (knows("local")) o.push({ l: "« Je sais ce que vous allez faire dans le local. »", fx: () => { if (S.t < 200) S.gerWary = true; sheet("L'homme au gilet jaune", S.t < 200 ? "Il vous fixe longuement, puis regarde vers la sortie. « Vous ne savez rien du tout. »" : "« Mon travail. Et vous, vous fouinez. Faites attention à vous. »", []); } });
     if (knows("appel")) o.push({ l: "« Il vous paie combien, monsieur Vasseur ? »", fx: () => sheet("L'homme au gilet jaune", "Sa mâchoire se crispe. « Je ne connais pas de Vasseur. » Il ment mal.", []) });
+    if (knowsDed("paye") && !S.said.gcrack) o.push({ l: "« 5 000 €, c'est le prix d'une cabine qui tombe ? »", fx: () => { S.said.gcrack = 1; learn("complot", true); sheet("L'homme au gilet jaune", "Il recule d'un pas. « Une cabine qui… Non. Vasseur a dit une panne. Une panne en gare, personne en danger. » Il déglutit. « Il a dit qu'Odile partirait à 57 et que… » Il se tait d'un coup.", []); } });
     o.push({ l: "« Vous attendez quoi, au juste ? »", fx: () => sheet("L'homme au gilet jaune", S.t < 200 ? "« Que vous me lâchiez. » Il regarde encore sa montre." : "« Mon heure. » Il ne sourit pas.", []) });
     o.push({ l: "Le suivre discrètement", fx: () => { S.follow = "gerald"; S.followNear = 0; closeSheet(); toast("Vous le suivez. Pas trop près…"); } });
     if (!has("badge") && !S.badgeTried) o.push({ l: "Lui subtiliser son badge", give: true, fx: () => {
       S.badgeTried = true; const ok = S.dark > 0 || (S.t >= 56 && S.t < 82);
-      if (ok) { give("badge"); sheet("L'homme au gilet jaune", (S.dark > 0 ? "Dans le noir, " : "Pendant qu'il parle au téléphone, ") + "vous décrochez le badge de son gilet. Il ne sent rien. « TechniRail Services — Intervenant ».", []); }
+      if (ok) { give("badge"); award("pickpocket"); sheet("L'homme au gilet jaune", (S.dark > 0 ? "Dans le noir, " : "Pendant qu'il parle au téléphone, ") + "vous décrochez le badge de son gilet. Il ne sent rien. « TechniRail Services — Intervenant ».", []); }
       else { if (S.t < 200) S.gerWary = true; sheet("L'homme au gilet jaune", "Sa main se referme sur votre poignet. « Bas les pattes. » Il vous fixe, puis regarde vers la sortie.", []); }
     } });
     if (hasProof() && !S.gerFled) o.push({ l: "Lui montrer la preuve du sabotage", give: true, fx: () => { S.gerFled = true; say(A.gerald, "…"); sheet("L'homme au gilet jaune", "Il blêmit, arrache son gilet et file vers la sortie sans un mot. <i>Mais le frein, lui, est toujours désarmé.</i>", []); } });
@@ -648,6 +729,7 @@ function talk(id) {
     const o = [];
     o.push({ l: "« Bonsoir. »", fx: () => sheet("Bastien", "« Mm. J'attends la dernière, comme tout le monde. »", []) });
     if (S.bastTrust) o.push({ l: "« Pourquoi filmer en douce ? »", fx: () => sheet("Bastien", "« Mon grand-père a posé ces rails en 88. Il est mort l'an dernier. Je voulais qu'il voie le dernier voyage. D'en haut. » Il hausse les épaules. « C'est con, hein. »", bastienOpts()) });
+    if (S.bastFilm && S.t >= 200 && S.t < 290) o.push({ l: "Regarder l'écran de sa télécommande", fx: () => { const g = A.gerald, busy = g.vis && roomOf(g) === "ctrl" && near(g, P.cabinet, 0.04); if (busy) { learn("local"); if (S.sab > 20) learn("frein"); logEv("Sur l'écran du drone : le gilet jaune à l'armoire"); } sheet("Bastien", busy ? "Sur le petit écran, en direct : le gilet jaune penché sur l'armoire, une pince à la main. Bastien murmure : « Il fait quoi, là ? »" : "Sur le petit écran : la porte du local, vue d'en haut. « Pour l'instant, rien. »", []); } });
     if (S.t >= 60) o.push({ l: "« Le type au gilet jaune, vous l'avez remarqué ? »", fx: () => { sheet("Bastien", "« Il m'a demandé si je filmais. J'ai dit non. Bizarre, comme question. Comme s'il avait peur des caméras. »", []); toast("Les caméras… Les écrans d'Odile, peut-être ?"); } });
     if (!S.bastTrust) o.push({ l: "« Il y a quoi, dans ce sac ? »", fx: () => sheet("Bastien", "« Ça vous regarde pas. »", []) });
     if (knows("drone") && !S.bastTrust) o.push({ l: "« Je sais pour le drone. »", fx: () => { S.bastTrust = true; sheet("Bastien", "Il pâlit. « Vous allez me balancer ? Je veux juste filmer le dernier voyage. C'est de l'histoire, ça. Vous comprenez ? »", bastienOpts()); } });
@@ -656,6 +738,9 @@ function talk(id) {
   if (id === "delattre") {
     const o = [{ l: "« Bonsoir, madame. »", fx: () => sheet("Mme Delattre", "« Bonsoir ! Je prends cette rame depuis le premier jour, en 1989. Ce soir, je fais le dernier trajet. Ça me serre le cœur. »", []) },
       { l: "« Vous connaissez le personnel ? »", fx: () => { learn("intrus"); sheet("Mme Delattre", "« Tout le monde ! Odile, les gars de l'entretien… Mais celui-là, au gilet jaune, jamais vu. Et croyez-moi, je les connais tous. »", []); } }];
+    if (has("enveloppe")) o.push({ l: "« Gardez cette enveloppe pour moi, s'il vous plaît. »", give: true, fx: () => { take("enveloppe"); S.delKeeps = true; award("ange"); sheet("Mme Delattre", "Elle la glisse dans son sac à main sans poser de question. « Personne ne fouille le sac d'une vieille dame. Revenez quand vous voulez. »", []); } });
+    if (S.delKeeps) o.push({ l: "« Rendez-moi l'enveloppe. »", fx: () => { S.delKeeps = false; give("enveloppe"); sheet("Mme Delattre", "« Tenez. Faites-en bon usage. »", []); } });
+    if ((knowsDed("ficelles") || knows("local")) && !S.delDistract && S.t < 205) o.push({ l: "« À 21 h 57, pouvez-vous occuper l'homme au gilet jaune ? »", fx: () => { S.delDistract = true; sheet("Mme Delattre", knowsDed("ficelles") ? "« Pour faire tomber Vasseur ? Avec plaisir. Je vais lui raconter l'inauguration de 1989. En entier. »" : "Elle hésite, puis sourit. « Je n'ai jamais su me taire. Il va m'entendre. »", []); } });
     o.push({ l: "« Racontez-moi cette rame. »", fx: () => sheet("Mme Delattre", "« Le 4 février 1989, on était trois cents sur le quai. Une rame sans conducteur, vous vous rendez compte ? Mon Henri disait : on vit dans le futur. Trois minutes jusqu'à la cathédrale. Et demain, des autobus. »", []) });
     if (S.t >= 95) o.push({ l: "« Vous avez vu quelque chose d'étrange, ce soir ? »", fx: () => sheet("Mme Delattre", "« Ce monsieur au gilet a jeté un papier dans la poubelle près du pilier, en passant. Il a regardé partout avant. Quand on n'a rien à cacher, on ne regarde pas partout. »", []) });
     if (knows("chute")) o.push({ l: "« Ne montez pas dans cette rame. »", fx: () => sheet("Mme Delattre", "« À mon âge, on ne rate pas un dernier voyage. »", []) });
@@ -675,6 +760,7 @@ function odileOpts() {
   if (has("badge") && !S.said.badge) o.push({ l: "Lui montrer le badge « TechniRail »", give: true, fx: () => { S.said.badge = 1; learn("faux"); if (S.t < 200 && !S.odileConfess) S.odileStays = true; sheet("Odile", "« TechniRail ? On n'a aucun sous-traitant ce soir. » Elle décroche son téléphone… le regarde… et le repose. " + (S.t < 200 ? "« Je ne bouge pas d'ici tant que ce type traîne. »" : "« Je… je verrai ça après le départ. »"), odileOpts()); } });
   if (knows("guichet") && !S.odileConfess) o.push({ l: "« Qui vous appelait, à 21 h 55 ? »", fx: () => sheet("Odile", "« Ma fille. » Elle ment. Vous l'avez entendue : « à 57, comme prévu ».", odileOpts()) });
   if (knows("dette") && knows("vasseur") && !S.odileConfess) o.push({ l: "« Vasseur paie vos dettes, c'est ça ? »", fx: () => confess("Le silence dure. Puis : « Dix-huit mille euros. Vous savez ce que c'est, une retraite d'agent ? »") });
+  if (knowsDed("complice") && !S.odileConfess) o.push({ l: "« Votre café de 57, c'était convenu. »", fx: () => confess("Elle repose lentement le combiné qu'elle tenait. « Vous m'avez entendue, tout à l'heure… »") });
   if (knows("complot") && !S.odileConfess) o.push({ l: "« Vasseur m'a dit que vous partiriez à 57. »", fx: () => confess("Elle devient livide. « Il vous a… Il a parlé ? »") });
   if (knows("dette") && !knows("vasseur") && !S.odileConfess) o.push({ l: "« Vous devez de l'argent à la banque. »", fx: () => sheet("Odile", "« Comment vous… Ça ne vous regarde pas ! » Elle se détourne. Il vous manque un nom.", odileOpts()) });
   if (knows("cafe")) o.push({ l: "« Vous allez quitter votre poste ? »", fx: () => sheet("Odile", "« Juste deux minutes, à 57, pour un café. Je n'ai rien bu depuis le début de l'après-midi. »", odileOpts()) });
@@ -682,7 +768,7 @@ function odileOpts() {
   if (knows("frein")) o.push({ l: "« Le frein de secours a été désarmé. »", fx: () => { learn("preuve"); sheet("Odile", "« Vous plaisantez ? Qui aurait accès à l'armoire ? … Sans preuve, je ne bloque pas le dernier départ. »", odileOpts()); } });
   if (knows("intrus")) o.push({ l: "« Ce gilet jaune n'est pas des vôtres. »", fx: () => { learn("preuve"); sheet("Odile", "« Un sous-traitant, il m'a dit. Si vous avez une preuve, montrez-la-moi. »", odileOpts()); } });
   if (knows("sms") && !S.odileConfess) o.push({ l: "« Qui vous envoie des SMS signés V. ? »", fx: () => confess("Elle se fige. Longtemps. « Vasseur… »") });
-  if (has("enveloppe") && !S.envShown) o.push({ l: "Lui montrer l'enveloppe de « V. »", give: true, fx: () => { S.envShown = true; sheet("Odile", S.odileConfess ? "« « Que la dernière rame ne monte jamais »… Il m'a menti. Il voulait des morts, pas une panne. » Elle serre l'enveloppe. « Celle-là, la police la verra. »" : "Elle lit le mot et pâlit. « Ce n'est pas possible… » Elle détourne les yeux, comme si elle savait quelque chose.", odileOpts()); } });
+  if (has("enveloppe") && !S.envShown) o.push({ l: "Lui montrer l'enveloppe de « V. »", give: true, fx: () => { S.envShown = true; if (S.odileConfess) take("enveloppe"); sheet("Odile", S.odileConfess ? "« « Que la dernière rame ne monte jamais »… Il m'a menti. Il voulait des morts, pas une panne. » Elle serre l'enveloppe. « Celle-là, la police la verra. »" : "Elle lit le mot et pâlit. « Ce n'est pas possible… » Elle détourne les yeux, comme si elle savait quelque chose.", odileOpts()); } });
   if (has("cafe") && !S.odileStays) o.push({ l: "Lui offrir le café", give: true, fx: () => { take("cafe"); if (S.t < 200) { S.odileStays = true; sheet("Odile", "« Pour moi ? … Merci, c'est gentil. Bon, alors je ne bouge plus d'ici. »", []); } else sheet("Odile", "« Merci… mais j'en ai déjà un. »", []); } });
   if (has("cliche")) o.push({ l: "Lui montrer la photo du sabotage", give: true, fx: () => { if (!S.fixed) { S.odileKnows = true; sheet("Odile", "Elle agrandit la photo. Le gilet jaune, la goupille rouge à la main. « Mon Dieu… le frein de secours. » Elle se précipite vers l'armoire.", []); } else sheet("Odile", "« Je sais. C'est réparé. »", []); } });
   if (has("photo")) o.push({ l: "Lui montrer la vidéo de Bastien", give: true, fx: () => {
@@ -708,7 +794,7 @@ function examine(id) {
     return sheet("Poubelle", "Des gobelets, des tickets… et le journal du jour : « FERMETURE DU POMA : LE PROMOTEUR VASSEUR RACHÈTE LE DÉPÔT ». Une photo d'un homme en costume, sourire de vainqueur." + (S.cardInTrash && !knows("carte") ? " Quelque chose de blanc dépasse sous les gobelets." : ""), o);
   }
   if (id === "fuse") {
-    const o = []; if (S.fuseUses < 3) o.push({ l: `Couper la lumière quelques secondes (${3 - S.fuseUses} restant${3 - S.fuseUses > 1 ? "s" : ""})`, give: true, fx: () => { S.fuseUses++; S.dark = 10; learn("noir", true); Snd.zap(); closeSheet(); say(A.odile, "Encore ces plombs !"); } });
+    const o = []; if (S.fuseUses < 3) o.push({ l: `Couper la lumière quelques secondes (${3 - S.fuseUses} restant${3 - S.fuseUses > 1 ? "s" : ""})`, give: true, fx: () => { S.fuseUses++; S.dark = 10; if (S.fuseUses >= 3) award("electricien"); logEv("Vous coupez la lumière"); learn("noir", true); Snd.zap(); closeSheet(); say(A.odile, "Encore ces plombs !"); } });
     return sheet("Coffret électrique", "Un vieux coffret gris : « ÉCLAIRAGE HALL ET LOCAL ». Le levier principal a du jeu." + (S.fuseUses >= 3 ? " Le disjoncteur chauffe : mieux vaut ne plus y toucher." : ""), o);
   }
   if (id === "phone") {
@@ -718,7 +804,7 @@ function examine(id) {
       else { learn("secu"); sheet("Téléphone de service", "« Un gilet jaune qui traîne ? Il y en a partout, monsieur. Rappelez quand vous aurez du concret. » Clic.", []); }
     } }];
     if (knows("carte")) o.push({ l: "Composer le numéro de la carte", fx: () => sheet("Téléphone de service", "Deux sonneries. Une voix d'homme, pressée : « Oui ? »", [
-      { l: "Vous faire passer pour le gilet jaune", fx: () => { learn("complot"); sheet("Téléphone de service", "Vous grommelez « C'est moi ». « Pourquoi tu m'appelles d'ici, idiot ? Odile part au café à 57, comme convenu. Deux minutes. Et récupère l'enveloppe, ne la laisse pas traîner. » Il raccroche.", []); } },
+      { l: "Vous faire passer pour le gilet jaune", fx: () => { learn("complot"); award("imitateur"); sheet("Téléphone de service", "Vous grommelez « C'est moi ». « Pourquoi tu m'appelles d'ici, idiot ? Odile part au café à 57, comme convenu. Deux minutes. Et récupère l'enveloppe, ne la laisse pas traîner. » Il raccroche.", []); } },
       { l: "« Je sais ce que vous préparez, Vasseur. »", fx: () => { learn("voix"); if (S.t < 200) S.gerWary = true; sheet("Téléphone de service", "Un rire bref. « Vous ne savez rien. » Il raccroche. " + (S.t < 200 ? "Quelques secondes plus tard, sur le quai, le téléphone du gilet jaune vibre." : "Trop tard pour qu'il prévienne qui que ce soit."), []); } },
       { l: "Raccrocher sans rien dire", fx: () => closeSheet() }
     ]) });
@@ -782,7 +868,7 @@ cv.addEventListener("pointerdown", e => {
   if (hit.kind !== "agent" || hit.id !== S.follow) S.follow = null;
   if (hit.kind === "floor") { pending = null; goTo(A.player, hit.w); ripples.push({ x: hit.w.x, y: hit.w.y, k: 0 }); return; }
   if (hit.kind === "agent") { const a = A[hit.id]; pending = { kind: "agent", id: hit.id }; goTo(A.player, { x: a.x + (A.player.x < a.x ? -0.035 : 0.035), y: a.y + 0.01 }); if (hit.id === "odile" && roomOf(A.odile) === "ctrl") goTo(A.player, P.window); return; }
-  pending = { kind: "hot", id: hit.id }; goTo(A.player, hit.id === "screens" && roomOf(A.player) === "ctrl" ? { x: 0.28, y: 0.25 } : hit.at);
+  pending = { kind: "hot", id: hit.id }; goTo(A.player, hit.id === "screens" && roomOf(A.player) === "ctrl" ? { x: 0.305, y: 0.26 } : hit.at);
 });
 cv.addEventListener("pointermove", e => {
   if (e.pointerType !== "mouse") return;
@@ -793,7 +879,7 @@ cv.addEventListener("pointermove", e => {
 function arrive() {
   if (!pending) return; const p = pending; pending = null;
   if (p.kind === "agent") { const a = A[p.id]; if (!a.vis) return; if (Math.hypot(A.player.x - a.x, (A.player.y - a.y) * 0.56) > 0.09) return toast(`${a.name} est trop loin`); A.player.dir = a.x > A.player.x ? 1 : -1; a.dir = -A.player.dir; A.player.face = "s"; if (!(p.id === "odile" && roomOf(a) === "ctrl")) a.face = "s"; else A.player.face = "b"; focus = { x: (a.x + A.player.x) / 2, y: (a.y + A.player.y) / 2 - 0.04 }; zoomT = 1.35; talk(p.id); }
-  else examine(p.id);
+  else { const h = HOT.find(x => x.id === p.id); if (h) { A.player.face = h.face; A.player.dir = h.dir; } examine(p.id); }
 }
 
 /* ================= Fins de boucle ================= */
@@ -813,7 +899,10 @@ function endLoop() {
   if (kind === "chute") { Snd.crash(); learn("chute", true); }
   if (kind === "sursis") learn("sursis", true);
   if (!M.endings.includes(kind)) M.endings.push(kind);
-  saveM();
+  award("premiere"); if (ENDINGS.every(e => M.endings.includes(e))) award("toutes");
+  if (kind === "verite") { award("verite"); if (M.loops <= 5) award("eclair"); }
+  if (S.hunt && has("enveloppe")) award("insaisissable");
+  Snd.tension(0); saveM();
   const T = {
     chute: ["22:00:00", ["La rame s'élance dans la nuit.", "À mi-pente, un claquement sec. Les lumières vacillent, la cabine s'immobilise… puis glisse en arrière.", "Le frein de secours ne répond pas.", "Noir."], "Rouvrir les yeux"],
     sursis: ["22:00:00", ["La rame s'élance et disparaît vers la ville haute. Rien ne se passe.", "Sur le parvis, l'homme au gilet jaune allume une cigarette et s'éloigne sans se retourner.", "Il recommencera. Vous le savez.", "Le monde se replie sur lui-même."], "Recommencer"],
@@ -828,23 +917,51 @@ function endLoop() {
   if (kind === "chute") { shake = 1.2; zoomT = 1.12; paused = false; }
   setTimeout(() => { shake = 0; showOverlay(T[0], T[1], T[2], kind); }, kind === "chute" ? 1600 : 300);
 }
+// ce que cette boucle a appris, et un conseil pour la suivante
+function loopSummary() {
+  const nw = M.clues.filter(k => !S.cluesAtStart.includes(k));
+  return `<div class="sum" style="animation-delay:${0.6 + 4 * 1.3}s"><b>Cette boucle :</b> ${nw.length ? nw.length + " nouvel" + (nw.length > 1 ? "s" : "") + " indice" + (nw.length > 1 ? "s" : "") + " — " + nw.slice(0, 3).map(k => CLUES[k].split(/[.:]/)[0]).join(" · ") + (nw.length > 3 ? "…" : "") : "aucun nouvel indice."}<br><b>Piste :</b> ${goal()}</div>`;
+}
+function finalStats() {
+  const mins = Math.round((M.playS || 0) / 60), rank = M.loops <= 3 ? "Détective légendaire" : M.loops <= 6 ? "Fin limier" : M.loops <= 10 ? "Enquêteur tenace" : "Témoin obstiné";
+  return `<div class="stats" style="animation-delay:${0.6 + 4 * 1.3}s"><div><b>${M.loops}</b>boucles</div><div><b>${mins} min</b>de jeu</div><div><b>${M.endings.length}/${ENDINGS.length}</b>fins</div><div><b>${(M.ach || []).length}/${ACHS.length}</b>succès</div><div style="grid-column:1/-1"><b style="font-size:18px;font-family:var(--f-title);letter-spacing:.08em;text-transform:uppercase">${rank}</b>votre rang</div></div>`;
+}
 function showOverlay(title, lines, btn, kind) {
   $ov.hidden = false;
-  $ov.innerHTML = `<div><p class="t">${title}</p><div class="lines">${lines.map((l, i) => `<p style="animation-delay:${0.4 + i * 1.3}s">${l}</p>`).join("")}</div>${btn ? `<button class="go" type="button" style="animation-delay:${0.6 + lines.length * 1.3}s">${btn}</button>` : `<button class="go" type="button" style="animation-delay:${0.6 + lines.length * 1.3}s">Rejouer depuis le début</button><p class="small">Fins découvertes : ${M.endings.length}/${ENDINGS.length}. Fiction : le POMA 2000 a réellement relié la gare à la ville haute de Laon de 1989 à 2016 ; personnages et événements sont inventés.</p>`}</div>`;
+  $ov.innerHTML = `<div><p class="t">${title}</p><div class="lines">${lines.map((l, i) => `<p style="animation-delay:${0.4 + i * 1.3}s">${l}</p>`).join("")}</div>${btn ? loopSummary() : finalStats()}${btn ? `<button class="go" type="button" style="animation-delay:${0.6 + lines.length * 1.3}s">${btn}</button>` : `<button class="go" type="button" style="animation-delay:${0.6 + lines.length * 1.3}s">Rejouer depuis le début</button><p class="small">Fins découvertes : ${M.endings.length}/${ENDINGS.length}. Fiction : le POMA 2000 a réellement relié la gare à la ville haute de Laon de 1989 à 2016 ; personnages et événements sont inventés.</p>`}</div>`;
     $ov.querySelector(".go").addEventListener("click", () => {
     Voice.stop();
     if (btn) { M.loops++; saveM(); Snd.rewind(); $ov.hidden = true; newLoop(); rewindT = 1.6; zoom = 1.25; zoomT = 1; paused = false; toast("21 h 54. Encore. Le carnet garde ce que vous avez appris."); }
-    else { M.clues = []; M.loops = 1; saveM(); $ov.hidden = true; newLoop(); paused = false; }
+    else { M.clues = []; M.ded = []; M.loops = 1; M.playS = 0; saveM(); $ov.hidden = true; newLoop(); paused = false; }
   });
 }
 
 /* ================= Carnet ================= */
 function openJournal() {
   paused = true; $jr.hidden = false;
-  $jbox.innerHTML = `<h2>Carnet</h2><p class="piste"><b>Piste :</b> ${goal()}</p>${M.clues.length ? `<ol>${M.clues.map(k => `<li>${CLUES[k]}</li>`).join("")}</ol>` : `<p class="none">Rien encore. Observez, écoutez, fouillez. Le temps est compté.</p>`}<p class="end">Boucle ${M.loops} · fins découvertes : ${M.endings.length}/${ENDINGS.length}</p><div class="opts" style="margin-top:14px"><button class="opt close" type="button" id="jClose">Fermer le carnet</button></div>`;
+  const dedHtml = DEDS.map(d => { const got = d.needs.filter(knows).length; if (knowsDed(d.k)) return `<div class="ded ok"><b>✓ ${d.t}</b><br>${d.txt}</div>`;
+    if (got === d.needs.length) return `<div class="ded"><b>${d.t} ?</b><br>Vous avez les deux indices. <button class="opt give" type="button" data-ded="${d.k}">Relier les indices</button></div>`;
+    return `<div class="ded"><b>???</b> <span style="color:var(--muted)">${got}/${d.needs.length} indice${got > 1 ? "s" : ""}</span></div>`; }).join("");
+  const tl = S.log.length ? `<ol class="tl">${S.log.map(e => `<li><b>${fmtT(e.t)}</b><span>${e.txt}</span></li>`).join("")}</ol>` : `<p class="none">Rien de remarquable pour l'instant.</p>`;
+  $jbox.innerHTML = `<h2>Carnet</h2><p class="piste"><b>Piste :</b> ${goal()}</p>
+    <h3>Déductions</h3>${dedHtml}
+    <h3>Cette boucle</h3>${tl}
+    <h3>Indices (${M.clues.length})</h3>${M.clues.length ? `<ol>${M.clues.map(k => `<li>${CLUES[k]}</li>`).join("")}</ol>` : `<p class="none">Rien encore. Observez, écoutez, fouillez. Le temps est compté.</p>`}
+    <h3>Succès (${(M.ach || []).length}/${ACHS.length})</h3><div class="ach">${ACHS.map(a => `<div class="${(M.ach || []).includes(a.k) ? "on" : ""}"><b>${(M.ach || []).includes(a.k) ? "🏆 " : ""}${a.t}</b>${a.d}</div>`).join("")}</div>
+    <p class="end">Boucle ${M.loops} · fins découvertes : ${M.endings.length}/${ENDINGS.length}</p><div class="opts" style="margin-top:14px"><button class="opt close" type="button" id="jClose">Fermer le carnet</button></div>`;
+  for (const b of $jbox.querySelectorAll("[data-ded]")) b.addEventListener("click", () => { M.ded = M.ded || []; M.ded.push(b.dataset.ded); saveM(); Snd.note(); if (DEDS.every(d => M.ded.includes(d.k))) award("logicien"); openJournal(); });
   document.getElementById("jClose").addEventListener("click", () => { $jr.hidden = true; paused = !$sheet.hidden; });
 }
 document.getElementById("bJournal").addEventListener("click", openJournal);
+// attendre jusqu'à un moment clé, ou rembobiner tout de suite
+const MOMENTS = [[60, "21:55:00 · le coup de fil du gilet jaune"], [90, "21:55:30 · le téléphone du guichet"], [120, "21:56:00 · Bastien pose son sac"], [200, "21:57:20 · Odile part au café"], [280, "21:58:40 · Odile revient"], [300, "21:59:00 · la rame arrive"]];
+document.getElementById("bWait").addEventListener("click", () => {
+  if (S.over || S.hidden || !$sheet.hidden) return;
+  const o = MOMENTS.filter(([t]) => t > S.t + 3).map(([t, l]) => ({ l: `Attendre jusqu'à ${l}`, fx: () => { S.skipTo = t; S.follow = null; closeSheet(); } }));
+  if (M.loops > 1 || M.endings.length) o.push({ l: "⟲ Rembobiner maintenant (on garde le carnet)", fx: () => { closeSheet(); rewindNow(); } });
+  sheet("Attendre", "Le temps file à toute vitesse jusqu'au moment choisi. Les autres vivent leur soirée sans vous attendre.", o);
+});
+function rewindNow() { const learned = M.clues.filter(k => !S.cluesAtStart.includes(k)).length; M.loops++; saveM(); Snd.rewind(); newLoop(); rewindT = 1.6; zoom = 1.25; zoomT = 1; paused = false; toast(`21 h 54. Encore. ${learned ? learned + " indice" + (learned > 1 ? "s" : "") + " de plus dans le carnet." : "Rien de neuf cette fois."}`); }
 const $fast = document.getElementById("bFast"); $fast.addEventListener("click", () => { fast = !fast; $fast.setAttribute("aria-pressed", fast); });
 const $voice = document.getElementById("bVoice"); $voice.setAttribute("aria-pressed", M.voice !== false);
 $voice.addEventListener("click", () => { M.voice = M.voice === false; saveM(); $voice.setAttribute("aria-pressed", M.voice !== false); if (M.voice === false) Voice.stop(); });
@@ -855,13 +972,19 @@ let last = performance.now(), lastSec = -1;
 function frame(now) {
   const real = Math.min(0.05, (now - last) / 1000); last = now;
   if (!paused && !S.over) {
-    const dt = real * (fast ? 6 : 1);
+    const dt = real * (S.skipTo ? 14 : fast ? 6 : 1);
+    if (S.skipTo && S.t >= S.skipTo) S.skipTo = 0;
+    M.playS = (M.playS || 0) + real; if (Math.floor(M.playS) % 10 === 0 && Math.floor(M.playS - real) % 10 !== 0) saveM();
     S.t += dt;
     if (stepAgent(A.player, dt, 0.11) && pending) arrive();
     if (A.player.path.length) { A.player.stepAcc = (A.player.stepAcc || 0) + real; if (A.player.stepAcc > 0.3) { A.player.stepAcc = 0; Snd.step(); if (A.player.y > 0.6) ripples.push({ x: A.player.x, y: A.player.y, k: 0.55 }); } }
     if (!focus) zoomT = S.t > 340 ? 1.1 : 1;
     updateAgents(dt);
     if (Math.floor(S.t) !== lastSec) { lastSec = Math.floor(S.t); if (S.t > 350) Snd.tick(); }
+    const g = A.gerald, dg = g.vis ? Math.hypot(A.player.x - g.x, (A.player.y - g.y) * 0.56) : 9;
+    const danger = (S.hidden && roomOf(g) === "ctrl") || (S.hunt && dg < 0.2) ? 1 : dg < 0.08 ? 0.5 : 0;
+    S.heartT -= real; if (danger && S.heartT <= 0) { S.heartT = danger === 1 ? 0.55 : 0.9; Snd.heart(danger); }
+    Snd.tension(Math.max(0, (S.t - 240) / 120));
     if (S.fixed && !S.gerCaught && A.gerald.vis) { S.gerCaught = true; say(A.gerald, "Lâchez-moi !"); }
     if (S.t >= LOOP && !S.over) { S.t = LOOP; endLoop(); }
   }
@@ -873,7 +996,7 @@ function frame(now) {
 }
 
 resize(); newLoop();
-if (location.hash === "#debug") window.__dbg = { get S() { return S; }, A, M, P, talk, examine, goTo, learn, give, has, endLoop };
+if (location.hash === "#debug") window.__dbg = { get S() { return S; }, A, M, P, award, openJournal, rewindNow, DEDS, talk, examine, goTo, learn, give, has, endLoop, walkable, clampWalk, route, HOT, NODES };
 if (!M.seenIntro) {
   paused = true; $ov.hidden = false;
   $ov.innerHTML = `<div><p class="t">La Dernière Rame</p><div class="lines"><p style="animation-delay:.3s">Laon, samedi 27 août 2016. Station basse du POMA.</p><p style="animation-delay:1.5s">À 22 h 00, la toute dernière rame doit monter vers la ville haute. Puis la ligne fermera pour toujours.</p><p style="animation-delay:2.9s">Vous avez six minutes. Et vous allez les revivre. Encore. Et encore.</p></div><button class="go" type="button" style="animation-delay:4.2s">Entrer dans la station</button><p class="small">Touchez le sol pour marcher, un objet ou une personne pour interagir. « Avancer » accélère le temps. Fiction inspirée d'un lieu réel.</p></div>`;

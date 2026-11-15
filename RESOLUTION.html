@@ -48,7 +48,7 @@ td.t { font-family: var(--f-mono); white-space: nowrap; color: var(--teal); }
 </style>
 
 <div class="wrap">
-  <p class="kick">La Dernière Rame · version 3 (plusieurs chemins)</p>
+  <p class="kick">La Dernière Rame · version 4 (enquête complète)</p>
   <h1>Graphe de résolution</h1>
   <p class="lede">La solution complète : chaque indice, chaque objet, chaque action, avec ses dépendances et ses horaires, et le chemin exact de chacune des huit fins. La version 3 ajoute des objets à fouiller, des actions risquées, des pistes affichées et plusieurs façons d'obtenir chaque élément de la vérité.</p>
 
@@ -59,6 +59,8 @@ td.t { font-family: var(--f-mono); white-space: nowrap; color: var(--teal); }
     <div class="tile"><b>3</b><span>preuves possibles du sabotage</span></div>
     <div class="tile"><b>4</b><span>façons de faire avouer Odile</span></div>
     <div class="tile"><b>2</b><span>boucles minimum pour la vraie fin</span></div>
+    <div class="tile"><b>6</b><span>déductions à relier</span></div>
+    <div class="tile"><b>12</b><span>succès</span></div>
     <div class="tile"><b>9</b><span>lieux ou objets à fouiller</span></div>
   </div>
 
@@ -101,6 +103,14 @@ flowchart TD
     Kcarte --> tel[Téléphone de service · composer le numéro]
     tel --> bluff[Se faire passer pour le gilet jaune] --> Kcomplot{{Indice · Vasseur : « Odile part à 57 »}}
     tel --> menace[Menacer Vasseur] --> Kvoix{{Indice · il prévient son homme}}
+    Ienv -->|vers 21:58:35 il découvre la perte| traque[Il vous traque]
+    traque -->|il vous attrape| perdue[Enveloppe reprise]
+    Ienv --> confier[La confier à Mme Delattre] --> garde[Elle la garde · on la récupère après]
+  end
+  subgraph D[Déductions du carnet]
+    Dpaye[[Payé · enveloppe + appel]] --> craquer[« 5 000 €, le prix d'une cabine qui tombe ? »] --> Kcomplot
+    Dcomp[[Café prévu · café + guichet]] --> aveux
+    Dfic[[Ficelles · Vasseur + carte]] --> distraire[Mme Delattre occupe le gilet jaune 15 s]
   end
 
   subgraph E3[Étage 3 · la complice]
@@ -152,6 +162,7 @@ flowchart TD
   class Ivideo,Ienv,Ipiece,Icafe,Ibande,Icliche,Ijournal,Ibadge item
   class Echute,Esursis,Ealarme,Eaveux,Erepere,Earrest fail
   class Ewin mid
+  class Dpaye,Dcomp,Dfic clue
   class Everite win
 </pre>
   </div>
@@ -162,6 +173,10 @@ flowchart TD
     <li><b>Piste affichée</b> sous l'horloge et en haut du carnet : elle change selon les indices déjà connus (8 étapes, de « Observez » à « Vous avez tout »).</li>
     <li><b>Étiquettes</b> : chaque personnage a son nom et un anneau de couleur (gilet jaune en jaune). Hors de l'écran, une flèche colorée indique où il se trouve.</li>
     <li><b>Petites phrases</b> : en passant près des personnages, ils parlent tout seuls (environ toutes les 9 à 16 secondes).</li>
+    <li><b>Attendre</b> : le bouton « Attendre » saute au prochain moment clé (21:55:00, 21:55:30, 21:56:00, 21:57:20, 21:58:40, 21:59:00) en accéléré, et propose de rembobiner tout de suite en gardant le carnet.</li>
+    <li><b>Carnet enrichi</b> : la piste, six déductions à relier quand on a les deux indices, la chronologie de la boucle en cours (heure par heure), tous les indices et douze succès.</li>
+    <li><b>Résumé de fin de boucle</b> : nouveaux indices appris et piste suivante. Écran final avec boucles, temps de jeu, fins, succès et rang.</li>
+    <li><b>Tension</b> : battements de cœur près du gilet jaune, en cachette ou pendant la traque ; nappe sonore qui monte de 21:58 à 22:00. Le drone de Bastien est visible au-dessus du hall quand il filme.</li>
     <li><b>Événements</b> : annonces à 21:54:20, 21:58:00 et 21:59:30 ; le téléphone du guichet sonne à 21:55:30 ; micro-coupure de lumière à 21:56:30 (Odile parle alors du coffret du hall, ce qui l'indique au joueur) ; Mme Delattre salue la rame à 21:59:00.</li>
   </ol>
 
@@ -176,7 +191,9 @@ flowchart TD
       <li>Aller voir Bastien sur le quai : « Je sais pour le drone », puis <b>avant 21:57:25</b> : « Filmez la porte du local technique à 21 h 57 ».</li>
       <li><b>21:57:20</b> : Odile part au café. <b>Entre 21:57:20 et 21:57:30</b>, entrer dans le local (porte → « Entrer ») et regarder le bureau : indice « SMS de V. ». Ressortir aussitôt, sinon le gilet jaune n'entre pas et la preuve n'existera jamais.</li>
       <li><b>21:57:35–21:58:15</b> : le gilet jaune trafique l'armoire. Sa sacoche est posée devant la porte du local : la fouiller et <b>prendre l'enveloppe</b>. Ne pas entrer dans le local.</li>
+      <li><b>Avant 21:58:35</b> : confier l'enveloppe à Mme Delattre (« Gardez cette enveloppe pour moi »). Sinon, quand le gilet jaune découvre la perte, il vous traque et vous la reprend s'il vous rattrape. Vous pouvez aussi garder l'enveloppe et le semer en marchant jusqu'à 21:59:35.</li>
       <li><b>Après 21:58:40</b> : demander à Bastien « Alors, vous avez filmé ? » → objet « vidéo ».</li>
+      <li>Récupérer l'enveloppe auprès de Mme Delattre (« Rendez-moi l'enveloppe »).</li>
       <li>Aller à la vitre d'Odile, <b>dans cet ordre</b> : « Qui vous envoie des SMS signés V. ? » (aveux), puis montrer l'enveloppe, puis montrer la vidéo. Le faire avant 21:59:50 environ : Odile a besoin d'environ 6 secondes pour réarmer le frein.</li>
       <li>22:00 : la rame monte, le gilet jaune est arrêté, Vasseur le sera au matin. <b>Fin du jeu.</b></li>
     </ol>
@@ -187,6 +204,8 @@ flowchart TD
     </ol>
     <p><b>Variantes pour les aveux</b> (à la place du SMS) :</p>
     <ol>
+      <li><b>La déduction « café prévu ».</b> Entendre l'appel du guichet à 21:55:30 (près de la vitre), connaître le café de 57, relier les deux dans le carnet, puis dire à Odile « Votre café de 57, c'était convenu ».</li>
+      <li><b>Le gilet jaune qui craque.</b> Relier l'enveloppe et l'appel à Vasseur (déduction « payé »), puis lui demander « 5 000 €, c'est le prix d'une cabine qui tombe ? » : il lâche le plan de Vasseur (indice « complot »), qu'on peut ensuite répéter à Odile.</li>
       <li><b>Le bluff au téléphone.</b> Fouiller la poubelle après 21:55:35 : carte de Vasseur avec un numéro. Au téléphone de service, composer le numéro et « se faire passer pour le gilet jaune » : Vasseur lâche le plan. Dire à Odile « Vasseur m'a dit que vous partiriez à 57 ».</li>
       <li><b>Les dettes.</b> Ouvrir le tiroir du bureau quand le local est vide (lettre de la banque, post-it « V. s'en occupe »), et connaître le nom de Vasseur (journal, Mme Delattre ou appel). Dire à Odile « Vasseur paie vos dettes, c'est ça ? ».</li>
     </ol>
@@ -202,13 +221,14 @@ flowchart TD
 
   <div class="end"><h3>Chute · la fin par défaut</h3><ol><li>Ne rien empêcher. Odile part au café à 21:57:20, le gilet jaune désarme le frein de secours en 40 secondes, la rame s'arrête dans la pente puis glisse en arrière. Indice « la rame chute ».</li></ol></div>
 
-  <div class="end"><h3>Sursis · le sabotage est empêché, le saboteur repart libre</h3><p>Sept façons d'y arriver :</p>
+  <div class="end"><h3>Sursis · le sabotage est empêché, le saboteur repart libre</h3><p>Huit façons d'y arriver :</p>
     <ol><li><b>Le café :</b> regarder le banc → prendre la pièce → l'insérer dans le distributeur → offrir le café à Odile <b>avant 21:57:20</b>. Elle ne quitte plus son poste.</li>
     <li><b>L'irruption :</b> entrer dans le local pendant que le gilet jaune y travaille, ou le surprendre depuis la cachette. Il s'enfuit avant d'avoir fini.</li>
     <li><b>La mise en garde :</b> lui dire « Je sais ce que vous allez faire dans le local » <b>avant 21:57</b>. Il se méfie et quitte la station (indice « méfiance »).</li>
     <li><b>La menace :</b> appeler Vasseur au numéro de la carte et le menacer <b>avant 21:57:20</b> : il prévient son homme, qui renonce.</li>
     <li><b>Le badge :</b> le lui prendre pendant son coup de fil (21:54:56–21:55:22) ou dans le noir, puis le montrer à Odile avant 21:57:20 : elle refuse de quitter son poste. Raté, il vous attrape le poignet et se méfie.</li>
     <li><b>La porte et la lumière :</b> prendre le journal dans la poubelle, coincer la porte du local avant son arrivée (il perd 20 s à la forcer), puis couper la lumière au coffret pendant qu'il travaille (3 fois 10 s au maximum). Il lui faut 40 s de travail avant 21:58:35 : avec la porte et deux ou trois coupures, il n'y arrive pas.</li>
+    <li><b>La distraction :</b> avant 21:57:25, demander à Mme Delattre d'occuper le gilet jaune (il faut connaître le local, ou la déduction « ficelles »). Elle le retient 15 secondes. Combinée à la porte ou à la lumière, le sabotage échoue.</li>
     <li><b>Le suivre de trop près</b> plus de 7 secondes avant 21:57:20 : il s'en rend compte et s'en va.</li></ol>
   </div>
 
@@ -252,6 +272,38 @@ flowchart TD
     </tbody>
   </table></div>
 
+  <h2>Déductions</h2>
+  <div class="tbl"><table>
+    <thead><tr><th>Déduction</th><th>Indices à relier</th><th>Ce qu'elle ouvre</th></tr></thead>
+    <tbody>
+      <tr><td>Le sabotage est payé</td><td>Enveloppe + appel à Vasseur</td><td>Faire craquer le gilet jaune (indice « complot »)</td></tr>
+      <tr><td>Le café de 57 était prévu</td><td>Odile part au café + appel au guichet</td><td>Aveux d'Odile</td></tr>
+      <tr><td>Vasseur tire les ficelles</td><td>Vasseur + carte</td><td>Mme Delattre accepte d'occuper le gilet jaune</td></tr>
+      <tr><td>Il lui faut 40 secondes</td><td>Frein désarmé + gilet jaune dans le local</td><td>Conseil : voler des secondes (porte, lumière, distraction)</td></tr>
+      <tr><td>Il a peur des caméras</td><td>Caméra coupée + drone</td><td>Conseil : une image de lui suffit</td></tr>
+      <tr><td>Odile a été achetée</td><td>Dettes + Vasseur</td><td>Confirme la piste des dettes</td></tr>
+    </tbody>
+  </table></div>
+
+  <h2>Succès</h2>
+  <div class="tbl"><table>
+    <thead><tr><th>Succès</th><th>Condition</th></tr></thead>
+    <tbody>
+      <tr><td>Premier réveil</td><td>Terminer une boucle</td></tr>
+      <tr><td>Fantôme</td><td>Photographier le sabotage sans être vu</td></tr>
+      <tr><td>Électricien</td><td>Couper la lumière trois fois dans une boucle</td></tr>
+      <tr><td>Pickpocket</td><td>Voler le badge du gilet jaune</td></tr>
+      <tr><td>Imitateur</td><td>Faire parler Vasseur au téléphone</td></tr>
+      <tr><td>Ange gardien</td><td>Confier l'enveloppe à Mme Delattre</td></tr>
+      <tr><td>Insaisissable</td><td>Garder l'enveloppe alors qu'il vous traque</td></tr>
+      <tr><td>Logicien</td><td>Trouver les six déductions</td></tr>
+      <tr><td>Archiviste</td><td>Noter 25 indices</td></tr>
+      <tr><td>Collectionneur</td><td>Voir les huit fins</td></tr>
+      <tr><td>La vérité</td><td>Briser la boucle</td></tr>
+      <tr><td>Éclair</td><td>Briser la boucle en 5 boucles ou moins</td></tr>
+    </tbody>
+  </table></div>
+
   <h2>Emplois du temps</h2>
   <div class="tbl"><table>
     <thead><tr><th>Heure</th><th>Odile</th><th>Gilet jaune</th><th>Bastien</th><th>Mme Delattre</th></tr></thead>
@@ -269,7 +321,8 @@ flowchart TD
       <tr><td class="t">21:57:30</td><td></td><td>Entre dans le local, pose sa sacoche devant la porte (ou force la porte coincée)</td><td></td><td></td></tr>
       <tr><td class="t">21:58:00</td><td colspan="4">Annonce : la rame arrive</td></tr>
       <tr><td class="t">21:58:10+</td><td></td><td>Frein désarmé après 40 s de travail (sans compter les coupures)</td><td></td><td></td></tr>
-      <tr><td class="t">21:58:35</td><td></td><td>Dernière limite : ressort, reprend sa sacoche, va au bout du quai</td><td></td><td></td></tr>
+      <tr><td class="t">21:56:50+</td><td></td><td>(Si on lui a demandé) peut être intercepté par Mme Delattre, retenu 15 s</td><td></td><td>Va vers le gilet jaune (si on le lui a demandé)</td></tr>
+      <tr><td class="t">21:58:35</td><td></td><td>Dernière limite : ressort, reprend sa sacoche, va au bout du quai. S'il manque l'enveloppe et que vous l'avez : vous traque jusqu'à 21:59:35</td><td></td><td></td></tr>
       <tr><td class="t">21:58:40</td><td>Revient au poste (trouve le joueur caché)</td><td></td><td></td><td></td></tr>
       <tr><td class="t">21:59:00</td><td colspan="3">La rame arrive à quai, portes ouvertes</td><td>« La voilà ! »</td></tr>
       <tr><td class="t">21:59:00</td><td></td><td></td><td>Revient chercher son sac</td><td></td></tr>
@@ -288,5 +341,6 @@ flowchart TD
     <div class="sc"><h3>Pression temporelle</h3><div class="bar"><i style="width:80%"></i></div><p>Toujours cinq fenêtres à enchaîner pour la vraie fin. La cachette ajoute un vrai test de timing : 10 secondes pour entrer, puis attendre qu'il ait le dos tourné.</p></div>
     <div class="sc"><h3>Personnages qui réagissent <span class="delta">↑</span></h3><div class="bar"><i style="width:65%"></i></div><p>Odile chasse les intrus de son local et trouve les gens cachés. Le gilet jaune repère les filatures, peste contre le noir et la porte, abandonne s'il manque de temps. Bastien et Mme Delattre donnent des pistes.</p></div>
   </div>
-  <p style="margin-top:14px"><b>En résumé :</b> la version 3 garde la même vérité à trois étages, mais multiplie les façons d'y arriver et les choses à faire en attendant. Le joueur voit toujours quelle piste suivre, et peut choisir entre la méthode patiente (Bastien), technique (caméra), ou risquée (cachette).</p>
+  <p style="margin-top:14px"><b>Version 4 :</b> le carnet devient un outil d'enquête (déductions, chronologie), l'attente se saute, le gilet jaune peut vous traquer, Mme Delattre devient une alliée, et l'ambiance sonore suit la tension. Le joueur a désormais toujours quelque chose à faire, et une raison de rejouer (succès, rang).</p>
+  <p><b>En résumé (version 3) :</b> la version 3 garde la même vérité à trois étages, mais multiplie les façons d'y arriver et les choses à faire en attendant. Le joueur voit toujours quelle piste suivre, et peut choisir entre la méthode patiente (Bastien), technique (caméra), ou risquée (cachette).</p>
 </div>
