@@ -32,7 +32,7 @@ button:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
 .clock { font-family: var(--f-mono); font-size: clamp(26px, 6vw, 40px); letter-spacing: .04em; color: var(--bone); text-shadow: 0 2px 12px #000; line-height: 1; }
 .clock.late { color: var(--blood); }
 .loop { font-family: var(--f-title); font-size: 14px; letter-spacing: .2em; text-transform: uppercase; color: var(--muted); margin-top: 4px; }
-.goal { margin-top: 6px; max-width: min(42ch, 58vw); font-size: 13px; line-height: 1.35; color: var(--amber); text-shadow: 0 1px 6px #000; }
+.goal { margin-top: 6px; max-width: min(42ch, 52vw); font-size: 13px; line-height: 1.35; color: var(--amber); text-shadow: 0 1px 6px #000; }
 .goal::before { content: "Piste · "; font-family: var(--f-title); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
 #hideBar { position: absolute; left: 50%; bottom: 54px; transform: translateX(-50%); display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; width: min(560px, calc(100% - 32px)); }
 #hideBar .tag { width: 100%; text-align: center; font-size: 13px; color: var(--muted); text-shadow: 0 1px 6px #000; }
@@ -51,6 +51,9 @@ button:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
 #sheet .say { font-size: 16px; line-height: 1.5; margin: 0 0 12px; max-width: 70ch; }
 #sheet .say b { color: var(--bone); }
 #sheet .say i { color: var(--muted); }
+#sheet.talk { display: flex; gap: 14px; align-items: flex-end; }
+#sheet .por { flex: none; width: clamp(92px, 24vw, 190px); align-self: flex-end; margin-bottom: -18px; filter: drop-shadow(0 6px 18px rgba(0,0,0,.7)); }
+#sheet .body { flex: 1; min-width: 0; }
 .opts { display: flex; flex-direction: column; gap: 6px; max-width: 70ch; }
 .opt { text-align: left; background: #111a1f; border: 1px solid var(--edge); border-radius: 4px; padding: 9px 12px; font-size: 15px; }
 .opt:hover { border-color: var(--teal); }
@@ -75,6 +78,14 @@ button:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
 .ach div { border: 1px solid var(--edge); border-radius: 4px; padding: 6px 8px; font-size: 12px; color: var(--muted); }
 .ach div.on { border-color: var(--amber); color: var(--bone); }
 .ach div b { display: block; font-size: 13px; }
+#overlay.scene { background: #000 center / cover no-repeat; }
+#overlay.scene > div { background: linear-gradient(rgba(0,0,0,.55), rgba(0,0,0,.82)); padding: 24px 18px; border-radius: 8px; max-width: 640px; }
+#overlay .two { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+#overlay .chp { width: 120px; margin: 4px auto 0; display: block; opacity: 0; animation: up 1s ease-out forwards; }
+#overlay .big { font-size: clamp(40px, 11vw, 86px); letter-spacing: .1em; text-shadow: 0 4px 30px #000; margin-bottom: 4px; }
+#overlay .sub { font-family: var(--f-title); letter-spacing: .3em; text-transform: uppercase; color: var(--teal); font-size: 15px; margin: 0 0 22px; }
+#overlay.title { background: #000 center / cover no-repeat; place-items: end center; }
+#overlay.title > div { padding-bottom: clamp(30px, 9vh, 90px); width: 100%; background: linear-gradient(transparent, rgba(0,0,0,.85) 55%); padding-top: 80px; }
 #overlay .sum { margin: 16px auto 0; max-width: 52ch; text-align: left; font-size: 14px; color: #b7c2c4; border-top: 1px solid #24323a; padding-top: 12px; opacity: 0; animation: up 1s ease-out forwards; }
 #overlay .sum b { color: var(--amber); }
 #overlay .stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; max-width: 420px; margin: 16px auto 0; opacity: 0; animation: up 1s ease-out forwards; }
@@ -97,7 +108,7 @@ button:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
     <div><div class="clock" id="clock">21:54:00</div><div class="loop" id="loopLbl"></div><div class="goal" id="goal"></div></div>
     <div class="btns">
       <button class="hb" id="bWait" type="button">Attendre ⏱</button>
-      <button class="hb" id="bFast" type="button" aria-pressed="false">Avancer ⏩</button>
+      <button class="hb" id="bFast" type="button" aria-pressed="false" hidden>Avancer ⏩</button>
       <button class="hb" id="bJournal" type="button">Carnet</button>
       <button class="hb" id="bVoice" type="button" aria-pressed="true">Voix</button>
       <button class="hb" id="bSound" type="button" aria-pressed="true">Son</button>
@@ -135,12 +146,14 @@ const CLUES = {
   vasseur: "Vasseur est le promoteur qui veut raser la station pour construire des immeubles, selon Mme Delattre.",
   enveloppe: "Pendant le sabotage, le gilet jaune laisse sa sacoche devant le local : dedans, 5 000 € et un mot signé « V. ».",
   sms: "Sur le téléphone d'Odile, un SMS : « 21h57. Deux minutes. Pas une de plus. — V. » Sa pause café n'est pas un hasard.",
-  aveux: "Odile a avoué : on lui a promis qu'il ne s'agissait que d'immobiliser la rame en gare, pas de la faire tomber.",
+  aveux: "Votre mère a avoué : Vasseur efface le prêt de vos études contre deux minutes d'absence. On lui a parlé d'une panne, pas d'une chute.",
   mefiance: "Si on parle du local au gilet jaune avant 21 h 57, il se méfie, renonce… et s'en va libre.",
   incomplet: "Sauver la rame ne suffit pas : tant que la vérité entière n'est pas faite, la boucle recommence.",
   journal: "Dans la poubelle près du pilier, le journal du jour : « Fermeture du POMA — le promoteur Vasseur rachète le dépôt ».",
   carte: "Après 21 h 55, le gilet jaune jette une carte dans la poubelle : « Vasseur Immobilier », griffonnée « 21h57 — armoire — 2 min ». Il y a un numéro.",
-  dette: "Dans le tiroir d'Odile, une lettre de la banque : 18 000 € de dettes. Un post-it : « V. s'en occupe. »",
+  dette: "Dans le tiroir de votre mère, une lettre de la banque : 18 000 €, le prêt de vos études. Un post-it : « V. s'en occupe. »",
+  invite: "Bastien a reçu un message anonyme : « Filmez le dernier départ. » Quelqu'un voulait des images de la chute.",
+  eleve: "Mme Delattre a eu Vasseur comme élève, en CM2. Elle ne l'a jamais aimé.",
   rec: "Sur les écrans d'Odile, la caméra du local n'enregistre plus depuis 21 h 55. Quelqu'un l'a coupée.",
   noir: "Le coffret électrique du hall coupe la lumière quelques secondes. Dans le noir, le gilet jaune ne peut pas travailler.",
   secu: "Le téléphone de service appelle la sécurité du réseau. Sans preuve, ils raccrochent.",
@@ -152,10 +165,10 @@ const CLUES = {
   dos: "Pendant le sabotage, le gilet jaune se retourne toutes les dix secondes. Il faut agir quand il a le dos tourné.",
   porte: "On peut coincer la porte du local avec un journal plié. Le gilet jaune perd de précieuses secondes à la forcer."
 };
-const ENDINGS = ["chute", "sursis", "alarm", "aveux", "win", "arrestation", "repere", "verite"];
+const ENDINGS = ["chute", "sursis", "alarm", "aveux", "win", "arrestation", "repere", "verite", "silence"];
 // piste du moment : ce que le joueur devrait chercher, selon ce qu'il sait déjà
 function goal() {
-  if (!revealed() && !knows("chute")) return "Prendre la dernière rame de 22 h 00. Vous avez un peu de temps devant vous.";
+  if (!revealed() && !knows("chute")) return "Votre mère fait partir la dernière rame à 22 h 00. Allez la saluer, puis montez à bord.";
   if (!knows("chute")) return "Observez. Que se passe-t-il à 22 h 00 ?";
   if (!knows("local")) return "Qui s'approche du local technique quand Odile part au café, vers 21 h 57 ?";
   if (!knows("frein")) return "Qu'a fait le gilet jaune dans l'armoire ? Allez voir après son passage.";
@@ -163,7 +176,7 @@ function goal() {
   if (!knows("sms") && !knows("guichet") && !knows("dette") && !knows("complot")) return "Pourquoi Odile quitte-t-elle son poste pile à 21 h 57 ? Son bureau, son téléphone…";
   if (!knows("drone") && !knows("rec") && !knows("cachette")) return "Il faut une preuve filmée du sabotage. Une caméra, n'importe laquelle.";
   if (!knows("enveloppe")) return "Pendant le sabotage, le gilet jaune pose sa sacoche quelque part…";
-  if (!knows("aveux")) return "Faites parler Odile : elle sait qui est « V. ».";
+  if (!knows("aveux")) return "Votre mère sait qui est « V. ». Il va falloir le lui faire dire.";
   return "Vous avez tout. Preuve filmée, enveloppe, aveux : la vérité avant 22 h 00.";
 }
 // déductions : relier des indices du carnet ; chacune ouvre de nouvelles répliques
@@ -244,12 +257,31 @@ const Snd = {
     const n = c.createBufferSource(), b = c.createBuffer(1, c.sampleRate * 3, c.sampleRate), d = b.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * 0.5; n.buffer = b; n.loop = true;
     const nf = c.createBiquadFilter(); nf.type = "bandpass"; nf.frequency.value = 900; nf.Q.value = 0.4; const ng = c.createGain(); ng.gain.value = 0.012; n.connect(nf); nf.connect(ng); ng.connect(this.master); n.start();
   },
-  set(on) { M.sound = on; saveM(); if (this.master) this.master.gain.setTargetAtTime(on ? 0.5 : 0, this.ctx.currentTime, 0.05); },
+  set(on) { M.sound = on; saveM();  if (this.master) this.master.gain.setTargetAtTime(on ? 0.5 : 0, this.ctx.currentTime, 0.05); },
   tone(fr, dur, { type = "sine", vol = 0.1, to = null, delay = 0 } = {}) { if (!this.ctx || !M.sound) return; const c = this.ctx, t = c.currentTime + delay, o = c.createOscillator(), g = c.createGain(); o.type = type; o.frequency.setValueAtTime(fr, t); if (to) o.frequency.exponentialRampToValueAtTime(to, t + dur); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + dur); o.connect(g); g.connect(this.master); o.start(t); o.stop(t + dur + 0.05); },
   noise(dur, freq, vol, delay = 0) { if (!this.ctx || !M.sound) return; const c = this.ctx, t = c.currentTime + delay, n = c.createBufferSource(), b = c.createBuffer(1, Math.floor(c.sampleRate * dur), c.sampleRate), d = b.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / d.length); n.buffer = b; const f = c.createBiquadFilter(); f.type = "lowpass"; f.frequency.value = freq; const g = c.createGain(); g.gain.value = vol; n.connect(f); f.connect(g); g.connect(this.master); n.start(t); },
   tick() { this.tone(1600, 0.03, { type: "square", vol: 0.03 }); },
   note() { this.tone(880, 0.25, { type: "triangle", vol: 0.05 }); this.tone(1320, 0.3, { type: "triangle", vol: 0.04, delay: 0.08 }); },
   step() { this.noise(0.05, 900, 0.05); },
+  // musique et ambiance enregistrées (boucles) : thème sourd, pluie et hall de gare
+  tracks: null,
+  music() {
+    if (this.tracks || !this.ctx) return; this.tracks = {}; const c = this.ctx, bus = c.createGain(); bus.gain.value = 0.9; bus.connect(this.master);
+    // réverbération maison : bruit décroissant
+    const len = c.sampleRate * 3.5, ir = c.createBuffer(2, len, c.sampleRate); for (let ch = 0; ch < 2; ch++) { const d = ir.getChannelData(ch); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.6); }
+    const rev = c.createConvolver(); rev.buffer = ir; const wet = c.createGain(); wet.gain.value = 0.55; rev.connect(wet); wet.connect(bus);
+    // nappe grave en ré mineur, qui respire lentement
+    for (const [f, v] of [[73.42, 0.05], [110, 0.03], [146.83, 0.018], [174.61, 0.012]]) { const o = c.createOscillator(), g = c.createGain(), lfo = c.createOscillator(), lg = c.createGain(); o.type = "sine"; o.frequency.value = f; g.gain.value = v; lfo.frequency.value = 0.05 + Math.random() * 0.06; lg.gain.value = v * 0.6; lfo.connect(lg); lg.connect(g.gain); o.connect(g); g.connect(bus); g.connect(rev); o.start(); lfo.start(); }
+    // pluie : bruit filtré, plus présent
+    const n = c.createBufferSource(), nb = c.createBuffer(1, c.sampleRate * 4, c.sampleRate), nd = nb.getChannelData(0); for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1; n.buffer = nb; n.loop = true;
+    const hp = c.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = 1800; const lp = c.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 7000; const rg = c.createGain(); rg.gain.value = 0.02; n.connect(hp); hp.connect(lp); lp.connect(rg); rg.connect(bus); n.start();
+    // piano feutré : quelques notes éparses, jamais la même phrase
+    const NOTES = [293.66, 349.23, 440, 392, 329.63, 523.25, 587.33, 466.16], note = () => {
+      if (M.sound && !document.hidden) { const t = c.currentTime, f = NOTES[Math.floor(Math.random() * NOTES.length)] * (Math.random() < 0.25 ? 0.5 : 1);
+        for (const [m, v] of [[1, 0.05], [2, 0.012], [3, 0.005]]) { const o = c.createOscillator(), g = c.createGain(); o.type = m === 1 ? "triangle" : "sine"; o.frequency.value = f * m; g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(v, t + 0.015); g.gain.exponentialRampToValueAtTime(0.0001, t + 3.2); o.connect(g); g.connect(rev); g.connect(bus); o.start(t); o.stop(t + 3.4); } }
+      setTimeout(note, 2600 + Math.random() * 5200); };
+    setTimeout(note, 1500);
+  },
   chime() { [659, 523, 392].forEach((f, i) => this.tone(f, 0.6, { vol: 0.07, delay: i * 0.35 })); },
   rame() { this.tone(70, 4, { type: "sawtooth", to: 110, vol: 0.05 }); this.noise(4, 400, 0.08); },
   crash() { this.noise(2.5, 300, 0.5); this.tone(120, 2.5, { type: "sawtooth", to: 30, vol: 0.12 }); this.tone(900, 1.2, { type: "square", to: 200, vol: 0.05, delay: 0.3 }); },
@@ -268,8 +300,11 @@ addEventListener("pointerdown", () => Snd.init(), { capture: true });
 /* ================= Voix (synthèse vocale du navigateur, gratuite) ================= */
 const Voice = {
   voices: [], audio: null,
-  rec: [["Bonsoir. Dernière rame", "voix/odile_bonsoir.mp3"], ["Sous-traitance.", "voix/gerald_soustraitance.mp3"], ["Mm. J'attends la dernière", "voix/bastien_bonsoir.mp3"]],
-  prof: { odile: { p: 0.95, r: 1.22, i: 0 }, gerald: { p: 0.6, r: 1.15, i: 1 }, bastien: { p: 1.15, r: 1.35, i: 2 }, delattre: { p: 1.3, r: 1.12, i: 0 } },
+  rec: [["Camille. Tu es là.", "o_salut"], ["Demain, je rends mes clés", "o_demain"], ["Le prêt pour ton école.", "o_aveux"], ["Deux minutes, à 57.", "o_cafe57"], ["Arrête. Il y a le frein", "o_arrete"], ["Par qui ?", "o_preuve"], ["Mon Dieu. Le frein.", "o_frein"], ["Il m'a menti.", "o_menti"], ["Fais ce qui est juste", "o_juste"], ["Je file me chercher un café", "o_file"],
+    ["Sous-traitance.", "gerald_soustraitance"], ["Oui, monsieur Vasseur.", "g_appel"], ["Tomber ?", "g_tomber"], ["Dégagez de là", "g_degagez"], ["Où est passée l'enveloppe", "g_enveloppe"],
+    ["Mm. J'attends la dernière", "bastien_bonsoir"], ["Mon grand-père a posé", "b_grandpere"], ["Vous aviez raison.", "b_raison"],
+    ["Bonsoir ! Vous êtes l'enfant", "d_bonsoir"], ["Le petit Vasseur ?", "d_vasseur"], ["Pourquoi tu m'appelles", "v_imbecile"], ["Vous ne savez rien du tout.", "v_rien"]].map(([k, f]) => [k, `voix/${f}.mp3`]),
+  prof: { odile: { p: 0.95, r: 1.22, i: 0 }, gerald: { p: 0.6, r: 1.15, i: 1 }, bastien: { p: 1.15, r: 1.35, i: 2 }, delattre: { p: 1.3, r: 1.12, i: 0 }, vasseur: { p: 0.7, r: 1.2, i: 1 } },
   ok: "speechSynthesis" in window,
   init() { if (!this.ok) return; const load = () => { this.voices = speechSynthesis.getVoices().filter(v => /^fr/i.test(v.lang)); }; load(); speechSynthesis.onvoiceschanged = load; },
   speak(who, html) {
@@ -279,7 +314,7 @@ const Voice = {
     const pr = this.prof[who]; if (!pr || !quotes.length) return;
     const line = quotes.join(". ").replace(/…/g, ",");
     // répliques doublées par des acteurs (ElevenLabs) : priorité sur la synthèse du navigateur
-    const rec = this.rec.find(r => quotes[0].startsWith(r[0]));
+    const rec = this.rec.find(r => quotes.some(q => q.startsWith(r[0])));
     if (rec) { this.stop(); try { this.audio = new Audio(rec[1]); this.audio.volume = 0.95; this.audio.play().catch(() => {}); } catch (e) {} return; }
     if (!this.ok) return;
     try { speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(line); u.lang = "fr-FR"; if (this.voices.length) u.voice = this.voices[pr.i % this.voices.length]; u.pitch = pr.p; u.rate = pr.r; u.volume = 0.95; speechSynthesis.speak(u); } catch (e) {}
@@ -287,14 +322,19 @@ const Voice = {
   stop() { if (this.audio) { this.audio.pause(); this.audio = null; } if (this.ok) try { speechSynthesis.cancel(); } catch (e) {} }
 };
 Voice.init();
-const WHO = { "Odile": "odile", "L'homme au gilet jaune": "gerald", "Bastien": "bastien", "Mme Delattre": "delattre" };
+const WHO = { "Odile": "odile", "L'homme au gilet jaune": "gerald", "Bastien": "bastien", "Mme Delattre": "delattre", "Vasseur": "vasseur" };
 
 /* ================= Images ================= */
 const IMG = {};
 [["bg", "img/station.jpg"], ["joueur", "img/joueur.webp"], ["odile", "img/odile.webp"], ["bastien", "img/bastien.webp"], ["delattre", "img/delattre.webp"], ["gerald", "img/gerald.webp"], ["rame", "img/rame.webp"]].forEach(([k, s]) => { const im = new Image(); im.onload = () => { IMG[k] = im; }; im.src = s; });
 for (const n of ["joueur", "odile", "bastien", "delattre", "gerald"]) for (const v of ["f", "b", "s", "w"]) { const im = new Image(); im.onload = () => { IMG[`${n}_${v}`] = im; }; im.src = `img/${n}_${v}.webp`; }
+for (const n of ["gerald_phone", "gerald_work", "odile_cafe", "bastien_sit", "bastien_drone", "delattre_point"]) { const im = new Image(); im.onload = () => { IMG[n] = im; }; im.src = `img/${n}.webp`; }
+// poses particulières (à l'arrêt) : hauteur relative et décalage pour s'asseoir sur le banc
+const POSE = { gerald_phone: { h: 1 }, gerald_work: { h: 0.92 }, odile_cafe: { h: 0.97 }, bastien_sit: { h: 0.8, dx: -0.03, dy: -0.035 }, bastien_drone: { h: 1.05 }, delattre_point: { h: 1 } };
+const poseOf = a => (a.pose && IMG[a.pose] && (!a.path.length || a.pose === "odile_cafe") ? a.pose : null);
 // vue à afficher : de dos quand il s'éloigne, de profil quand il traverse (deux images alternées), de face sinon
 function viewImg(a) {
+  if (poseOf(a)) return IMG[a.pose];
   const n = a.img, f = a.face || "f";
   if (f === "s") { const step = a.path.length && Math.sin((a.walk || 0) * 11) > 0; return IMG[`${n}_${step ? "w" : "s"}`] || IMG[`${n}_s`] || IMG[n]; }
   return IMG[`${n}_${f}`] || IMG[n];
@@ -380,8 +420,8 @@ function updateAgents(dt) {
   S.kickT -= dt;
   if (roomOf(o) === "ctrl" && roomOf(me) === "ctrl" && S.kickT <= 0) {
     S.kickT = 4;
-    if (S.hidden) { S.hidden = false; me.vis = true; say(o, "Qu'est-ce que vous faites là, caché ?! Dehors !"); }
-    else say(o, "Hé ! C'est réservé au personnel !");
+    if (S.hidden) { S.hidden = false; me.vis = true; say(o, "Camille ?! Qu'est-ce que tu fais là-dedans ? Sors !"); }
+    else say(o, "Camille, non. Pas ici. Sors.");
     pending = null; goTo(me, { x: 0.37, y: 0.48 });
   }
   // événements : annonces, téléphone du guichet, micro-coupure
@@ -450,6 +490,11 @@ function updateAgents(dt) {
   if (t >= 285 && t < 300) { rame.state = "arriving"; rame.y = -0.25 + ((t - 285) / 15) * 0.75; if (!S.said.rame) { S.said.rame = 1; Snd.rame(); } }
   else if (t >= 300 && t < 358) { rame.state = "dock"; rame.y = 0.5; }
   else if (t >= 358) { rame.state = "leaving"; rame.y = 0.5 - ((t - 358) / 2) * 0.35; }
+  // poses : téléphone, travail à l'armoire, café, banc, télécommande, doigt levé
+  g.pose = t >= 56 && t < 82 && near(g, P.gerCall, 0.03) ? "gerald_phone" : roomOf(g) === "ctrl" && near(g, P.cabinet, 0.03) && g.face === "b" ? "gerald_work" : null;
+  o.pose = roomOf(o) !== "ctrl" && (near(o, clampWalk(P.vending), 0.04) || (t >= 280 && o.face === "f")) ? "odile_cafe" : null;
+  b.pose = t < 120 && near(b, { x: P.bench.x, y: P.bench.y - 0.02 }, 0.03) ? "bastien_sit" : S.bastFilm && t >= 200 && t < 290 && near(b, P.film, 0.03) ? "bastien_drone" : null;
+  d.pose = S.said.dis1 && S.distractLeft > 0 && near(d, g, 0.08) ? "delattre_point" : null; if (d.pose) d.dir = g.x > d.x ? 1 : -1;
   // la sécurité du réseau, si on l'a appelée avec une preuve
   if (S.secuAt && t >= S.secuAt && !S.secuArrived) { S.secuArrived = true; toast("📻 Deux agents de sécurité entrent dans la station."); if (g.vis && !S.gerGone) { S.gerCaught = true; say(g, "Lâchez-moi ! Je ne sais rien !"); } }
   // filature
@@ -464,7 +509,7 @@ function updateAgents(dt) {
   }
 }
 const BARKS = {
-  odile: ["Plus que quelques minutes…", "Vingt-sept ans. Et ça se termine comme ça.", "Ce néon, je l'ai signalé dix fois.", "Vous montez, ou vous regardez ?"],
+  odile: ["Plus que quelques minutes…", "Vingt-sept ans. Et ça se termine comme ça.", "Ce néon, je l'ai signalé dix fois.", "Tu montes, Camille ?"],
   bastien: ["Allez, allez…", "Ils vont tout raser, de toute façon.", "Plus de batterie à ce rythme…"],
   delattre: ["Mon Henri adorait cette rame.", "Vous croyez qu'ils garderont les cabines ?", "Il pleut toujours, à Laon, les jours tristes."],
   gerald: ["Allez, circulez.", "Toujours pas parti, vous ?", "Il y a rien à voir ici."]
@@ -482,7 +527,7 @@ function say(a, txt) {
 const cv = document.getElementById("cv"), ctx = cv.getContext("2d");
 let VW = 1, VH = 1, DPR = 1, sc = 1, camX = 0, camY = 0, zoom = 1, zoomT = 1, focus = null, shake = 0, rewindT = 0;
 const ripples = [], sparks = [], dust = [], drops = [];
-function resize() { DPR = Math.min(2, devicePixelRatio || 1); VW = innerWidth; VH = innerHeight; cv.width = VW * DPR; cv.height = VH * DPR; sc = Math.max(VW / IW, VH / IH); }
+function resize() { DPR = Math.min(2, devicePixelRatio || 1); VW = innerWidth; VH = innerHeight; cv.width = VW * DPR; cv.height = VH * DPR; sc = Math.max(VW / IW, VH / IH) * (VW / VH > 1.15 ? 1.45 : 1.12); }
 addEventListener("resize", resize);
 const S2 = () => sc * zoom;
 const toScr = p => ({ x: p.x * IW * S2() - camX, y: p.y * IH * S2() - camY });
@@ -538,6 +583,12 @@ function render(now, real) {
     ctx.fillStyle = "rgba(200,210,215,.25)"; for (const [ox, oy] of [[-14, -7], [14, 7], [14, -7], [-14, 7]]) { ctx.beginPath(); ctx.ellipse(dp.x + ox * u, dp.y + oy * u, 8 * u, 3 * u, t * 20, 0, Math.PI * 2); ctx.fill(); }
     ctx.fillStyle = Math.sin(t * 8) > 0 ? "#ff3b2f" : "#3bff7a"; ctx.beginPath(); ctx.arc(dp.x, dp.y, 2 * u, 0, Math.PI * 2); ctx.fill(); }
   for (const a of list) if (a !== A.player) drawTag(a, t);
+  // repères sur les objets à portée : un point qui pulse, et le nom du plus proche
+  if (!S.hidden && !S.aboard && $sheet.hidden) { let best = null, bd = 9;
+    for (const h of HOT) { if (!hotOn(h)) continue; const d = Math.hypot(me.x - h.at.x, (me.y - h.at.y) * 0.56); if (d > 0.2) continue; const p = toScr(h), k = 0.5 + 0.5 * Math.sin(t * 3 + h.x * 20);
+      ctx.fillStyle = `rgba(242,180,90,${0.55 + 0.3 * k})`; ctx.beginPath(); ctx.arc(p.x, p.y, 3.5, 0, Math.PI * 2); ctx.fill(); ctx.strokeStyle = `rgba(242,180,90,${0.5 * (1 - k)})`; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(p.x, p.y, 5 + k * 9, 0, Math.PI * 2); ctx.stroke();
+      if (d < bd) { bd = d; best = h; } }
+    if (best && bd < 0.09) { const p = toScr(best); ctx.font = "600 12px Inter, sans-serif"; ctx.textAlign = "center"; const w = ctx.measureText(best.name).width + 12; ctx.fillStyle = "rgba(6,9,11,.78)"; ctx.fillRect(p.x - w / 2, p.y - 30, w, 18); ctx.fillStyle = "#f2b45a"; ctx.fillText(best.name, p.x, p.y - 17); } }
   // étincelles du sabotage
   if (A.gerald.vis && roomOf(A.gerald) === "ctrl" && near(A.gerald, P.cabinet) && !S.sabDone && Math.random() < 0.35) { for (let i = 0; i < 4; i++) sparks.push({ x: 0.35 + (Math.random() - 0.5) * 0.02, y: 0.16, vx: (Math.random() - 0.5) * 0.12, vy: -Math.random() * 0.12, life: 0.6 }); if (Math.random() < 0.15) Snd.zap(); }
   for (const s of sparks) { s.x += s.vx * real; s.y += s.vy * real; s.vy += 0.4 * real; s.life -= real; }
@@ -609,7 +660,7 @@ function drawBody(im, w, h, a, ps) {
 }
 // étiquettes : un nom et une couleur par personnage, pour ne jamais les perdre de vue
 const TAGN = { odile: "Odile", gerald: "Gilet jaune", bastien: "Bastien", delattre: "Mme Delattre" };
-const TAGC = { odile: "#6fd3c8", gerald: "#f2d43a", bastien: "#9db8ff", delattre: "#f0a8c8" };
+const TAGC = { odile: "#6fd3c8", gerald: "#f2d43a", bastien: "#9db8ff", delattre: "#f0a8c8", vasseur: "#e0533d" };
 function drawTag(a, t) {
   if (bubbles.some(b => b.a === a)) return;
   const p = toScr(a), h = 0.15 * IH * S2(), col = TAGC[a.img];
@@ -618,7 +669,7 @@ function drawTag(a, t) {
   const w = ctx.measureText(TAGN[a.img]).width + 10, y = p.y - h - 8; ctx.fillStyle = "rgba(6,9,11,.7)"; ctx.fillRect(p.x - w / 2, y - 12, w, 16); ctx.fillStyle = col; ctx.fillText(TAGN[a.img], p.x, y);
 }
 function drawAgent(a, t) {
-  const p = toScr(a), h = 0.15 * IH * S2(), im = viewImg(a), ps = pose(a, t), side = (a.face || "f") === "s" && IMG[`${a.img}_s`];
+  const pk = poseOf(a), pp = pk ? POSE[pk] : null, p = toScr(pp ? { x: a.x + (pp.dx || 0), y: a.y + (pp.dy || 0) } : a), h = 0.15 * IH * S2() * (pp ? pp.h : 1), im = viewImg(a), ps = pose(a, t), side = pk || ((a.face || "f") === "s" && IMG[`${a.img}_s`]);
   ctx.fillStyle = "rgba(0,0,0,.45)"; ctx.beginPath(); ctx.ellipse(p.x, p.y, h * (side ? 0.26 : 0.2) * (1 - ps.bob * 2), h * 0.06, 0, 0, Math.PI * 2); ctx.fill();
   if (im) { const w = (h * im.width) / im.height; ctx.save(); ctx.translate(p.x, p.y - ps.bob * h); ctx.rotate(ps.rot * (side ? 0.3 : 0.5)); ctx.scale(a.dir < 0 ? -ps.sx : ps.sx, ps.sy);
     if (side || !a.path.length) ctx.drawImage(im, -w / 2, -h, w, h); else drawBody(im, w, h, a, ps); ctx.restore(); }
@@ -693,9 +744,11 @@ function give(it) { if (!has(it)) { S.items.push(it); renderInv(); } }
 function take(it) { S.items = S.items.filter(x => x !== it); renderInv(); }
 
 let paused = false, fast = false;
-function sheet(title, text, opts) {
+function sheet(title, text, opts, mood) {
   paused = true; $sheet.hidden = false;
-  $sheet.innerHTML = `<h2>${title}</h2><p class="say">${text}</p><div class="opts"></div>`;
+  const who = WHO[title], nm = title === "L'homme au gilet jaune" && (knows("complot") || knows("carte")) ? "Gérald, l'homme au gilet jaune" : title;
+  $sheet.className = who ? "talk" : "";
+  $sheet.innerHTML = `${who ? `<img class="por" alt="" src="img/p_${who}_${mood || 0}.webp">` : ""}<div class="body"><h2 style="${who ? `color:${TAGC[who] || "var(--amber)"}` : ""}">${nm}</h2><p class="say">${text}</p><div class="opts"></div></div>`;
   Voice.speak(WHO[title] || "narr", text);
   const box = $sheet.querySelector(".opts");
   for (const o of opts.concat([{ l: "Partir", close: true }])) { const b = document.createElement("button"); b.type = "button"; b.className = "opt" + (o.give ? " give" : "") + (o.close ? " close" : ""); b.textContent = o.l; b.addEventListener("click", () => { if (o.close) return closeSheet(); o.fx(); }); box.appendChild(b); }
@@ -705,77 +758,77 @@ function closeSheet() { $sheet.hidden = true; paused = false; focus = null; zoom
 
 /* ================= Dialogues et examens ================= */
 function talk(id) {
-  const t = S.t;
   if (id === "odile") {
-    const away = roomOf(A.odile) !== "ctrl";
-    const opts = [];
-    if (!S.said.oHi) opts.push({ l: "« Bonsoir. »", fx: () => { S.said.oHi = 1; sheet("Odile", "« Bonsoir. Dernière rame à 22 h pile. Après, c'est fini : vingt-sept ans de service, et on ferme. Vous montez avec nous ? »", odileOpts()); } });
-    sheet("Odile", away ? "Odile attend que le gobelet se remplisse, les yeux dans le vague." : "Odile surveille ses écrans derrière la vitre du local.", opts.concat(odileOpts()));
+    const away = roomOf(A.odile) !== "ctrl", opts = [];
+    if (!S.said.oHi) opts.push({ l: "« Salut, Maman. »", fx: () => { S.said.oHi = 1; sheet("Odile", "« Camille. Tu es là. » Un temps. « Vingt-sept ans de service, et c'est toi que je voulais voir ce soir. Monte dans la rame, je te rejoins en haut. »", odileOpts()); } });
+    sheet("Odile", away ? "Votre mère attend que le gobelet se remplisse. Elle ne vous a pas entendu approcher." : S.odileConfess ? "Votre mère ne regarde plus ses écrans. Elle vous regarde, vous." : "Votre mère lève les yeux de ses écrans. Elle sourit, mais le sourire s'arrête avant les yeux.", opts.concat(odileOpts()), S.odileConfess ? 2 : 0);
     return;
   }
   if (id === "gerald") {
     const o = [{ l: "« Vous travaillez ici ? »", fx: () => sheet("L'homme au gilet jaune", "« Sous-traitance. Vérifications de fin d'exploitation. Écartez-vous, s'il vous plaît. »", []) }];
-    if (knows("local")) o.push({ l: "« Je sais ce que vous allez faire dans le local. »", fx: () => { if (S.t < 200) S.gerWary = true; sheet("L'homme au gilet jaune", S.t < 200 ? "Il vous fixe longuement, puis regarde vers la sortie. « Vous ne savez rien du tout. »" : "« Mon travail. Et vous, vous fouinez. Faites attention à vous. »", []); } });
-    if (knows("appel")) o.push({ l: "« Il vous paie combien, monsieur Vasseur ? »", fx: () => sheet("L'homme au gilet jaune", "Sa mâchoire se crispe. « Je ne connais pas de Vasseur. » Il ment mal.", []) });
-    if (knowsDed("paye") && !S.said.gcrack) o.push({ l: "« 5 000 €, c'est le prix d'une cabine qui tombe ? »", fx: () => { S.said.gcrack = 1; learn("complot", true); sheet("L'homme au gilet jaune", "Il recule d'un pas. « Une cabine qui… Non. Vasseur a dit une panne. Une panne en gare, personne en danger. » Il déglutit. « Il a dit qu'Odile partirait à 57 et que… » Il se tait d'un coup.", []); } });
-    o.push({ l: "« Vous attendez quoi, au juste ? »", fx: () => sheet("L'homme au gilet jaune", S.t < 200 ? "« Que vous me lâchiez. » Il regarde encore sa montre." : "« Mon heure. » Il ne sourit pas.", []) });
+    if (knows("local")) o.push({ l: "« Je sais ce que vous allez faire dans le local. »", fx: () => { if (S.t < 200) S.gerWary = true; sheet("L'homme au gilet jaune", S.t < 200 ? "Il vous fixe. Longtemps. « Vous ne savez rien. » Mais ses yeux vont vers la sortie." : "« Mon travail. Occupez-vous du vôtre. »", [], S.t < 200 ? 1 : 2); } });
+    if (knows("appel")) o.push({ l: "« Il paie bien, Vasseur ? »", fx: () => sheet("L'homme au gilet jaune", "« Connais pas. » Il a répondu trop vite.", [], 1) });
+    if (knowsDed("paye") && !S.said.gcrack) o.push({ l: "« Cinq mille euros pour faire tomber une cabine ? »", fx: () => { S.said.gcrack = 1; learn("complot", true); sheet("L'homme au gilet jaune", "« Tomber ? » Il recule d'un pas. « Non. Une panne en gare. C'est ce qu'il a dit. » Il déglutit. « Je lui dois trois mois de chantier. Il a dit que la vieille partirait à 57, et que… » Il se tait d'un coup.", [], 1); } });
+    o.push({ l: "« Vous attendez quoi ? »", fx: () => sheet("L'homme au gilet jaune", S.t < 200 ? "« Que vous me lâchiez. » Il regarde encore sa montre." : "« Mon heure. » Il ne sourit pas.", []) });
     o.push({ l: "Le suivre discrètement", fx: () => { S.follow = "gerald"; S.followNear = 0; closeSheet(); toast("Vous le suivez. Pas trop près…"); } });
     if (!has("badge") && !S.badgeTried) o.push({ l: "Lui subtiliser son badge", give: true, fx: () => {
       S.badgeTried = true; const ok = S.dark > 0 || (S.t >= 56 && S.t < 82);
       if (ok) { give("badge"); award("pickpocket"); sheet("L'homme au gilet jaune", (S.dark > 0 ? "Dans le noir, " : "Pendant qu'il parle au téléphone, ") + "vous décrochez le badge de son gilet. Il ne sent rien. « TechniRail Services — Intervenant ».", []); }
-      else { if (S.t < 200) S.gerWary = true; sheet("L'homme au gilet jaune", "Sa main se referme sur votre poignet. « Bas les pattes. » Il vous fixe, puis regarde vers la sortie.", []); }
+      else { if (S.t < 200) S.gerWary = true; sheet("L'homme au gilet jaune", "Sa main se referme sur votre poignet. « Bas les pattes. » Il vous fixe, puis regarde vers la sortie.", [], 2); }
     } });
-    if (hasProof() && !S.gerFled) o.push({ l: "Lui montrer la preuve du sabotage", give: true, fx: () => { S.gerFled = true; say(A.gerald, "…"); sheet("L'homme au gilet jaune", "Il blêmit, arrache son gilet et file vers la sortie sans un mot. <i>Mais le frein, lui, est toujours désarmé.</i>", []); } });
-    sheet("L'homme au gilet jaune", "Grand, mâchoire serrée. Il regarde sans cesse sa montre.", o); return;
+    if (hasProof() && !S.gerFled) o.push({ l: "Lui montrer la preuve du sabotage", give: true, fx: () => { S.gerFled = true; say(A.gerald, "…"); sheet("L'homme au gilet jaune", "Il blêmit, arrache son gilet et file vers la sortie sans un mot. <i>Mais le frein, lui, est toujours désarmé.</i>", [], 1); } });
+    sheet("L'homme au gilet jaune", "Grand, mâchoire serrée. Il regarde sa montre, puis la porte du local, puis sa montre.", o); return;
   }
   if (id === "bastien") {
     const o = [];
     o.push({ l: "« Bonsoir. »", fx: () => sheet("Bastien", "« Mm. J'attends la dernière, comme tout le monde. »", []) });
-    if (S.bastTrust) o.push({ l: "« Pourquoi filmer en douce ? »", fx: () => sheet("Bastien", "« Mon grand-père a posé ces rails en 88. Il est mort l'an dernier. Je voulais qu'il voie le dernier voyage. D'en haut. » Il hausse les épaules. « C'est con, hein. »", bastienOpts()) });
-    if (S.bastFilm && S.t >= 200 && S.t < 290) o.push({ l: "Regarder l'écran de sa télécommande", fx: () => { const g = A.gerald, busy = g.vis && roomOf(g) === "ctrl" && near(g, P.cabinet, 0.04); if (busy) { learn("local"); if (S.sab > 20) learn("frein"); logEv("Sur l'écran du drone : le gilet jaune à l'armoire"); } sheet("Bastien", busy ? "Sur le petit écran, en direct : le gilet jaune penché sur l'armoire, une pince à la main. Bastien murmure : « Il fait quoi, là ? »" : "Sur le petit écran : la porte du local, vue d'en haut. « Pour l'instant, rien. »", []); } });
-    if (S.t >= 60) o.push({ l: "« Le type au gilet jaune, vous l'avez remarqué ? »", fx: () => { sheet("Bastien", "« Il m'a demandé si je filmais. J'ai dit non. Bizarre, comme question. Comme s'il avait peur des caméras. »", []); toast("Les caméras… Les écrans d'Odile, peut-être ?"); } });
-    if (!S.bastTrust) o.push({ l: "« Il y a quoi, dans ce sac ? »", fx: () => sheet("Bastien", "« Ça vous regarde pas. »", []) });
-    if (knows("drone") && !S.bastTrust) o.push({ l: "« Je sais pour le drone. »", fx: () => { S.bastTrust = true; sheet("Bastien", "Il pâlit. « Vous allez me balancer ? Je veux juste filmer le dernier voyage. C'est de l'histoire, ça. Vous comprenez ? »", bastienOpts()); } });
-    sheet("Bastien", "Casquette vissée sur le crâne, il serre la sangle de son sac.", o.concat(bastienOpts())); return;
+    if (S.bastTrust) o.push({ l: "« Pourquoi en cachette ? »", fx: () => sheet("Bastien", "« Mon grand-père a posé ces rails en 88. Il est mort cet hiver. » Il hausse les épaules. « Je voulais qu'il voie ça. D'en haut. »", bastienOpts(), 2) });
+    if (S.bastTrust && !knows("invite")) o.push({ l: "« Qui vous a dit de venir filmer ce soir ? »", fx: () => { learn("invite"); sheet("Bastien", "« Un message, sans nom. « Filmez le dernier départ, vous ne le regretterez pas. » » Il fronce les sourcils. « Pourquoi vous me demandez ça ? »", bastienOpts(), 1); } });
+    if (S.bastFilm && S.t >= 200 && S.t < 290) o.push({ l: "Regarder l'écran de sa télécommande", fx: () => { const g = A.gerald, busy = g.vis && roomOf(g) === "ctrl" && near(g, P.cabinet, 0.04); if (busy) { learn("local"); if (S.sab > 20) learn("frein"); logEv("Sur l'écran du drone : le gilet jaune à l'armoire"); } sheet("Bastien", busy ? "Sur le petit écran, en direct : le gilet jaune penché sur l'armoire, une pince à la main. Bastien murmure : « Il fait quoi, là ? »" : "Sur le petit écran : la porte du local, vue d'en haut. « Pour l'instant, rien. »", [], busy ? 1 : 0); } });
+    if (S.t >= 60) o.push({ l: "« Le gilet jaune, vous l'avez remarqué ? »", fx: () => { sheet("Bastien", "« Il m'a demandé si je filmais. J'ai dit non. Il a eu l'air soulagé. »", []); toast("Il a peur des caméras… Les écrans d'Odile, peut-être ?"); } });
+    if (!S.bastTrust) o.push({ l: "« Il y a quoi, dans ce sac ? »", fx: () => sheet("Bastien", "« Rien qui vous regarde. »", []) });
+    if (knows("drone") && !S.bastTrust) o.push({ l: "« Je sais pour le drone. »", fx: () => { S.bastTrust = true; sheet("Bastien", "Il pâlit. « Vous allez me dénoncer ? Je veux juste filmer le dernier voyage. C'est tout ce qui me reste de lui. »", bastienOpts(), 1); } });
+    sheet("Bastien", "Casquette basse. Il serre la sangle de son sac comme si on allait le lui prendre.", o.concat(bastienOpts())); return;
   }
   if (id === "delattre") {
-    const o = [{ l: "« Bonsoir, madame. »", fx: () => sheet("Mme Delattre", "« Bonsoir ! Je prends cette rame depuis le premier jour, en 1989. Ce soir, je fais le dernier trajet. Ça me serre le cœur. »", []) },
-      { l: "« Vous connaissez le personnel ? »", fx: () => { learn("intrus"); sheet("Mme Delattre", "« Tout le monde ! Odile, les gars de l'entretien… Mais celui-là, au gilet jaune, jamais vu. Et croyez-moi, je les connais tous. »", []); } }];
-    if (has("enveloppe")) o.push({ l: "« Gardez cette enveloppe pour moi, s'il vous plaît. »", give: true, fx: () => { take("enveloppe"); S.delKeeps = true; award("ange"); sheet("Mme Delattre", "Elle la glisse dans son sac à main sans poser de question. « Personne ne fouille le sac d'une vieille dame. Revenez quand vous voulez. »", []); } });
+    const o = [{ l: "« Bonsoir, madame. »", fx: () => sheet("Mme Delattre", "« Bonsoir ! Vous êtes l'enfant d'Odile, n'est-ce pas ? Vous avez ses yeux. Je prends cette rame depuis le premier jour. Ce soir, ça me serre le cœur. »", []) },
+      { l: "« Vous connaissez le personnel ? »", fx: () => { learn("intrus"); sheet("Mme Delattre", "« Tous. Votre mère, les gars de l'entretien. Celui-là, au gilet jaune ? Jamais vu. Et je n'oublie pas un visage. »", [], 2); } }];
+    if (has("enveloppe")) o.push({ l: "« Gardez cette enveloppe pour moi. »", give: true, fx: () => { take("enveloppe"); S.delKeeps = true; award("ange"); sheet("Mme Delattre", "Elle la glisse dans son sac sans une question. « Personne ne fouille le sac d'une vieille dame. Revenez quand vous voudrez. »", [], 2); } });
     if (S.delKeeps) o.push({ l: "« Rendez-moi l'enveloppe. »", fx: () => { S.delKeeps = false; give("enveloppe"); sheet("Mme Delattre", "« Tenez. Faites-en bon usage. »", []); } });
-    if ((knowsDed("ficelles") || knows("local")) && !S.delDistract && S.t < 205) o.push({ l: "« À 21 h 57, pouvez-vous occuper l'homme au gilet jaune ? »", fx: () => { S.delDistract = true; sheet("Mme Delattre", knowsDed("ficelles") ? "« Pour faire tomber Vasseur ? Avec plaisir. Je vais lui raconter l'inauguration de 1989. En entier. »" : "Elle hésite, puis sourit. « Je n'ai jamais su me taire. Il va m'entendre. »", []); } });
-    o.push({ l: "« Racontez-moi cette rame. »", fx: () => sheet("Mme Delattre", "« Le 4 février 1989, on était trois cents sur le quai. Une rame sans conducteur, vous vous rendez compte ? Mon Henri disait : on vit dans le futur. Trois minutes jusqu'à la cathédrale. Et demain, des autobus. »", []) });
-    if (S.t >= 95) o.push({ l: "« Vous avez vu quelque chose d'étrange, ce soir ? »", fx: () => sheet("Mme Delattre", "« Ce monsieur au gilet a jeté un papier dans la poubelle près du pilier, en passant. Il a regardé partout avant. Quand on n'a rien à cacher, on ne regarde pas partout. »", []) });
+    if ((knowsDed("ficelles") || knows("local")) && !S.delDistract && S.t < 205) o.push({ l: "« À 21 h 57, pouvez-vous retenir l'homme au gilet jaune ? »", fx: () => { S.delDistract = true; sheet("Mme Delattre", knowsDed("ficelles") ? "« Pour faire tomber le petit Vasseur ? Avec joie. Je vais lui raconter l'inauguration. En entier. »" : "Elle hésite, puis sourit. « Je n'ai jamais su me taire. Il va m'entendre. »", [], 2); } });
+    o.push({ l: "« Racontez-moi le premier jour. »", fx: () => sheet("Mme Delattre", "« Le 4 février 1989. Trois cents personnes sur ce quai. Mon Henri disait : on vit dans le futur. » Elle sourit. « Demain, ce sera des autobus. »", []) });
+    if (S.t >= 95) o.push({ l: "« Vous avez vu quelque chose d'étrange ? »", fx: () => sheet("Mme Delattre", "« Ce monsieur au gilet a jeté un papier dans la poubelle, près du pilier. Il a regardé partout avant. Quand on n'a rien à cacher, on ne regarde pas partout. »", [], 2) });
     if (knows("chute")) o.push({ l: "« Ne montez pas dans cette rame. »", fx: () => sheet("Mme Delattre", "« À mon âge, on ne rate pas un dernier voyage. »", []) });
-    if (knows("appel") || has("enveloppe")) o.push({ l: "« Le nom de Vasseur vous dit quelque chose ? »", fx: () => { learn("vasseur"); sheet("Mme Delattre", "« Vasseur ? Le promoteur ! Il veut raser cette station pour y construire ses immeubles. Il a déjà acheté le terrain du dépôt. Un homme qui ne supporte pas qu'on lui dise non. »", []); } });
-    sheet("Mme Delattre", "Elle serre son sac à main contre elle et regarde le quai avec émotion.", o);
+    if (knows("appel") || has("enveloppe") || knows("journal")) o.push({ l: "« Le nom de Vasseur vous dit quelque chose ? »", fx: () => { learn("vasseur"); learn("eleve", true); sheet("Mme Delattre", "« Le petit Vasseur ? Je l'ai eu en CM2. Il trichait déjà. » Son regard durcit. « Il veut raser la station pour ses immeubles. Il n'a jamais supporté qu'on lui dise non. »", [], 2); } });
+    sheet("Mme Delattre", "Elle tient son sac à deux mains et regarde le quai comme on regarde une vieille photo.", o);
   }
 }
 function confess(text) {
-  S.odileConfess = true; learn("aveux");
-  sheet("Odile", text + " « Il paie ma retraite. Il m'a dit qu'il fallait juste immobiliser la rame en gare, une panne, pour que tout le monde voie qu'elle était dangereuse. Je n'ai jamais voulu que… » Elle ne finit pas sa phrase. « Je ne bouge plus d'ici. »", odileOpts());
+  S.odileConfess = true; learn("aveux"); logEv("Votre mère avoue");
+  sheet("Odile", text + " « Le prêt pour ton école. Dix-huit mille euros. Vasseur a dit : deux minutes d'absence, une panne en gare, personne ne risque rien. » Elle vous regarde enfin. « C'était pour toi. » Puis, plus bas : « Je ne bouge plus d'ici. »", odileOpts(), 2);
 }
 function odileOpts() {
   const o = [], inCtrl = roomOf(A.odile) === "ctrl";
-  if (!S.said.oStory) o.push({ l: "« Vingt-sept ans ici… »", fx: () => { S.said.oStory = 1; sheet("Odile", "« J'avais vingt-huit ans à l'inauguration. J'ai vu passer trois maires, deux inondations et un mariage dans la cabine. Demain, je rends mes clés. » Elle sourit, sans joie.", odileOpts()); } });
-  if (knows("rec") && !S.recOn && inCtrl && S.t < 200) o.push({ l: "« Votre caméra du local n'enregistre plus. »", fx: () => { S.recOn = true; sheet("Odile", "Elle tapote son clavier, fronce les sourcils. « Coupée depuis 21 h 55… C'est pas moi, ça. Voilà, ça tourne. »", odileOpts()); } });
-  if (S.recOn && !S.recShown && inCtrl && S.t >= 278 && S.sab > 8) o.push({ l: "« Repassez-moi la caméra du local, à 21 h 58. »", fx: () => { S.recShown = true; give("bande"); if (!S.fixed) S.odileKnows = true; sheet("Odile", "Elle rembobine. À l'écran, le gilet jaune, penché sur l'armoire, arrache la goupille rouge. Odile porte la main à sa bouche. « Le frein… » Elle copie la vidéo et se lève d'un bond.", []); } });
-  if (has("badge") && !S.said.badge) o.push({ l: "Lui montrer le badge « TechniRail »", give: true, fx: () => { S.said.badge = 1; learn("faux"); if (S.t < 200 && !S.odileConfess) S.odileStays = true; sheet("Odile", "« TechniRail ? On n'a aucun sous-traitant ce soir. » Elle décroche son téléphone… le regarde… et le repose. " + (S.t < 200 ? "« Je ne bouge pas d'ici tant que ce type traîne. »" : "« Je… je verrai ça après le départ. »"), odileOpts()); } });
-  if (knows("guichet") && !S.odileConfess) o.push({ l: "« Qui vous appelait, à 21 h 55 ? »", fx: () => sheet("Odile", "« Ma fille. » Elle ment. Vous l'avez entendue : « à 57, comme prévu ».", odileOpts()) });
-  if (knows("dette") && knows("vasseur") && !S.odileConfess) o.push({ l: "« Vasseur paie vos dettes, c'est ça ? »", fx: () => confess("Le silence dure. Puis : « Dix-huit mille euros. Vous savez ce que c'est, une retraite d'agent ? »") });
-  if (knowsDed("complice") && !S.odileConfess) o.push({ l: "« Votre café de 57, c'était convenu. »", fx: () => confess("Elle repose lentement le combiné qu'elle tenait. « Vous m'avez entendue, tout à l'heure… »") });
-  if (knows("complot") && !S.odileConfess) o.push({ l: "« Vasseur m'a dit que vous partiriez à 57. »", fx: () => confess("Elle devient livide. « Il vous a… Il a parlé ? »") });
-  if (knows("dette") && !knows("vasseur") && !S.odileConfess) o.push({ l: "« Vous devez de l'argent à la banque. »", fx: () => sheet("Odile", "« Comment vous… Ça ne vous regarde pas ! » Elle se détourne. Il vous manque un nom.", odileOpts()) });
-  if (knows("cafe")) o.push({ l: "« Vous allez quitter votre poste ? »", fx: () => sheet("Odile", "« Juste deux minutes, à 57, pour un café. Je n'ai rien bu depuis le début de l'après-midi. »", odileOpts()) });
-  if (knows("chute")) o.push({ l: "« La rame va s'arrêter dans la pente. »", fx: () => sheet("Odile", "« Le frein de secours est là pour ça. Il ne peut rien arriver, croyez-moi. »", odileOpts()) });
-  if (knows("frein")) o.push({ l: "« Le frein de secours a été désarmé. »", fx: () => { learn("preuve"); sheet("Odile", "« Vous plaisantez ? Qui aurait accès à l'armoire ? … Sans preuve, je ne bloque pas le dernier départ. »", odileOpts()); } });
-  if (knows("intrus")) o.push({ l: "« Ce gilet jaune n'est pas des vôtres. »", fx: () => { learn("preuve"); sheet("Odile", "« Un sous-traitant, il m'a dit. Si vous avez une preuve, montrez-la-moi. »", odileOpts()); } });
-  if (knows("sms") && !S.odileConfess) o.push({ l: "« Qui vous envoie des SMS signés V. ? »", fx: () => confess("Elle se fige. Longtemps. « Vasseur… »") });
-  if (has("enveloppe") && !S.envShown) o.push({ l: "Lui montrer l'enveloppe de « V. »", give: true, fx: () => { S.envShown = true; if (S.odileConfess) take("enveloppe"); sheet("Odile", S.odileConfess ? "« « Que la dernière rame ne monte jamais »… Il m'a menti. Il voulait des morts, pas une panne. » Elle serre l'enveloppe. « Celle-là, la police la verra. »" : "Elle lit le mot et pâlit. « Ce n'est pas possible… » Elle détourne les yeux, comme si elle savait quelque chose.", odileOpts()); } });
-  if (has("cafe") && !S.odileStays) o.push({ l: "Lui offrir le café", give: true, fx: () => { take("cafe"); if (S.t < 200) { S.odileStays = true; sheet("Odile", "« Pour moi ? … Merci, c'est gentil. Bon, alors je ne bouge plus d'ici. »", []); } else sheet("Odile", "« Merci… mais j'en ai déjà un. »", []); } });
-  if (has("cliche")) o.push({ l: "Lui montrer la photo du sabotage", give: true, fx: () => { if (!S.fixed) { S.odileKnows = true; sheet("Odile", "Elle agrandit la photo. Le gilet jaune, la goupille rouge à la main. « Mon Dieu… le frein de secours. » Elle se précipite vers l'armoire.", []); } else sheet("Odile", "« Je sais. C'est réparé. »", []); } });
+  if (!S.said.oStory) o.push({ l: "« Ça va aller, demain ? »", fx: () => { S.said.oStory = 1; sheet("Odile", "« Demain, je rends mes clés et je dors jusqu'à midi. » Elle rit trop vite. « Ne t'inquiète pas pour moi. »", odileOpts()); } });
+  if (M.loops >= 3 && !S.said.dejavu) o.push({ l: "« Tu n'as pas l'impression d'avoir déjà vécu cette soirée ? »", fx: () => { S.said.dejavu = 1; sheet("Odile", "Elle ouvre la bouche, la referme. « C'est drôle que tu dises ça. Depuis tout à l'heure, je sais ce que tu vas dire avant que tu le dises. » Elle secoue la tête. « La fatigue. »", odileOpts(), 1); } });
+  if (knows("rec") && !S.recOn && inCtrl && S.t < 200) o.push({ l: "« Maman, ta caméra du local est coupée. »", fx: () => { S.recOn = true; sheet("Odile", "Elle tapote son clavier. « Depuis 21 h 55 ? Ce n'est pas moi, ça. » Un clic. « Voilà. Ça tourne. »", odileOpts()); } });
+  if (S.recOn && !S.recShown && inCtrl && S.t >= 278 && S.sab > 8) o.push({ l: "« Repasse la caméra du local. Maintenant. »", fx: () => { S.recShown = true; give("bande"); if (!S.fixed) S.odileKnows = true; sheet("Odile", "Elle rembobine. À l'écran, l'homme arrache la goupille rouge. Sa main monte à sa bouche. « Le frein. Il a touché au frein. » Elle se lève d'un bond.", [], 1); } });
+  if (has("badge") && !S.said.badge) o.push({ l: "Lui montrer le badge « TechniRail »", give: true, fx: () => { S.said.badge = 1; learn("faux"); if (S.t < 200 && !S.odileConfess) S.odileStays = true; sheet("Odile", "« TechniRail. Ça n'existe pas. » Elle décroche son téléphone, le regarde, le repose. " + (S.t < 200 ? "« Je ne bouge pas d'ici tant qu'il traîne. »" : "« On verra ça après le départ. »"), odileOpts(), 1); } });
+  if (knows("guichet") && !S.odileConfess) o.push({ l: "« C'était qui, au téléphone ? »", fx: () => sheet("Odile", "« Personne. Un collègue. » Elle ne vous regarde pas.", odileOpts(), 1) });
+  if (knows("dette") && knows("vasseur") && !S.odileConfess) o.push({ l: "« Le prêt, Maman. C'est Vasseur qui paie ? »", fx: () => confess("Elle ferme les yeux. « Tu as fouillé mon tiroir. »") });
+  if (knowsDed("complice") && !S.odileConfess) o.push({ l: "« Ton café de 57, c'était prévu. »", fx: () => confess("« Tu m'as entendue, tout à l'heure. » Ce n'est pas une question.") });
+  if (knows("complot") && !S.odileConfess) o.push({ l: "« Vasseur a tout dit. Tu pars à 57. »", fx: () => confess("Elle blêmit. « Il t'a parlé ? À toi ? »") });
+  if (knows("dette") && !knows("vasseur") && !S.odileConfess) o.push({ l: "« Dix-huit mille euros, Maman ? »", fx: () => sheet("Odile", "« Range ça. » Sa voix tremble. « Ce ne sont pas tes affaires. » Il vous manque un nom.", odileOpts(), 1) });
+  if (knows("cafe")) o.push({ l: "« Tu vas quitter ton poste ? »", fx: () => sheet("Odile", "« Deux minutes, à 57. Un café. J'ai le droit, non ? »", odileOpts()) });
+  if (knows("chute")) o.push({ l: "« La rame va tomber, Maman. »", fx: () => sheet("Odile", "« Arrête. Il y a le frein de secours. Il ne peut rien arriver. »", odileOpts()) });
+  if (knows("frein")) o.push({ l: "« Le frein de secours est désarmé. »", fx: () => { learn("preuve"); sheet("Odile", "« Par qui ? Personne n'entre ici. » Un silence. « Apporte-moi une preuve. Sans ça, je ne bloque pas le dernier départ. »", odileOpts(), 1); } });
+  if (knows("intrus")) o.push({ l: "« Le gilet jaune n'est pas de chez vous. »", fx: () => { learn("preuve"); sheet("Odile", "« Un sous-traitant. C'est ce qu'on m'a dit. » Elle a buté sur le « on ».", odileOpts(), 1); } });
+  if (knows("sms") && !S.odileConfess) o.push({ l: "« Qui t'écrit, signé V. ? »", fx: () => confess("Elle se fige. « Tu as lu mon téléphone. »") });
+  if (has("enveloppe") && !S.envShown) o.push({ l: "Lui montrer l'enveloppe de « V. »", give: true, fx: () => { S.envShown = true; if (S.odileConfess) take("enveloppe"); sheet("Odile", S.odileConfess ? "Elle lit le mot deux fois. « Il m'a menti. Il voulait qu'elle tombe. » Elle garde l'enveloppe contre elle. « Ça, la police le verra. »" : "Elle lit le mot et pâlit. « D'où tu sors ça ? » Elle détourne les yeux.", odileOpts(), S.odileConfess ? 2 : 1); } });
+  if (has("cafe") && !S.odileStays) o.push({ l: "« Je t'ai pris un café. »", give: true, fx: () => { take("cafe"); if (S.t < 200) { S.odileStays = true; sheet("Odile", "« Tu as pensé à moi. » Elle le prend à deux mains. « Bon. Je reste là, alors. »", []); } else sheet("Odile", "« J'en ai déjà un, mon cœur. »", []); } });
+  if (has("cliche")) o.push({ l: "Lui montrer la photo du sabotage", give: true, fx: () => { if (!S.fixed) { S.odileKnows = true; sheet("Odile", "Elle agrandit la photo. L'homme, la goupille rouge à la main. « Mon Dieu. Le frein. » Elle court vers l'armoire.", [], 1); } else sheet("Odile", "« Je sais. C'est réparé. »", []); } });
   if (has("photo")) o.push({ l: "Lui montrer la vidéo de Bastien", give: true, fx: () => {
-    if (S.photo === "proof" && !S.fixed) { S.odileKnows = true; take("photo"); sheet("Odile", "Elle regarde l'écran, livide. « Mon Dieu… le frein de secours. » Elle se précipite vers l'armoire.", []); }
+    if (S.photo === "proof" && !S.fixed) { S.odileKnows = true; take("photo"); sheet("Odile", "Elle regarde l'écran, livide. « Mon Dieu. Le frein. » Elle court vers l'armoire.", [], 1); }
     else if (S.photo === "proof") sheet("Odile", "« Je sais. C'est réparé. »", []);
     else sheet("Odile", "« Une porte. Et alors ? »", []);
   } });
@@ -783,9 +836,9 @@ function odileOpts() {
 }
 function bastienOpts() {
   const o = [];
-  if (S.bastTrust && !S.bastFilm && knows("local") && S.t < 205) o.push({ l: "« Filmez la porte du local technique à 21 h 57. »", fx: () => { S.bastFilm = true; sheet("Bastien", "« Drôle de demande. Mais d'accord, vous avez l'air sûr de vous. »", []); } });
-  if (S.bastTrust && !S.bastFilm && knows("local") && S.t >= 205) o.push({ l: "« Filmez la porte du local technique. »", fx: () => sheet("Bastien", "« Maintenant ? Trop tard, mon drone est rangé. Il fallait me le dire plus tôt. »", []) });
-  if (S.bastFilm && !S.photoGiven && S.t >= 280) o.push({ l: "« Alors, vous avez filmé ? »", fx: () => { S.photoGiven = true; S.photo = S.filmed > 5 ? "proof" : "empty"; give("photo"); sheet("Bastien", S.photo === "proof" ? "« Vous aviez raison. Le type au gilet trafiquait l'armoire, regardez. Prenez la vidéo, montrez-la à qui vous voulez. »" : "« Rien. Juste une porte. Tenez, si ça vous amuse. »", []); } });
+  if (S.bastTrust && !S.bastFilm && knows("local") && S.t < 205) o.push({ l: "« Filmez la porte du local technique à 21 h 57. »", fx: () => { S.bastFilm = true; sheet("Bastien", "« D'accord. Mais si on me demande, je ne vous connais pas. »", []); } });
+  if (S.bastTrust && !S.bastFilm && knows("local") && S.t >= 205) o.push({ l: "« Filmez la porte du local technique. »", fx: () => sheet("Bastien", "« Trop tard, le drone est rangé. Il fallait le dire avant. »", []) });
+  if (S.bastFilm && !S.photoGiven && S.t >= 280) o.push({ l: "« Alors, vous avez filmé ? »", fx: () => { S.photoGiven = true; S.photo = S.filmed > 5 ? "proof" : "empty"; give("photo"); sheet("Bastien", S.photo === "proof" ? "« Vous aviez raison. Regardez : il arrache quelque chose dans l'armoire. Prenez la vidéo. »" : "« Rien. Une porte. Tenez, si ça vous amuse. »", [], S.photo === "proof" ? 1 : 0); } });
   return o;
 }
 function examine(id) {
@@ -806,9 +859,9 @@ function examine(id) {
       if (hasProof()) { S.secuAt = Math.min(S.t + 40, 352); sheet("Téléphone de service", "Vous décrivez la vidéo. Un silence. « On envoie une équipe. Ne faites rien d'idiot. » Ils seront là dans quarante secondes.", []); }
       else { learn("secu"); sheet("Téléphone de service", "« Un gilet jaune qui traîne ? Il y en a partout, monsieur. Rappelez quand vous aurez du concret. » Clic.", []); }
     } }];
-    if (knows("carte")) o.push({ l: "Composer le numéro de la carte", fx: () => sheet("Téléphone de service", "Deux sonneries. Une voix d'homme, pressée : « Oui ? »", [
-      { l: "Vous faire passer pour le gilet jaune", fx: () => { learn("complot"); award("imitateur"); sheet("Téléphone de service", "Vous grommelez « C'est moi ». « Pourquoi tu m'appelles d'ici, idiot ? Odile part au café à 57, comme convenu. Deux minutes. Et récupère l'enveloppe, ne la laisse pas traîner. » Il raccroche.", []); } },
-      { l: "« Je sais ce que vous préparez, Vasseur. »", fx: () => { learn("voix"); if (S.t < 200) S.gerWary = true; sheet("Téléphone de service", "Un rire bref. « Vous ne savez rien. » Il raccroche. " + (S.t < 200 ? "Quelques secondes plus tard, sur le quai, le téléphone du gilet jaune vibre." : "Trop tard pour qu'il prévienne qui que ce soit."), []); } },
+    if (knows("carte")) o.push({ l: "Composer le numéro de la carte", fx: () => sheet("Téléphone de service", "Deux sonneries. Une voix d'homme, lisse, pressée : « Oui ? »", [
+      { l: "Vous faire passer pour le gilet jaune", fx: () => { learn("complot"); award("imitateur"); sheet("Vasseur", "Vous grommelez un « C'est moi ». « Pourquoi tu m'appelles d'ici, imbécile ? La vieille part au café à 57, comme convenu. Deux minutes. Et reprends l'enveloppe, ne laisse rien traîner. » Il raccroche.", [], 1); } },
+      { l: "« Je sais ce que vous préparez, Vasseur. »", fx: () => { learn("voix"); if (S.t < 200) S.gerWary = true; sheet("Vasseur", "Un rire bref. « Vous ne savez rien du tout. » Il raccroche. " + (S.t < 200 ? "Quelques secondes plus tard, sur le quai, le téléphone du gilet jaune vibre." : "Trop tard pour qu'il prévienne qui que ce soit."), []); } },
       { l: "Raccrocher sans rien dire", fx: () => closeSheet() }
     ]) });
     return sheet("Téléphone de service", "Un combiné gris, fixé au mur. Une étiquette : « SÉCURITÉ RÉSEAU — 2 ».", o);
@@ -847,7 +900,7 @@ function examine(id) {
   if (id === "desk") {
     if (roomOf(A.odile) === "ctrl") return sheet("Bureau d'Odile", "Odile est à son bureau. Impossible de fouiller.", []);
     if (S.t >= 195) { learn("sms"); S.smsSeen = true; }
-    return sheet("Bureau d'Odile", "Deux écrans, un thermos vide, une photo d'Odile devant la rame en 1989." + (S.t >= 195 ? " Son téléphone s'allume : « 21h57. Deux minutes. Pas une de plus. — V. »" : ""), [{ l: "Ouvrir le tiroir", fx: () => { learn("dette"); sheet("Tiroir du bureau", "Des factures, un tube de rouge à lèvres, et une lettre de la banque : « Mise en demeure — 18 412,60 € ». Un post-it jaune collé dessus : « V. s'en occupe. »", []); } }]);
+    return sheet("Bureau d'Odile", "Deux écrans, un thermos vide, une photo de votre mère devant la rame en 1989, vous dans ses bras." + (S.t >= 195 ? " Son téléphone s'allume : « 21h57. Deux minutes. Pas une de plus. — V. »" : ""), [{ l: "Ouvrir le tiroir", fx: () => { learn("dette"); sheet("Tiroir du bureau", "Des factures, une photo de vous à dix ans, et une lettre de la banque : « Prêt étudiant — Camille — mise en demeure : 18 412,60 € ». Un post-it jaune collé dessus : « V. s'en occupe. »", []); } }]);
   }
   if (id === "cabinet") {
     if (S.sabDone && !S.fixed) { learn("frein"); return sheet("Armoire électrique", "Une goupille rouge pend, arrachée. Le levier « FREIN DE SECOURS » est en position basse : désarmé.", []); }
@@ -857,6 +910,7 @@ function examine(id) {
 
 /* ================= Clics ================= */
 let pending = null;
+const hotOn = h => !((h.id === "bag" && !S.bagOnBench) || (h.id === "toolbag" && !S.toolbagDown) || (h.id === "desk" && roomOf(A.player) !== "ctrl" && roomOf(A.odile) === "ctrl") || (h.id === "rame" && rame.state === "away") || (h.id === "hide" && roomOf(A.player) !== "ctrl") || (h.id === "screens" && roomOf(A.player) !== "ctrl" && roomOf(A.odile) !== "ctrl"));
 function pick(x, y) {
   const w = toWorld(x, y);
   // personnages d'abord
@@ -891,7 +945,7 @@ function endLoop() {
   let kind;
   S.hidden = false; updateHideBar();
   if (S.caughtHiding) kind = "repere";
-  else if (S.fixed && S.odileConfess && S.envShown) kind = "verite";
+  else if (S.fixed && S.odileConfess && S.envShown) { if (!S.choice) return choiceOverlay(); kind = S.choice; }
   else if (S.fixed || (S.odileKnows && S.gerCaught)) kind = "win";
   else if (S.secuArrived && S.gerCaught) kind = "arrestation";
   else if (S.alarm) kind = "alarm";
@@ -903,7 +957,7 @@ function endLoop() {
   if (kind === "sursis") learn("sursis", true);
   if (!M.endings.includes(kind)) M.endings.push(kind);
   if (ENDINGS.every(e => M.endings.includes(e))) award("toutes");
-  if (kind === "verite") { award("verite"); if (M.loops <= 5) award("eclair"); }
+  if (kind === "verite" || kind === "silence") { award("verite"); if (M.loops <= 5) award("eclair"); }
   if (S.hunt && has("enveloppe")) award("insaisissable");
   Snd.tension(0); saveM();
   const T = {
@@ -914,7 +968,9 @@ function endLoop() {
     aveux: ["22:00:00", ["Odile n'a pas quitté son poste. Le gilet jaune a attendu, puis il est parti.", "La rame monte sans encombre. Odile pleure en silence derrière sa vitre.", "Sans preuve du sabotage, Vasseur ne sera jamais inquiété.", "Tout recommence."], "Recommencer"],
     repere: [fmtT(S.t), ["Le déclic de votre téléphone résonne dans le local.", "L'homme au gilet jaune se retourne. Une seconde plus tard, sa main se referme sur votre col.", "Votre tête heurte l'armoire. Noir.", "Il n'aime pas les témoins. Attendez qu'il ait le dos tourné."], "Rouvrir les yeux"],
     arrestation: ["22:00:00", ["Deux agents de sécurité plaquent l'homme au gilet jaune contre la vitre.", "Par précaution, le dernier départ est annulé. Mme Delattre pleure sur le quai.", "Le gilet jaune ne dira pas un mot. Son commanditaire dormira tranquille.", "Tout recommence."], "Recommencer"],
-    verite: ["La vérité", ["Odile réarme le frein de secours, puis décroche le téléphone et raconte tout.", "La vidéo de Bastien, l'enveloppe signée « V. », ses aveux : la police n'a besoin de rien d'autre.", "À 22 h 00, la dernière rame monte vers la ville haute, sous les applaudissements de Mme Delattre.", "Au matin, Vasseur sera arrêté. La boucle se brise enfin."], null]
+    silence: ["Le silence", ["Votre pouce efface les messages, un par un. Votre mère ferme les yeux.", "La vidéo et l'enveloppe suffiront pour l'homme au gilet jaune. Pas pour Vasseur : six mois plus tard, la station est rasée.", "À 22 h 00, la dernière rame est montée vers la ville haute, sous les applaudissements de Mme Delattre.", "Votre mère touche sa retraite. Elle ne prend plus jamais de café à 21 h 57. Vous n'en parlez jamais."], null],
+    verite: ["La vérité", ["Vous tendez le téléphone à l'agent. Votre mère hoche la tête, une seule fois.", "Vasseur est arrêté au matin. Odile est mise en examen pour complicité. Elle refuse l'avocat.", "À 22 h 00, la dernière rame est montée vers la ville haute, sous les applaudissements de Mme Delattre.", "Vous irez la voir au parloir. Elle vous dira qu'elle dort bien, maintenant."], null],
+    veriteOld: ["La vérité", ["Odile réarme le frein de secours, puis décroche le téléphone et raconte tout.", "La vidéo de Bastien, l'enveloppe signée « V. », ses aveux : la police n'a besoin de rien d'autre.", "À 22 h 00, la dernière rame monte vers la ville haute, sous les applaudissements de Mme Delattre.", "Au matin, Vasseur sera arrêté. La boucle se brise enfin."], null]
   }[kind];
   if (kind === "chute" && S.aboard) T[1] = ["Les portes se ferment. La cabine s'élance, les lumières de la ville basse s'éloignent.", "À mi-pente, un claquement sec. La cabine s'immobilise… puis glisse en arrière.", "Mme Delattre vous agrippe le bras. Le frein de secours ne répond pas.", "Noir."];
   if (kind === "repere") { learn("dos", true); shake = 0.8; }
@@ -933,6 +989,7 @@ function finalStats() {
 function showOverlay(title, lines, btn, kind) {
   $ov.hidden = false;
   if (btn && !revealed()) btn = "Rouvrir les yeux";
+  $ov.className = (kind === "chute" && S.aboard) || !btn ? "scene" : ""; $ov.style.backgroundImage = kind === "chute" && S.aboard ? "url(img/cabine.jpg)" : !btn ? "url(img/title.jpg)" : "";
   $ov.innerHTML = `<div><p class="t">${title}</p><div class="lines">${lines.map((l, i) => `<p style="animation-delay:${0.4 + i * 1.3}s">${l}</p>`).join("")}</div>${btn ? loopSummary() : finalStats()}${btn ? `<button class="go" type="button" style="animation-delay:${0.6 + lines.length * 1.3}s">${btn}</button>` : `<button class="go" type="button" style="animation-delay:${0.6 + lines.length * 1.3}s">Rejouer depuis le début</button><p class="small">Fins découvertes : ${M.endings.length}/${ENDINGS.length}. Fiction : le POMA 2000 a réellement relié la gare à la ville haute de Laon de 1989 à 2016 ; personnages et événements sont inventés.</p>`}</div>`;
     $ov.querySelector(".go").addEventListener("click", () => {
     Voice.stop();
@@ -942,10 +999,17 @@ function showOverlay(title, lines, btn, kind) {
   });
 }
 
+// le dilemme final : dire toute la vérité, ou couvrir sa mère
+function choiceOverlay() {
+  S.over = true; paused = true; closeSheet(); Snd.tension(0.4); $ov.hidden = false; $ov.className = "scene"; $ov.style.backgroundImage = "";
+  $ov.innerHTML = `<div><p class="t">21:59:48</p><div class="lines"><p style="animation-delay:.4s">Le frein est réarmé. La rame va partir. Dehors, un gyrophare bleu balaie la pluie.</p><p style="animation-delay:1.9s">Votre mère vous tend son téléphone. Les messages de Vasseur, les heures, tout y est.</p><p style="animation-delay:3.4s">« Fais ce qui est juste, Camille. Je ne te demanderai rien. »</p></div><img class="chp" alt="" src="img/p_odile_2.webp" style="animation-delay:3.4s"><div class="two"><button class="go" type="button" data-c="verite" style="animation-delay:5s">Tout donner à la police</button><button class="go" type="button" data-c="silence" style="animation-delay:5s">Effacer les messages</button></div></div>`;
+  Voice.speak("odile", "« Fais ce qui est juste, Camille. Je ne te demanderai rien. »");
+  for (const b of $ov.querySelectorAll("[data-c]")) b.addEventListener("click", () => { S.choice = b.dataset.c; S.over = false; $ov.hidden = true; endLoop(); });
+}
 // la révélation : on se réveille à 21:54, et tout est exactement pareil
 function revealOverlay() {
-  paused = true; $ov.hidden = false;
-  $ov.innerHTML = `<div><p class="t">21:54:00</p><div class="lines"><p style="animation-delay:.4s">Le néon grésille. La pluie tombe sur le parvis.</p><p style="animation-delay:1.9s">Derrière sa vitre, Odile ajuste ses lunettes. Exactement comme tout à l'heure.</p><p style="animation-delay:3.4s">Mme Delattre serre son sac contre elle. Le même geste. Le même soupir.</p><p style="animation-delay:5s">Vous avez déjà vécu ces six minutes.</p></div><button class="go" type="button" style="animation-delay:6.4s">…Encore ?</button><p class="small" style="opacity:0;animation:up 1s ease-out 6.8s forwards">Ce que vous avez vu reste dans votre carnet. Le reste du monde, lui, a tout oublié.</p></div>`;
+  paused = true; $ov.hidden = false; $ov.className = ""; $ov.style.backgroundImage = "";
+  $ov.innerHTML = `<div><p class="t">21:54:00</p><div class="lines"><p style="animation-delay:.4s">Le néon grésille. La pluie tombe sur le parvis.</p><p style="animation-delay:1.9s">Derrière sa vitre, votre mère ajuste ses lunettes. Exactement comme tout à l'heure.</p><p style="animation-delay:3.4s">Mme Delattre serre son sac contre elle. Le même geste. Le même soupir.</p><p style="animation-delay:5s">Vous avez déjà vécu ces six minutes.</p></div><button class="go" type="button" style="animation-delay:6.4s">…Encore ?</button><p class="small" style="opacity:0;animation:up 1s ease-out 6.8s forwards">Ce que vous avez vu reste dans votre carnet. Le reste du monde, lui, a tout oublié.</p></div>`;
   $ov.querySelector(".go").addEventListener("click", () => { $ov.hidden = true; paused = false; rewindT = 1.6; zoom = 1.25; zoomT = 1; updateLoopLbl(); updateGoal(); toast("Boucle 2. Le carnet garde ce que vous avez appris."); });
 }
 
@@ -1010,11 +1074,15 @@ function frame(now) {
 
 resize(); newLoop();
 if (location.hash === "#debug") window.__dbg = { get S() { return S; }, A, M, P, award, openJournal, rewindNow, DEDS, talk, examine, goTo, learn, give, has, endLoop, walkable, clampWalk, route, HOT, NODES };
-if (!M.seenIntro) {
-  paused = true; $ov.hidden = false;
-  $ov.innerHTML = `<div><p class="t">La Dernière Rame</p><div class="lines"><p style="animation-delay:.3s">Laon, samedi 27 août 2016. Station basse du POMA.</p><p style="animation-delay:1.5s">À 22 h 00, la toute dernière rame doit monter vers la ville haute. Puis la ligne fermera pour toujours.</p><p style="animation-delay:2.9s">Vous êtes venu pour ce dernier voyage. Six minutes à attendre, rien de plus.</p></div><button class="go" type="button" style="animation-delay:4.2s">Entrer dans la station</button><p class="small">Touchez le sol pour marcher, un objet ou une personne pour interagir. « Avancer » accélère le temps. Fiction inspirée d'un lieu réel.</p></div>`;
-  $ov.querySelector(".go").addEventListener("click", () => { M.seenIntro = true; saveM(); $ov.hidden = true; paused = false; Snd.init(); Snd.chime(); });
+function introText() {
+  $ov.className = "scene"; $ov.style.backgroundImage = "url(img/title.jpg)";
+  $ov.innerHTML = `<div><div class="lines"><p style="animation-delay:.3s">Laon, samedi 27 août 2016. Station basse du POMA.</p><p style="animation-delay:1.7s">Votre mère, Odile, pilote cette ligne depuis vingt-sept ans. Ce soir, à 22 h 00, elle fait partir la toute dernière rame.</p><p style="animation-delay:3.3s">Vous lui avez promis d'être là. Six minutes à attendre, rien de plus.</p></div><button class="go" type="button" style="animation-delay:4.6s">Entrer dans la station</button><p class="small">Touchez le sol pour marcher, un objet ou une personne pour interagir. « Attendre » fait passer le temps. Fiction inspirée d'un lieu réel.</p></div>`;
+  $ov.querySelector(".go").addEventListener("click", () => { M.seenIntro = true; saveM(); $ov.hidden = true; $ov.className = ""; paused = false; Snd.chime(); });
 }
+paused = true; $ov.hidden = false; $ov.className = "title"; $ov.style.backgroundImage = "url(img/title.jpg)";
+$ov.innerHTML = `<div><p class="t big">La Dernière Rame</p><p class="sub">Laon · 27 août 2016 · 21 h 54</p><div class="two"><button class="go" type="button" id="tGo" style="animation-delay:.6s">${M.seenIntro ? "Continuer" : "Commencer"}</button>${M.seenIntro ? `<button class="go" type="button" id="tNew" style="animation-delay:.8s;border-color:#5d6b70;color:#8fa0a6">Nouvelle partie</button>` : ""}</div></div>`;
+document.getElementById("tGo").addEventListener("click", () => { Snd.init(); Snd.music(); if (!M.seenIntro) return introText(); $ov.hidden = true; $ov.className = ""; paused = false; });
+if (M.seenIntro) document.getElementById("tNew").addEventListener("click", () => { Snd.init(); Snd.music(); Object.assign(M, { clues: [], ded: [], ach: [], loops: 1, endings: [], playS: 0, seenIntro: false }); saveM(); newLoop(); introText(); });
 requestAnimationFrame(frame);
 })();
 </script>
