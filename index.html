@@ -51,6 +51,27 @@ button:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
 #sheet .say { font-size: 16px; line-height: 1.5; margin: 0 0 12px; max-width: 70ch; }
 #sheet .say b { color: var(--bone); }
 #sheet .say i { color: var(--muted); }
+.ch { opacity: 0; } .ch.on { opacity: 1; }
+#sheet { animation: slideUp .22s ease-out; }
+#sheet .por { animation: fadeIn .3s ease-out; }
+#journal, #overlay { animation: fadeIn .35s ease-out; }
+@keyframes slideUp { from { transform: translateY(24px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { #sheet, #sheet .por, #journal, #overlay { animation: none; } .ch { opacity: 1; } }
+#tut { position: absolute; left: 50%; bottom: 64px; transform: translateX(-50%); max-width: min(420px, calc(100% - 32px)); background: rgba(8,12,14,.9); border: 1px solid var(--amber); color: var(--bone); padding: 9px 14px; border-radius: 20px; font-size: 14px; text-align: center; pointer-events: none; animation: fadeIn .4s ease-out; }
+.chip { cursor: pointer; font-family: inherit; }
+.tabs { display: flex; gap: 4px; flex-wrap: wrap; margin: 0 0 14px; }
+.tabs button { background: none; border: 1px solid var(--edge); border-radius: 4px; padding: 6px 10px; font-family: var(--f-title); font-size: 15px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.tabs button[aria-selected="true"] { border-color: var(--teal); color: var(--teal); }
+.who { border: 1px solid var(--edge); border-radius: 4px; padding: 10px; margin-bottom: 8px; display: flex; gap: 10px; align-items: flex-start; font-size: 14px; line-height: 1.45; }
+.who img { width: 56px; flex: none; }
+.who b { display: block; font-family: var(--f-title); font-size: 17px; letter-spacing: .05em; text-transform: uppercase; }
+.menu .opt { display: flex; justify-content: space-between; gap: 12px; }
+.menu .opt span { color: var(--amber); }
+.credits { font-size: 13px; color: var(--muted); line-height: 1.5; margin-top: 14px; }
+#load { height: 2px; background: var(--teal); width: 0; margin: 14px auto 0; max-width: 220px; transition: width .2s; }
+#app.big #sheet .say { font-size: 19px; } #app.big .opt { font-size: 17px; } #app.big .jbox li, #app.big .who, #app.big .ded { font-size: 16px; } #app.big .goal { font-size: 15px; } #app.big .chip { font-size: 15px; }
+#sheet { max-height: 56%; }
 #sheet.talk { display: flex; gap: 14px; align-items: flex-end; }
 #sheet .por { flex: none; width: clamp(92px, 24vw, 190px); align-self: flex-end; margin-bottom: -18px; filter: drop-shadow(0 6px 18px rgba(0,0,0,.7)); }
 #sheet .body { flex: 1; min-width: 0; }
@@ -110,13 +131,15 @@ button:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
       <button class="hb" id="bWait" type="button">Attendre ⏱</button>
       <button class="hb" id="bFast" type="button" aria-pressed="false" hidden>Avancer ⏩</button>
       <button class="hb" id="bJournal" type="button">Carnet</button>
-      <button class="hb" id="bVoice" type="button" aria-pressed="true">Voix</button>
-      <button class="hb" id="bSound" type="button" aria-pressed="true">Son</button>
+      <button class="hb" id="bMenu" type="button" aria-label="Menu">☰</button>
+      <button class="hb" id="bVoice" type="button" aria-pressed="true" hidden>Voix</button>
+      <button class="hb" id="bSound" type="button" aria-pressed="true" hidden>Son</button>
     </div>
   </div>
   <div id="toast" hidden></div>
   <div id="hint" hidden></div>
   <div id="inv"></div>
+  <div id="tut" hidden></div>
   <div id="hideBar" hidden></div>
   <div id="sheet" hidden></div>
   <div id="journal" hidden><div class="jbox" id="jbox"></div></div>
@@ -302,6 +325,10 @@ const Snd = {
   rewind() { this.tone(1800, 1.4, { type: "sawtooth", to: 120, vol: 0.05 }); this.noise(1.4, 3000, 0.08); },
   zap() { this.noise(0.08, 4000, 0.05); },
   duck(on) { if (this.amb) this.amb.gain.setTargetAtTime(on ? 0.25 : 1, this.ctx.currentTime, 0.25); },
+  blip() { this.tone(420 + Math.random() * 60, 0.025, { type: "triangle", vol: 0.012 }); },
+  fx(id) { const f = { door: () => { this.noise(0.18, 300, 0.12); this.tone(90, 0.12, { vol: 0.06, delay: 0.12 }); }, desk: () => { this.noise(0.25, 700, 0.07); this.tone(140, 0.06, { vol: 0.04, delay: 0.22 }); }, locker: () => { this.tone(1900, 0.03, { type: "square", vol: 0.02 }); this.tone(1500, 0.03, { type: "square", vol: 0.02, delay: 0.08 }); },
+      trash: () => this.noise(0.3, 2500, 0.05), ticket: () => { for (let i = 0; i < 5; i++) this.noise(0.04, 3200, 0.04, i * 0.07); }, vending: () => { this.tone(1200, 0.05, { vol: 0.03 }); this.noise(0.5, 200, 0.08, 0.15); }, cabinet: () => { this.tone(180, 0.08, { type: "square", vol: 0.03 }); this.noise(0.1, 1200, 0.05, 0.05); },
+      phone: () => { this.tone(440, 0.4, { vol: 0.02, delay: 0.1 }); this.noise(0.05, 2000, 0.05); }, fuse: () => this.tone(120, 0.1, { type: "square", vol: 0.04 }), toolbag: () => this.noise(0.2, 1500, 0.05), bag: () => this.noise(0.25, 900, 0.05), pin: () => this.tone(2400, 0.05, { vol: 0.02 }), bench: () => this.noise(0.1, 500, 0.05) }[id]; if (f) f(); },
   heart(k) { this.tone(58, 0.12, { type: "sine", vol: 0.22 * k }); this.tone(52, 0.14, { type: "sine", vol: 0.16 * k, delay: 0.2 }); },
   buzz() { this.tone(240, 0.5, { type: "sine", to: 250, vol: 0.006 }); },
   tension(k) { if (!this.ctx) return; if (!this.rise) { const c = this.ctx, o = c.createOscillator(), o2 = c.createOscillator(), g = c.createGain(); o.type = "sine"; o2.type = "sine"; o.frequency.value = 110; o2.frequency.value = 164.8; g.gain.value = 0; o.connect(g); o2.connect(g); g.connect(this.amb); o.start(); o2.start(); this.rise = { o, o2, g }; }
@@ -330,7 +357,7 @@ const Voice = {
     // répliques doublées par des acteurs (ElevenLabs) : priorité sur la synthèse du navigateur
     const rec = this.rec.find(r => quotes.some(q => q.startsWith(r[0])));
     if (rec) { this.stop(); try { this.audio = new Audio(rec[1]); this.audio.volume = 1; const au = this.audio; Snd.duck(true); au.onended = au.onerror = () => { if (this.audio === au) Snd.duck(false); }; au.play().catch(() => Snd.duck(false)); } catch (e) {} return; }
-    if (!this.ok) return;
+    return; // pas de voix robotique : les répliques non doublées s'affichent en texte, lettre par lettre
     try { speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(line); u.lang = "fr-FR"; if (this.voices.length) u.voice = this.voices[pr.i % this.voices.length]; u.pitch = pr.p; u.rate = pr.r; u.volume = 0.95; speechSynthesis.speak(u); } catch (e) {}
   },
   stop() { if (this.audio) { this.audio.pause(); this.audio = null; Snd.duck(false); } if (this.ok) try { speechSynthesis.cancel(); } catch (e) {} }
@@ -513,6 +540,7 @@ function updateAgents(dt) {
   d.pose = S.said.dis1 && S.distractLeft > 0 && near(d, g, 0.08) ? "delattre_point" : null; if (d.pose) d.dir = g.x > d.x ? 1 : -1;
   // erreur judiciaire : la sécurité embarque Bastien
   if (S.wrongAt && t >= S.wrongAt && !S.wrongArrest) { S.wrongArrest = true; S.bastFilm = false; say(b, "Mais j'ai rien fait ! Lâchez-moi !"); toast("📻 Deux agents emmènent Bastien. Le gilet jaune regarde la scène, et sourit."); logEv("Bastien est arrêté à tort"); learn("erreur", true); setTimeout(() => { b.vis = false; }, 2500); }
+  for (const a of [g, b, d]) if (a.vis && !a.path.length && !a.pose && Math.hypot(me.x - a.x, (me.y - a.y) * 0.56) < 0.11) { a.dir = me.x > a.x ? 1 : -1; if (a.face !== "b" || a !== g) a.face = Math.abs(me.x - a.x) > 0.03 ? "s" : me.y < a.y ? "b" : "f"; }
   // la sécurité du réseau, si on l'a appelée avec une preuve
   if (S.secuAt && t >= S.secuAt && !S.secuArrived) { S.secuArrived = true; toast("📻 Deux agents de sécurité entrent dans la station."); if (g.vis && !S.gerGone) { S.gerCaught = true; say(g, "Lâchez-moi ! Je ne sais rien !"); } }
   // filature
@@ -566,10 +594,10 @@ function render(now, real) {
   const t = now / 1000, me = A.player;
   zoom += (zoomT - zoom) * Math.min(1, real * 3);
   const wpx = IW * S2(), hpx = IH * S2(), f = focus || me;
-  const tx = Math.max(0, Math.min(wpx - VW, f.x * wpx - VW / 2)), ty = Math.max(0, Math.min(hpx - VH, f.y * hpx - VH * 0.55));
+  const tx = Math.max(0, Math.min(wpx - VW, f.x * wpx - VW / 2)), ty = Math.max(0, Math.min(hpx - VH, f.y * hpx - VH * ($sheet.hidden ? 0.55 : 0.34)));
   camX += (tx - camX) * Math.min(1, real * 4); camY += (ty - camY) * Math.min(1, real * 4);
   // dérive lente de la caméra, comme portée à l'épaule
-  const sx = Math.sin(t * 0.35) * 2 + (shake > 0 ? (Math.random() - 0.5) * 22 * shake : 0), sy = Math.cos(t * 0.27) * 1.5 + (shake > 0 ? (Math.random() - 0.5) * 22 * shake : 0);
+  const sx = Math.sin(t * 0.35) * 2 + (shake > 0 && !M.noShake ? (Math.random() - 0.5) * 22 * shake : 0), sy = Math.cos(t * 0.27) * 1.5 + (shake > 0 && !M.noShake ? (Math.random() - 0.5) * 22 * shake : 0);
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0); ctx.fillStyle = "#06090b"; ctx.fillRect(0, 0, VW, VH);
   ctx.save(); ctx.translate(sx, sy);
   if (IMG.bg) ctx.drawImage(IMG.bg, -camX, -camY, wpx, hpx); else { ctx.fillStyle = "#1a2328"; ctx.fillRect(-camX, -camY, wpx, hpx); }
@@ -637,6 +665,7 @@ function render(now, real) {
   const vg = ctx.createRadialGradient(VW / 2, VH / 2, Math.min(VW, VH) * 0.3, VW / 2, VH / 2, Math.max(VW, VH) * 0.75); vg.addColorStop(0, "rgba(0,0,0,0)"); vg.addColorStop(1, `rgba(0,0,0,${S.t > 340 ? 0.7 : 0.55})`); ctx.fillStyle = vg; ctx.fillRect(0, 0, VW, VH);
   if (S.t > 345 && !S.over) { ctx.fillStyle = `rgba(160,20,10,${0.08 + 0.08 * Math.sin(t * 6)})`; ctx.fillRect(0, 0, VW, VH); }
   if (S.alarm) { ctx.fillStyle = `rgba(255,40,20,${0.12 + 0.12 * Math.sin(t * 8)})`; ctx.fillRect(0, 0, VW, VH); }
+  if (zoom > 1.5) { const k = Math.min(1, (zoom - 1.5) / 0.3), g = ctx.createRadialGradient(VW / 2, VH * 0.36, Math.min(VW, VH) * 0.16, VW / 2, VH * 0.36, Math.max(VW, VH) * 0.6); g.addColorStop(0, "rgba(0,0,0,0)"); g.addColorStop(1, `rgba(0,0,0,${0.72 * k})`); ctx.fillStyle = g; ctx.fillRect(0, 0, VW, VH); }
   // bandes cinéma pendant les dialogues
   const lb = focus ? Math.min(1, (zoom - 1) / 0.3) : Math.max(0, (zoom - 1.08) / 0.3);
   if (lb > 0.01) { ctx.fillStyle = "#000"; ctx.fillRect(0, 0, VW, VH * 0.07 * lb); ctx.fillRect(0, VH - VH * 0.07 * lb, VW, VH * 0.07 * lb); }
@@ -758,8 +787,11 @@ let toastT = 0; function toast(msg) { $toast.textContent = msg; $toast.hidden = 
 const ITEMS = { pince: "Pince coupante de Bastien", goupille: "Vieille goupille rouge", piece: "Pièce de 2 €", cafe: "Café chaud", photo: "Vidéo de Bastien", enveloppe: "Enveloppe de « V. »", journal: "Journal plié", badge: "Badge « TechniRail »", cliche: "Photo du sabotage", bande: "Enregistrement du local" };
 const gSeen = () => !!S.gerSeen; // personne ne parle de l'homme au gilet jaune avant son arrivée (21:54:48)
 const hasProof = () => (has("photo") && S.photo === "proof") || has("cliche") || has("bande");
-function renderInv() { $inv.innerHTML = ""; for (const it of S.items) { const s = document.createElement("span"); s.className = "chip"; s.textContent = ITEMS[it]; $inv.appendChild(s); } }
+const ICON = { pince: "✂️", goupille: "📍", piece: "🪙", cafe: "☕", photo: "🎬", enveloppe: "✉️", journal: "📰", badge: "🪪", cliche: "📷", bande: "📼" };
+const IDESC = { pince: "Trouvée dans le sac de Bastien. Une preuve… ou pas.", goupille: "Vieille goupille rouge, ramassée par terre. Le même modèle que celles de l'armoire.", piece: "De quoi payer un café au distributeur.", cafe: "Chaud. Quelqu'un en a peut-être besoin.", photo: "Ce que le drone de Bastien a filmé devant le local.", enveloppe: "5 000 € et un mot signé « V. ». À mettre en lieu sûr.", journal: "Plié en quatre, il ferait une bonne cale.", badge: "« TechniRail Services ». Une société que personne ne connaît.", cliche: "Le gilet jaune, la goupille à la main.", bande: "L'enregistrement de la caméra du local." };
+function renderInvOld() { $inv.innerHTML = ""; for (const it of S.items) { const s = document.createElement("span"); s.className = "chip"; s.textContent = ITEMS[it]; $inv.appendChild(s); } }
 const has = it => S.items.includes(it);
+function renderInv() { $inv.innerHTML = ""; for (const it of S.items) { const b = document.createElement("button"); b.type = "button"; b.className = "chip"; b.textContent = `${ICON[it] || "•"} ${ITEMS[it]}`; b.addEventListener("click", () => toast(IDESC[it] || ITEMS[it])); $inv.appendChild(b); } }
 function give(it) { if (!has(it)) { S.items.push(it); renderInv(); } }
 function take(it) { S.items = S.items.filter(x => x !== it); renderInv(); }
 
@@ -769,11 +801,22 @@ function sheet(title, text, opts, mood) {
   const who = WHO[title], nm = title === "L'homme au gilet jaune" && knows("nomG") ? "Gérald, l'homme au gilet jaune" : title;
   $sheet.className = who ? "talk" : "";
   $sheet.innerHTML = `${who ? `<img class="por" alt="" src="img/p_${who}_${mood || 0}.webp">` : ""}<div class="body"><h2 style="${who ? `color:${TAGC[who] || "var(--amber)"}` : ""}">${nm}</h2><p class="say">${text}</p><div class="opts"></div></div>`;
-  Voice.speak(WHO[title] || "narr", text);
+  Voice.speak(WHO[title] || "narr", text); typeOut($sheet.querySelector(".say"));
   const box = $sheet.querySelector(".opts");
   for (const o of opts.concat([{ l: "Partir", close: true }])) { const b = document.createElement("button"); b.type = "button"; b.className = "opt" + (o.give ? " give" : "") + (o.close ? " close" : ""); b.textContent = o.l; b.addEventListener("click", () => { if (o.close) return closeSheet(); o.fx(); }); box.appendChild(b); }
   box.querySelector("button").focus();
 }
+// le texte s'écrit lettre par lettre ; un appui l'affiche d'un coup
+let typeTimer = 0;
+function typeOut(el) {
+  clearInterval(typeTimer); if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const spans = [], walk = n => { for (const c of [...n.childNodes]) { if (c.nodeType === 3) { const f = document.createDocumentFragment(); for (const ch of c.textContent) { const sp = document.createElement("span"); sp.textContent = ch; sp.className = "ch"; f.appendChild(sp); spans.push(sp); } c.replaceWith(f); } else walk(c); } };
+  walk(el); let i = 0; const done = () => { clearInterval(typeTimer); for (const sp of spans) sp.classList.add("on"); };
+  typeTimer = setInterval(() => { for (let k = 0; k < 3 && i < spans.length; k++) spans[i++].classList.add("on"); if (i % 9 === 0) Snd.blip(); if (i >= spans.length) clearInterval(typeTimer); }, 24);
+  el.addEventListener("click", done); $sheet.addEventListener("pointerdown", e => { if (e.target === $sheet) done(); }, { once: true });
+}
+// gros plan sur les moments forts : la caméra s'approche, le reste s'assombrit
+function closeUp(a) { const o = a || A.odile; focus = { x: o.x, y: o.y - 0.05 }; zoomT = 1.8; }
 function closeSheet() { $sheet.hidden = true; paused = false; focus = null; zoomT = 1; Voice.stop(); }
 
 /* ================= Dialogues et examens ================= */
@@ -790,7 +833,7 @@ function talk(id) {
     if (knows("recu")) o.push({ l: "« Vous étiez déjà dans le local à 21 h 31. »", fx: () => sheet("L'homme au gilet jaune", "Un battement de paupières. « Repérage. C'est la procédure. » Il n'y a aucune procédure.", [], 1) });
     if (has("pince") && !S.said.gpince) o.push({ l: "« Elle est à vous, cette pince ? »", fx: () => { S.said.gpince = 1; sheet("L'homme au gilet jaune", "Il la regarde à peine. « Pas mon modèle. » Il tapote la sacoche à sa ceinture. « Moi, j'ai du matériel de pro. »", [], 0); } });
     if (knows("appel")) o.push({ l: "« Il paie bien, Vasseur ? »", fx: () => sheet("L'homme au gilet jaune", "« Connais pas. » Il a répondu trop vite.", [], 1) });
-    if (knowsDed("paye") && !S.said.gcrack) o.push({ l: "« Cinq mille euros pour faire tomber une cabine ? »", fx: () => { S.said.gcrack = 1; learn("complot", true); sheet("L'homme au gilet jaune", "« Tomber ? » Il recule d'un pas. « Non. Une panne en gare. C'est ce qu'il a dit. » Il déglutit. « Je lui dois trois mois de chantier. Il a dit que la vieille partirait à 57, et que… » Il se tait d'un coup.", [], 1); } });
+    if (knowsDed("paye") && !S.said.gcrack) o.push({ l: "« Cinq mille euros pour faire tomber une cabine ? »", fx: () => { S.said.gcrack = 1; closeUp(A.gerald); learn("complot", true); sheet("L'homme au gilet jaune", "« Tomber ? » Il recule d'un pas. « Non. Une panne en gare. C'est ce qu'il a dit. » Il déglutit. « Je lui dois trois mois de chantier. Il a dit que la vieille partirait à 57, et que… » Il se tait d'un coup.", [], 1); } });
     o.push({ l: "« Vous attendez quoi ? »", fx: () => sheet("L'homme au gilet jaune", S.t < 200 ? "« Que vous me lâchiez. » Il regarde encore sa montre." : S.sab > 0 || S.t >= 275 ? "« Le départ. Comme tout le monde. » Il ne regarde plus sa montre." : "« Mon heure. » Il ne sourit pas.", []) });
     o.push({ l: "Le suivre discrètement", fx: () => { S.follow = "gerald"; S.followNear = 0; closeSheet(); toast("Vous le suivez. Pas trop près…"); } });
     if (!has("badge") && !S.badgeTried) o.push({ l: "Lui subtiliser son badge", give: true, fx: () => {
@@ -837,7 +880,7 @@ function talk(id) {
   }
 }
 function confess(text) {
-  S.odileConfess = true; learn("aveux"); logEv("Votre mère avoue");
+  S.odileConfess = true; learn("aveux"); logEv("Votre mère avoue"); closeUp(); Snd.tone(110, 2.5, { vol: 0.05 });
   sheet("Odile", text + " « Le prêt pour ton école. Dix-huit mille euros. Vasseur a dit : deux minutes d'absence, une panne en gare, personne ne risque rien. » Elle vous regarde enfin. « C'était pour toi. » Puis, plus bas : « Je ne bouge plus d'ici. »", odileOpts(), 2);
 }
 function odileOpts() {
@@ -870,11 +913,11 @@ function odileOpts() {
   if (knows("frein") && S.sabDone && !S.fixed && !S.odileKnows) o.push({ l: "« Le frein de secours est désarmé. »", fx: () => { learn("preuve"); sheet("Odile", "« Par qui ? Personne n'entre ici. » Un silence. « Apporte-moi une preuve. Sans ça, je ne bloque pas le dernier départ. »", odileOpts(), 1); } });
   if (knows("intrus") && gSeen()) o.push({ l: "« Le gilet jaune n'est pas de chez vous. »", fx: () => { learn("preuve"); sheet("Odile", "« Un sous-traitant. C'est ce qu'on m'a dit. » Elle a buté sur le « on ».", odileOpts(), 1); } });
   if (knows("sms") && S.t >= 195 && !S.odileConfess) o.push({ l: "« Qui t'écrit, signé V. ? »", fx: () => confess("Elle se fige. « Tu as lu mon téléphone. »") });
-  if (has("enveloppe") && !S.envShown) o.push({ l: "Lui montrer l'enveloppe de « V. »", give: true, fx: () => { S.envShown = true; if (S.odileConfess) take("enveloppe"); sheet("Odile", S.odileConfess ? "Elle lit le mot deux fois. « Il m'a menti. Il voulait qu'elle tombe. » Elle garde l'enveloppe contre elle. « Ça, la police le verra. »" : "Elle lit le mot et pâlit. « D'où tu sors ça ? » Elle détourne les yeux.", odileOpts(), S.odileConfess ? 2 : 1); } });
+  if (has("enveloppe") && !S.envShown) o.push({ l: "Lui montrer l'enveloppe de « V. »", give: true, fx: () => { S.envShown = true; closeUp(); if (S.odileConfess) take("enveloppe"); sheet("Odile", S.odileConfess ? "Elle lit le mot deux fois. « Il m'a menti. Il voulait qu'elle tombe. » Elle garde l'enveloppe contre elle. « Ça, la police le verra. »" : "Elle lit le mot et pâlit. « D'où tu sors ça ? » Elle détourne les yeux.", odileOpts(), S.odileConfess ? 2 : 1); } });
   if (has("cafe") && !S.odileStays) o.push({ l: "« Je t'ai pris un café. »", give: true, fx: () => { take("cafe"); if (S.t < 200) { S.odileStays = true; sheet("Odile", "« Tu as pensé à moi. » Elle le prend à deux mains. « Bon. Je reste là, alors. »", []); } else sheet("Odile", "« J'en ai déjà un, mon cœur. »", []); } });
   if (has("cliche")) o.push({ l: "Lui montrer la photo du sabotage", give: true, fx: () => { if (!S.fixed) { S.odileKnows = true; sheet("Odile", "Elle agrandit la photo. L'homme, la goupille rouge à la main. « Mon Dieu. Le frein. » Elle court vers l'armoire.", [], 1); } else sheet("Odile", "« Je sais. C'est réparé. »", []); } });
   if (has("photo")) o.push({ l: "Lui montrer la vidéo de Bastien", give: true, fx: () => {
-    if (S.photo === "proof" && !S.fixed) { S.odileKnows = true; take("photo"); sheet("Odile", "Elle regarde l'écran, livide. « Mon Dieu. Le frein. » Elle court vers l'armoire.", [], 1); }
+    if (S.photo === "proof" && !S.fixed) { closeUp(); S.odileKnows = true; take("photo"); sheet("Odile", "Elle regarde l'écran, livide. « Mon Dieu. Le frein. » Elle court vers l'armoire.", [], 1); }
     else if (S.photo === "proof") sheet("Odile", "« Je sais. C'est réparé. »", []);
     else sheet("Odile", "« Une porte. Et alors ? »", []);
   } });
@@ -888,6 +931,7 @@ function bastienOpts() {
   return o;
 }
 function examine(id) {
+  Snd.fx(id);
   const t = S.t;
   if (id === "trash") {
     learn("journal"); learn("vasseur", true);
@@ -977,21 +1021,22 @@ function examine(id) {
 }
 
 /* ================= Clics ================= */
-let pending = null;
+let pending = null, touchK = 1;
 const hotOn = h => !((h.id === "bag" && !S.bagOnBench) || (h.id === "toolbag" && !S.toolbagDown) || (h.id === "desk" && roomOf(A.player) !== "ctrl" && roomOf(A.odile) === "ctrl") || (h.id === "rame" && rame.state === "away") || (h.id === "hide" && roomOf(A.player) !== "ctrl") || (h.id === "locker" && roomOf(A.player) !== "ctrl") || (h.id === "pin" && S.pinTaken) || (h.id === "screens" && roomOf(A.player) !== "ctrl" && roomOf(A.odile) !== "ctrl"));
 function pick(x, y) {
   const w = toWorld(x, y);
   // personnages d'abord
-  const ag = Object.entries(A).filter(([k, a]) => k !== "player" && a.vis).find(([k, a]) => { const h = 0.15; return Math.abs(w.x - a.x) < 0.03 && w.y < a.y + 0.01 && w.y > a.y - h; });
+  const ag = Object.entries(A).filter(([k, a]) => k !== "player" && a.vis).find(([k, a]) => { const h = 0.15; return Math.abs(w.x - a.x) < 0.03 * touchK && w.y < a.y + 0.012 * touchK && w.y > a.y - h; });
   if (ag) return { kind: "agent", id: ag[0], name: ag[1].name };
-  for (const h of HOT) { if (h.id === "bag" && !S.bagOnBench) continue; if (h.id === "toolbag" && !S.toolbagDown) continue; if (h.id === "desk" && roomOf(A.player) !== "ctrl" && roomOf(A.odile) === "ctrl") continue; if (h.id === "rame" && rame.state === "away") continue; if (h.id === "hide" && roomOf(A.player) !== "ctrl") continue; if (h.id === "locker" && roomOf(A.player) !== "ctrl") continue; if (h.id === "pin" && S.pinTaken) continue; if (h.id === "screens" && roomOf(A.player) !== "ctrl" && roomOf(A.odile) !== "ctrl") continue; if (Math.hypot(w.x - h.x, (w.y - h.y) * 0.56) < h.r) return { kind: "hot", id: h.id, name: h.name, at: h.at }; }
+  for (const h of HOT) { if (h.id === "bag" && !S.bagOnBench) continue; if (h.id === "toolbag" && !S.toolbagDown) continue; if (h.id === "desk" && roomOf(A.player) !== "ctrl" && roomOf(A.odile) === "ctrl") continue; if (h.id === "rame" && rame.state === "away") continue; if (h.id === "hide" && roomOf(A.player) !== "ctrl") continue; if (h.id === "locker" && roomOf(A.player) !== "ctrl") continue; if (h.id === "pin" && S.pinTaken) continue; if (h.id === "screens" && roomOf(A.player) !== "ctrl" && roomOf(A.odile) !== "ctrl") continue; if (Math.hypot(w.x - h.x, (w.y - h.y) * 0.56) < h.r * touchK) return { kind: "hot", id: h.id, name: h.name, at: h.at }; }
   return { kind: "floor", w };
 }
 cv.addEventListener("pointerdown", e => {
+  touchK = e.pointerType === "mouse" ? 1 : 1.5;
   if (S.over || !$sheet.hidden || S.hidden || S.aboard) return;
   const r = cv.getBoundingClientRect(), hit = pick(e.clientX - r.left, e.clientY - r.top);
   if (hit.kind !== "agent" || hit.id !== S.follow) S.follow = null;
-  if (hit.kind === "floor") { pending = null; goTo(A.player, hit.w); ripples.push({ x: hit.w.x, y: hit.w.y, k: 0 }); return; }
+  if (hit.kind === "floor") { tutStep(0); pending = null; goTo(A.player, hit.w); ripples.push({ x: hit.w.x, y: hit.w.y, k: 0 }); return; }
   if (hit.kind === "agent") { const a = A[hit.id]; pending = { kind: "agent", id: hit.id }; goTo(A.player, { x: a.x + (A.player.x < a.x ? -0.035 : 0.035), y: a.y + 0.01 }); if (hit.id === "odile" && roomOf(A.odile) === "ctrl") goTo(A.player, P.window); return; }
   pending = { kind: "hot", id: hit.id }; goTo(A.player, hit.id === "screens" && roomOf(A.player) === "ctrl" ? { x: 0.305, y: 0.26 } : hit.at);
 });
@@ -1001,10 +1046,14 @@ cv.addEventListener("pointermove", e => {
   if (hit.kind === "floor") { $hint.hidden = true; cv.style.cursor = "default"; return; }
   $hint.hidden = false; $hint.textContent = hit.name; $hint.style.left = e.clientX - r.left + "px"; $hint.style.top = e.clientY - r.top + "px"; cv.style.cursor = "pointer";
 });
+const $tut = document.getElementById("tut"), TUT = ["Touchez le sol pour vous déplacer.", "Touchez une personne pour lui parler.", "Les points lumineux signalent ce qu'on peut examiner. Touchez-en un."];
+let tutKey = "";
+function tutStep(n) { if ((M.tut || 0) === n) { M.tut = n + 1; saveM(); } }
+function updateTut() { const n = M.tut || 0, show = n < TUT.length && !revealed() && $sheet.hidden && $ov.hidden && $jr.hidden && !S.over, key = show ? "s" + n : ""; if (key === tutKey) return; tutKey = key; $tut.hidden = !show; if (show) $tut.textContent = TUT[n]; }
 function arrive() {
   if (!pending) return; const p = pending; pending = null;
-  if (p.kind === "agent") { const a = A[p.id]; if (!a.vis) return; if (Math.hypot(A.player.x - a.x, (A.player.y - a.y) * 0.56) > 0.09) return toast(`${a.name} est trop loin`); A.player.dir = a.x > A.player.x ? 1 : -1; a.dir = -A.player.dir; A.player.face = "s"; if (!(p.id === "odile" && roomOf(a) === "ctrl")) a.face = "s"; else A.player.face = "b"; focus = { x: (a.x + A.player.x) / 2, y: (a.y + A.player.y) / 2 - 0.04 }; zoomT = 1.35; talk(p.id); }
-  else { const h = HOT.find(x => x.id === p.id); if (h) { A.player.face = h.face; A.player.dir = h.dir; } examine(p.id); }
+  if (p.kind === "agent") { const a = A[p.id]; if (!a.vis) return; if (Math.hypot(A.player.x - a.x, (A.player.y - a.y) * 0.56) > 0.09) return toast(`${a.name} est trop loin`); A.player.dir = a.x > A.player.x ? 1 : -1; a.dir = -A.player.dir; A.player.face = "s"; if (!(p.id === "odile" && roomOf(a) === "ctrl")) a.face = "s"; else A.player.face = "b"; focus = { x: (a.x + A.player.x) / 2, y: (a.y + A.player.y) / 2 - 0.04 }; zoomT = 1.35; tutStep(1); talk(p.id); }
+  else { const h = HOT.find(x => x.id === p.id); if (h) { A.player.face = h.face; A.player.dir = h.dir; } if ((M.tut || 0) >= 1) tutStep(2); examine(p.id); }
 }
 
 /* ================= Fins de boucle ================= */
@@ -1058,7 +1107,7 @@ function loopSummary() {
 }
 function finalStats() {
   const mins = Math.round((M.playS || 0) / 60), rank = M.loops <= 3 ? "Détective légendaire" : M.loops <= 6 ? "Fin limier" : M.loops <= 10 ? "Enquêteur tenace" : "Témoin obstiné";
-  return `<div class="stats" style="animation-delay:${0.6 + 4 * 1.3}s"><div><b>${M.loops}</b>boucles</div><div><b>${mins} min</b>de jeu</div><div><b>${M.endings.length}/${ENDINGS.length}</b>fins</div><div><b>${(M.ach || []).length}/${ACHS.length}</b>succès</div><div style="grid-column:1/-1"><b style="font-size:18px;font-family:var(--f-title);letter-spacing:.08em;text-transform:uppercase">${rank}</b>votre rang</div></div>`;
+  return `<div class="stats" style="animation-delay:${0.6 + 4 * 1.3}s"><div><b>${M.loops}</b>boucles</div><div><b>${mins} min</b>de jeu</div><div><b>${M.endings.length}/${ENDINGS.length}</b>fins</div><div><b>${(M.ach || []).length}/${ACHS.length}</b>succès</div><div style="grid-column:1/-1"><b style="font-size:18px;font-family:var(--f-title);letter-spacing:.08em;text-transform:uppercase">${rank}</b>votre rang</div><div style="grid-column:1/-1;text-align:left">Votre choix : <b style="display:inline;font-size:14px;font-family:inherit">${S.choice === "silence" ? "vous avez protégé votre mère" : "vous avez dit toute la vérité"}</b> · ${(M.ded || []).length}/${DEDS.length} déductions · ${M.clues.length} indices${M.endings.includes("erreur") ? " · un innocent accusé à tort" : ""}</div></div>${CREDITS}`;
 }
 function showOverlay(title, lines, btn, kind) {
   $ov.hidden = false;
@@ -1088,21 +1137,46 @@ function revealOverlay() {
 }
 
 /* ================= Carnet ================= */
-function openJournal() {
-  paused = true; $jr.hidden = false;
+let jTab = "piste";
+function peopleHtml() {
+  const P2 = [["odile", "Odile, votre mère", "Vingt-sept ans au poste de la station basse. Demain, elle rend ses clés.", [["cafe", "Elle quitte son poste à 21 h 57 pour un café."], ["dette", "Elle doit 18 000 € à la banque : le prêt de vos études."], ["marcOk", "Marc est son délégué syndical, rien de plus."], ["aveux", "Elle a accepté deux minutes d'absence contre l'effacement du prêt. On lui a parlé d'une panne."]]],
+    ["gerald", knows("nomG") ? "Gérald Morin, le gilet jaune" : "L'homme au gilet jaune", "Se dit sous-traitant. Regarde sans cesse sa montre.", [["intrus", "Mme Delattre ne l'a jamais vu parmi le personnel."], ["appel", "Il prend ses ordres d'un « monsieur Vasseur »."], ["recu", "Son badge a ouvert le local à 21 h 31, avec l'accord du poste."], ["complot", "Vasseur lui doit trois mois de chantier. Lui aussi croit à une simple panne."]]],
+    ["bastien", "Bastien", "Vingt ans, une casquette, un gros sac de sport.", [["drone", "Il cache un drone pour filmer le dernier voyage."], ["pinceOk", "Sa pince sert aux hélices du drone."], ["invite", "Un message anonyme l'a invité à filmer ce soir."]]],
+    ["delattre", "Mme Delattre", "Prend la rame depuis le premier jour, en 1989.", [["henri", "Sa clé du local était celle de son mari Henri, ancien agent."], ["eleve", "Elle a eu Vasseur comme élève en CM2. « Il trichait déjà. »"]]],
+    ["vasseur", "Vasseur", "Promoteur immobilier.", [["journal", "Il rachète le dépôt du POMA."], ["contrat", "Il a une promesse de vente sur la station, à condition qu'elle ferme « pour raison de sécurité »."], ["carte", "Il a écrit lui-même l'heure et le lieu du sabotage."]]]];
+  return P2.filter(([k]) => k !== "vasseur" ? k !== "gerald" || S.gerSeen || knows("local") || knows("intrus") : knows("vasseur") || knows("appel") || knows("journal")).map(([k, n, base, facts]) => `<div class="who"><img alt="" src="img/p_${k}_0.webp"><div><b style="color:${TAGC[k]}">${n}</b>${base}${facts.filter(([c]) => knows(c)).map(([, f]) => `<br>· ${f}`).join("")}</div></div>`).join("");
+}
+function openJournal(tab) {
+  if (typeof tab === "string") jTab = tab; paused = true; $jr.hidden = false;
   const dedHtml = DEDS.map(d => { const got = d.needs.filter(knows).length; if (knowsDed(d.k)) return `<div class="ded ok"><b>✓ ${d.t}</b><br>${d.txt}</div>`;
     if (got === d.needs.length) return `<div class="ded"><b>${d.t} ?</b><br>Vous avez les deux indices. <button class="opt give" type="button" data-ded="${d.k}">Relier les indices</button></div>`;
     return `<div class="ded"><b>???</b> <span style="color:var(--muted)">${got}/${d.needs.length} indice${got > 1 ? "s" : ""}</span></div>`; }).join("");
   const tl = S.log.length ? `<ol class="tl">${S.log.map(e => `<li><b>${fmtT(e.t)}</b><span>${e.txt}</span></li>`).join("")}</ol>` : `<p class="none">Rien de remarquable pour l'instant.</p>`;
-  $jbox.innerHTML = `<h2>Carnet</h2><p class="piste"><b>Piste :</b> ${goal()}</p>
-    <h3>Déductions</h3>${dedHtml}
-    <h3>${revealed() ? "Cette boucle" : "Ce soir"}</h3>${tl}
-    <h3>Indices (${M.clues.length})</h3>${M.clues.length ? `<ol>${M.clues.map(k => `<li>${CLUES[k]}</li>`).join("")}</ol>` : `<p class="none">Rien encore. Observez, écoutez, fouillez. Le temps est compté.</p>`}
-    ${revealed() ? `<h3>Succès (${(M.ach || []).length}/${ACHS.length})</h3><div class="ach">${ACHS.map(a => `<div class="${(M.ach || []).includes(a.k) ? "on" : ""}"><b>${(M.ach || []).includes(a.k) ? "🏆 " : ""}${a.t}</b>${a.d}</div>`).join("")}</div>
-    <p class="end">Boucle ${M.loops} · fins découvertes : ${M.endings.length}/${ENDINGS.length}</p>` : ""}<div class="opts" style="margin-top:14px"><button class="opt close" type="button" id="jClose">Fermer le carnet</button></div>`;
+  const ready = DEDS.filter(d => !knowsDed(d.k) && d.needs.every(knows)).length;
+  const TABS = [["piste", "Piste"], ["indices", `Indices (${M.clues.length})`], ["ded", `Déductions${ready ? " •" : ""}`], ["chrono", revealed() ? "Cette boucle" : "Ce soir"], ["gens", "Personnes"]].concat(revealed() ? [["succes", "Succès"]] : []);
+  const body = { piste: `<p class="piste"><b>Piste :</b> ${goal()}</p><p class="none">${M.clues.length ? "Vos indices sont dans l'onglet suivant. Reliez-les dans « Déductions » quand deux d'entre eux se répondent." : "Rien encore. Observez, écoutez, fouillez. Le temps est compté."}</p>`,
+    indices: M.clues.length ? `<ol>${M.clues.filter(k => CLUES[k]).map(k => `<li>${CLUES[k]}</li>`).join("")}</ol>` : `<p class="none">Rien encore.</p>`, ded: dedHtml, chrono: tl, gens: peopleHtml(),
+    succes: `<div class="ach">${ACHS.map(a => `<div class="${(M.ach || []).includes(a.k) ? "on" : ""}"><b>${(M.ach || []).includes(a.k) ? "🏆 " : ""}${a.t}</b>${a.d}</div>`).join("")}</div><p class="end">Boucle ${M.loops} · fins découvertes : ${M.endings.length}/${ENDINGS.length}</p>` }[jTab] || "";
+  $jbox.className = "jbox";
+  $jbox.innerHTML = `<h2>Carnet</h2><div class="tabs" role="tablist">${TABS.map(([k, l]) => `<button type="button" role="tab" data-tab="${k}" aria-selected="${k === jTab}">${l}</button>`).join("")}</div>${body}<div class="opts" style="margin-top:14px"><button class="opt close" type="button" id="jClose">Fermer le carnet</button></div>`;
+  for (const t of $jbox.querySelectorAll("[data-tab]")) t.addEventListener("click", () => openJournal(t.dataset.tab));
   for (const b of $jbox.querySelectorAll("[data-ded]")) b.addEventListener("click", () => { M.ded = M.ded || []; M.ded.push(b.dataset.ded); saveM(); Snd.note(); if (DEDS.every(d => M.ded.includes(d.k))) award("logicien"); openJournal(); });
   document.getElementById("jClose").addEventListener("click", () => { $jr.hidden = true; paused = !$sheet.hidden; });
 }
+// menu pause : réglages, recommencer, crédits
+const CREDITS = `<p class="credits"><b>La Dernière Rame</b> — histoire, code et mise en scène réalisés avec Claude (Anthropic). Illustrations et voix générées avec ElevenLabs. Musique et bruitages synthétisés dans le navigateur.<br>Fiction : le POMA 2000 a réellement relié la gare à la ville haute de Laon de 1989 à 2016. Les personnages et les événements sont inventés.</p>`;
+function openMenu() {
+  if (S.over) return; paused = true; $jr.hidden = false; $jbox.className = "jbox menu";
+  const row = (id, l, v) => `<button class="opt" type="button" id="${id}">${l}<span>${v}</span></button>`;
+  $jbox.innerHTML = `<h2>Pause</h2><div class="opts">${row("mResume", "Reprendre", "")}${row("mSound", "Musique et bruitages", M.sound ? "oui" : "non")}${row("mVoice", "Voix des acteurs", M.voice !== false ? "oui" : "non")}${row("mBig", "Taille du texte", M.big ? "grande" : "normale")}${row("mShake", "Tremblements d'écran", M.noShake ? "non" : "oui")}${revealed() ? row("mRewind", "Rembobiner à 21 h 54", "⟲") : ""}${row("mNew", "Nouvelle partie", "tout effacer")}</div>${CREDITS}`;
+  const on = (id, fx) => { const e = document.getElementById(id); if (e) e.addEventListener("click", fx); }, close = () => { $jr.hidden = true; paused = !$sheet.hidden; };
+  on("mResume", close); on("mSound", () => { $snd.click(); openMenu(); }); on("mVoice", () => { $voice.click(); openMenu(); });
+  on("mBig", () => { M.big = !M.big; saveM(); applyPrefs(); openMenu(); }); on("mShake", () => { M.noShake = !M.noShake; saveM(); openMenu(); });
+  on("mRewind", () => { close(); closeSheet(); rewindNow(); });
+  on("mNew", () => { const b = document.getElementById("mNew"); if (!b.dataset.sure) { b.dataset.sure = 1; b.firstChild.textContent = "Vraiment tout effacer ? Touchez encore"; return; } Object.assign(M, { clues: [], ded: [], ach: [], loops: 1, endings: [], playS: 0, seenIntro: false, tut: 0 }); saveM(); $jr.hidden = true; closeSheet(); newLoop(); paused = true; $ov.hidden = false; introText(); });
+}
+function applyPrefs() { document.getElementById("app").classList.toggle("big", !!M.big); }
+document.getElementById("bMenu").addEventListener("click", openMenu);
 document.getElementById("bJournal").addEventListener("click", openJournal);
 // attendre jusqu'à un moment clé, ou rembobiner tout de suite
 const MOMENTS = [[60, "21:55:00", "le coup de fil du gilet jaune", "appel"], [90, "21:55:30", "le téléphone du guichet", "guichet"], [120, "21:56:00", "Bastien pose son sac", "drone"], [200, "21:57:20", "votre mère part au café", "cafe"], [280, "21:58:40", "votre mère revient", "cafe"], [300, "21:59:00", "la rame arrive", null]];
@@ -1143,7 +1217,7 @@ function frame(now) {
   if (toastT > 0) { toastT -= real; if (toastT <= 0) $toast.hidden = true; }
   $clock.textContent = fmtT(S.t); $clock.classList.toggle("late", S.t > 345);
   if (rewindT > 0) rewindT = Math.max(0, rewindT - real);
-  updateHideBar(); render(now, real); requestAnimationFrame(frame);
+  updateHideBar(); updateTut(); render(now, real); requestAnimationFrame(frame);
 }
 
 resize(); newLoop();
@@ -1154,9 +1228,13 @@ function introText() {
   $ov.querySelector(".go").addEventListener("click", () => { M.seenIntro = true; saveM(); $ov.hidden = true; $ov.className = ""; paused = false; Snd.chime(); });
 }
 paused = true; $ov.hidden = false; $ov.className = "title"; $ov.style.backgroundImage = "url(img/title.jpg)";
-$ov.innerHTML = `<div><p class="t big">La Dernière Rame</p><p class="sub">Laon · 27 août 2016 · 21 h 54</p><div class="two"><button class="go" type="button" id="tGo" style="animation-delay:.6s">${M.seenIntro ? "Continuer" : "Commencer"}</button>${M.seenIntro ? `<button class="go" type="button" id="tNew" style="animation-delay:.8s;border-color:#5d6b70;color:#8fa0a6">Nouvelle partie</button>` : ""}</div></div>`;
+$ov.innerHTML = `<div><p class="t big">La Dernière Rame</p><p class="sub">Laon · 27 août 2016 · 21 h 54</p><div class="two"><button class="go" type="button" id="tGo" style="animation-delay:.6s">${M.seenIntro ? "Continuer" : "Commencer"}</button>${M.seenIntro ? `<button class="go" type="button" id="tNew" style="animation-delay:.8s;border-color:#5d6b70;color:#8fa0a6">Nouvelle partie</button>` : ""}</div>${M.seenIntro ? `<p class="small" style="margin-top:12px">${M.loops > 1 ? `Boucle ${M.loops} · ` : ""}${M.clues.length} indice${M.clues.length > 1 ? "s" : ""} dans le carnet</p>` : ""}<div id="load"></div></div>`;
+applyPrefs();
+// préchargement des portraits et décors, pour qu'aucune image n'arrive en retard
+{ const list = ["cabine.jpg"].concat(["odile", "gerald", "bastien", "delattre", "vasseur"].flatMap(n => [0, 1, 2].map(i => `p_${n}_${i}.webp`))); let n = 0; const bar = document.getElementById("load"), tick = () => { n++; if (bar) { bar.style.width = `${(n / list.length) * 100}%`; if (n >= list.length) setTimeout(() => { bar.style.opacity = 0; }, 400); } };
+  for (const f of list) { const im = new Image(); im.onload = im.onerror = tick; im.src = `img/${f}`; } }
 document.getElementById("tGo").addEventListener("click", () => { Snd.init(); Snd.music(); if (!M.seenIntro) return introText(); $ov.hidden = true; $ov.className = ""; paused = false; });
-if (M.seenIntro) document.getElementById("tNew").addEventListener("click", () => { Snd.init(); Snd.music(); Object.assign(M, { clues: [], ded: [], ach: [], loops: 1, endings: [], playS: 0, seenIntro: false }); saveM(); newLoop(); introText(); });
+if (M.seenIntro) document.getElementById("tNew").addEventListener("click", () => { Snd.init(); Snd.music(); Object.assign(M, { clues: [], ded: [], ach: [], loops: 1, endings: [], playS: 0, seenIntro: false, tut: 0 }); saveM(); newLoop(); introText(); });
 requestAnimationFrame(frame);
 })();
 </script>
