@@ -29,22 +29,26 @@ button:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
 
 #hud { position: absolute; top: 0; left: 0; right: 0; display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; padding-block: 10px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); pointer-events: none; }
 #hud > * { pointer-events: none; } #hud .btns, #hud .btns * { pointer-events: auto; } /* l'horloge et la piste laissent passer les appuis vers la scène */
-.clock { font-family: var(--f-mono); font-size: clamp(26px, 6vw, 40px); letter-spacing: .04em; color: var(--bone); text-shadow: 0 2px 12px #000; line-height: 1; }
+.clock { display: inline-block; font-family: var(--f-mono); font-size: clamp(22px, 5.4vw, 34px); letter-spacing: .08em; color: #f4e9c8; line-height: 1; padding: 7px 10px 6px; border-radius: 4px; background: linear-gradient(#0c0f11 0 49%, #000 49% 52%, #111518 52%); border: 1px solid #2a3338; box-shadow: 0 4px 14px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.06); }
 .clock.late { color: var(--blood); }
 .loop { font-family: var(--f-title); font-size: 14px; letter-spacing: .2em; text-transform: uppercase; color: var(--muted); margin-top: 4px; }
+.goal { transition: opacity .8s; } .goal.off { opacity: 0; }
 .goal { margin-top: 6px; max-width: min(42ch, 52vw); font-size: 13px; line-height: 1.35; color: var(--amber); text-shadow: 0 1px 6px #000; }
 .goal::before { content: "Piste · "; font-family: var(--f-title); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
 #hideBar { position: absolute; left: 50%; bottom: 54px; transform: translateX(-50%); display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; width: min(560px, calc(100% - 32px)); }
 #hideBar .tag { width: 100%; text-align: center; font-size: 13px; color: var(--muted); text-shadow: 0 1px 6px #000; }
 #hideBar .opt { background: var(--panel); }
-.btns { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
-.hb { background: var(--panel); border: 1px solid var(--edge); border-radius: 4px; padding: 7px 11px; font-family: var(--f-title); font-size: 15px; letter-spacing: .08em; text-transform: uppercase; }
+.btns { display: flex; gap: 6px; flex-wrap: nowrap; justify-content: flex-end; }
+.hb { min-width: 44px; min-height: 40px; font-size: 17px !important; padding: 6px 12px !important; }
+.hb { background: rgba(10,14,16,.72); border: 1px solid rgba(255,255,255,.14); border-radius: 18px; padding: 8px 14px; font-family: var(--f-title); font-size: 15px; letter-spacing: .1em; text-transform: uppercase; backdrop-filter: blur(6px); box-shadow: 0 4px 14px rgba(0,0,0,.45); }
 .hb[aria-pressed="true"] { border-color: var(--amber); color: var(--amber); }
 
 #inv { position: absolute; left: 0; right: 0; bottom: 0; display: flex; gap: 6px; flex-wrap: wrap; padding-block: 10px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); pointer-events: none; }
 .chip { pointer-events: auto; background: var(--panel); border: 1px solid var(--amber); color: var(--amber); border-radius: 20px; padding: 5px 12px; font-size: 13px; }
 #hint { position: absolute; pointer-events: none; background: rgba(0,0,0,.75); border: 1px solid var(--edge); color: var(--bone); font-size: 13px; padding: 3px 8px; border-radius: 3px; white-space: nowrap; transform: translate(-50%, -140%); }
-#toast { position: absolute; top: 74px; left: 50%; transform: translateX(-50%); max-width: min(560px, calc(100% - 32px)); background: var(--panel); border: 1px solid var(--teal); color: var(--teal); padding: 8px 14px; border-radius: 4px; font-size: 14px; text-align: center; pointer-events: none; }
+#toast { position: absolute; bottom: 58px; left: 50%; transform: translateX(-50%); width: max-content; max-width: min(440px, calc(100% - 32px)); background: rgba(8,12,14,.82); color: var(--bone); padding: 7px 14px; border-radius: 16px; font-size: 13px; text-align: center; pointer-events: none; animation: fadeIn .25s ease-out; backdrop-filter: blur(4px); }
+#toast.pa { bottom: auto; top: 62px; left: 0; right: 0; transform: none; width: auto; max-width: none; border-radius: 0; background: #07090a; border-block: 1px solid rgba(242,180,90,.6); color: var(--amber); font-family: var(--f-mono); font-size: clamp(12px, 3.2vw, 15px); letter-spacing: .04em; padding: 12px 16px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); z-index: 3; }
+#toast.pa::before { content: "ANNONCE  ▸  "; color: var(--muted); }
 
 #sheet { position: absolute; left: 0; right: 0; bottom: 0; max-height: 64%; overflow-y: auto; background: var(--panel); border-top: 1px solid var(--edge); padding-block: 14px 18px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); box-shadow: 0 -20px 40px rgba(0,0,0,.6); }
 #sheet h2 { font-family: var(--f-title); font-size: 22px; letter-spacing: .06em; text-transform: uppercase; margin: 0 0 6px; color: var(--amber); }
@@ -58,7 +62,7 @@ button:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
 @keyframes slideUp { from { transform: translateY(24px); opacity: 0; } to { transform: none; opacity: 1; } }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { #sheet, #sheet .por, #journal, #overlay { animation: none; } .ch { opacity: 1; } }
-#tut { position: absolute; left: 50%; bottom: 64px; transform: translateX(-50%); max-width: min(420px, calc(100% - 32px)); background: rgba(8,12,14,.9); border: 1px solid var(--amber); color: var(--bone); padding: 9px 14px; border-radius: 20px; font-size: 14px; text-align: center; pointer-events: none; animation: fadeIn .4s ease-out; }
+#tut { position: absolute; left: 50%; bottom: 104px; transform: translateX(-50%); max-width: min(420px, calc(100% - 32px)); background: rgba(8,12,14,.9); border: 1px solid var(--amber); color: var(--bone); padding: 9px 14px; border-radius: 20px; font-size: 14px; text-align: center; pointer-events: none; animation: fadeIn .4s ease-out; }
 .chip { cursor: pointer; font-family: inherit; }
 .tabs { display: flex; gap: 4px; flex-wrap: wrap; margin: 0 0 14px; }
 .tabs button { background: none; border: 1px solid var(--edge); border-radius: 4px; padding: 6px 10px; font-family: var(--f-title); font-size: 15px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
@@ -71,7 +75,9 @@ button:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
 .credits { font-size: 13px; color: var(--muted); line-height: 1.5; margin-top: 14px; }
 #load { height: 2px; background: var(--teal); width: 0; margin: 14px auto 0; max-width: 220px; transition: width .2s; }
 #app.big #sheet .say { font-size: 19px; } #app.big .opt { font-size: 17px; } #app.big .jbox li, #app.big .who, #app.big .ded { font-size: 16px; } #app.big .goal { font-size: 15px; } #app.big .chip { font-size: 15px; }
-#sheet { max-height: 56%; }
+#sheet { max-height: 56%; background: linear-gradient(rgba(10,15,18,.9), rgba(8,11,13,.97)); border-top: 1px solid rgba(111,211,200,.35); backdrop-filter: blur(8px); }
+.opt { border-radius: 10px; transition: border-color .15s, transform .1s; } .opt:active { transform: scale(.985); }
+.chip { background: rgba(10,14,16,.78); border-color: rgba(242,180,90,.55); backdrop-filter: blur(6px); }
 #sheet.talk { display: flex; gap: 14px; align-items: flex-end; }
 #sheet .por { flex: none; width: clamp(92px, 24vw, 190px); align-self: flex-end; margin-bottom: -18px; filter: drop-shadow(0 6px 18px rgba(0,0,0,.7)); }
 #sheet .body { flex: 1; min-width: 0; }
@@ -128,9 +134,9 @@ button:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
   <div id="hud">
     <div><div class="clock" id="clock">21:54:00</div><div class="loop" id="loopLbl"></div><div class="goal" id="goal"></div></div>
     <div class="btns">
-      <button class="hb" id="bWait" type="button">Attendre ⏱</button>
+      <button class="hb" id="bWait" type="button" aria-label="Attendre" title="Attendre">⏱</button>
       <button class="hb" id="bFast" type="button" aria-pressed="false" hidden>Avancer ⏩</button>
-      <button class="hb" id="bJournal" type="button">Carnet</button>
+      <button class="hb" id="bJournal" type="button" aria-label="Carnet" title="Carnet">📓</button>
       <button class="hb" id="bMenu" type="button" aria-label="Menu">☰</button>
       <button class="hb" id="bVoice" type="button" aria-pressed="true" hidden>Voix</button>
       <button class="hb" id="bSound" type="button" aria-pressed="true" hidden>Son</button>
@@ -456,12 +462,21 @@ function goTo(a, target) {
   a.goalKey = target.x + "," + target.y;
 }
 function stepAgent(a, dt, speed) {
-  if (!a.path.length) return true;
-  const p = a.path[0], dx = p.x - a.x, dy = (p.y - a.y) * 0.56, d = Math.hypot(dx, dy), s = speed * dt;
-  if (Math.abs(dx) > 0.002) a.dir = dx > 0 ? 1 : -1;
-  if (d > 0.002) a.face = Math.abs(dx) > Math.abs(dy) * 0.9 ? "s" : dy < 0 ? "b" : "f";
-  if (d <= s) { a.x = p.x; a.y = p.y; a.path.shift(); return !a.path.length; }
-  a.x += (dx / d) * s; a.y += (dy / 0.56 / d) * s; a.walk = (a.walk || 0) + dt; return false;
+  if (!a.path.length) { a.v = 0; return true; }
+  // virage arrondi : on vise déjà le point suivant quand on est tout près d'un coin
+  if (a.path.length > 1 && Math.hypot(a.path[0].x - a.x, (a.path[0].y - a.y) * 0.56) < 0.012) a.path.shift();
+  const p = a.path[0], dx = p.x - a.x, dy = (p.y - a.y) * 0.56, d = Math.hypot(dx, dy);
+  // distance restante jusqu'au bout du trajet, pour freiner en douceur à l'arrivée
+  let rest = d; for (let i = 1; i < a.path.length; i++) rest += Math.hypot(a.path[i].x - a.path[i - 1].x, (a.path[i].y - a.path[i - 1].y) * 0.56);
+  let target = speed * Math.min(1, 0.35 + rest / 0.05);
+  // on ne traverse pas les autres : on ralentit si quelqu'un est juste devant
+  for (const o of Object.values(A)) if (o !== a && o.vis && a.vis) { const ox = o.x - a.x, oy = (o.y - a.y) * 0.56, od = Math.hypot(ox, oy); if (od < 0.03 && od > 0.001 && (ox * dx + oy * dy) / (od * (d || 1)) > 0.5) target *= 0.45; }
+  a.v = (a.v || 0) + (target - (a.v || 0)) * Math.min(1, dt * 7);
+  const st = Math.max(a.v, speed * 0.25) * dt;
+  if (Math.abs(dx) > 0.004) a.dir = dx > 0 ? 1 : -1;
+  if (d > 0.004) { const f = Math.abs(dx) > Math.abs(dy) * 0.9 ? "s" : dy < 0 ? "b" : "f"; if (f !== a.face) { a.faceT = (a.faceT || 0) + dt; if (a.faceT > 0.12 || !a.face) { a.face = f; a.faceT = 0; } } else a.faceT = 0; }
+  if (d <= st) { a.x = p.x; a.y = p.y; a.path.shift(); a.walk = (a.walk || 0) + d * 13; if (!a.path.length) a.v = 0; return !a.path.length; }
+  a.x += (dx / d) * st; a.y += (dy / 0.56 / d) * st; a.walk = (a.walk || 0) + st * 13; return false;
 }
 const near = (a, p, r = 0.025) => Math.hypot(a.x - p.x, (a.y - p.y) * 0.56) < r;
 function want(a, p) { if (a.goalKey === p.x + "," + p.y && (a.path.length || near(a, clampWalk(p), 0.02))) return; goTo(a, p); }
@@ -591,13 +606,15 @@ const BARKS = {
 /* ================= Bulles de paroles ================= */
 const bubbles = [];
 function say(a, txt) {
-  bubbles.push({ a, txt, life: 4.5 });
+  for (let i = bubbles.length - 1; i >= 0; i--) if (bubbles[i].a === a) bubbles.splice(i, 1); // une seule bulle par personnage
+  const life = Math.min(7, 2.6 + txt.length * 0.055); bubbles.push({ a, txt, life, max: life });
   const who = Object.keys(A).find(k => A[k] === a);
   if ($sheet.hidden && A.player && Math.hypot(A.player.x - a.x, (A.player.y - a.y) * 0.56) < 0.3) Voice.speak(who, `« ${txt} »`);
 }
 
 /* ================= Rendu ================= */
 const cv = document.getElementById("cv"), ctx = cv.getContext("2d");
+let camLX = 0, camLY = 0;
 let VW = 1, VH = 1, DPR = 1, sc = 1, camX = 0, camY = 0, zoom = 1, zoomT = 1, focus = null, shake = 0, rewindT = 0;
 const ripples = [], sparks = [], dust = [], drops = [];
 function resize() { DPR = Math.min(2, devicePixelRatio || 1); VW = innerWidth; VH = innerHeight; cv.width = VW * DPR; cv.height = VH * DPR; sc = Math.max(VW / IW, VH / IH) * (VW / VH > 1.15 ? 1.45 : 1.12); }
@@ -619,10 +636,13 @@ function flick(l, t) {
 }
 function render(now, real) {
   const t = now / 1000, me = A.player;
-  zoom += (zoomT - zoom) * Math.min(1, real * 3);
+  zoom += (zoomT - zoom) * Math.min(1, real * 2.2);
   const wpx = IW * S2(), hpx = IH * S2(), f = focus || me;
   const tx = Math.max(0, Math.min(wpx - VW, f.x * wpx - VW / 2)), ty = Math.max(0, Math.min(hpx - VH, f.y * hpx - VH * ($sheet.hidden ? 0.55 : 0.34)));
-  camX += (tx - camX) * Math.min(1, real * 4); camY += (ty - camY) * Math.min(1, real * 4);
+  const lead = !focus && me.path.length ? { x: (me.path[0].x - me.x), y: (me.path[0].y - me.y) } : { x: 0, y: 0 }, ll = Math.hypot(lead.x, lead.y) || 1, lx = (lead.x / ll) * Math.min(1, ll / 0.1) * VW * 0.07, ly = (lead.y / ll) * Math.min(1, ll / 0.1) * VH * 0.05;
+  camLX += (lx - camLX) * Math.min(1, real * 1.5); camLY += (ly - camLY) * Math.min(1, real * 1.5);
+  const tx2 = Math.max(0, Math.min(wpx - VW, tx + camLX)), ty2 = Math.max(0, Math.min(hpx - VH, ty + camLY));
+  camX += (tx2 - camX) * Math.min(1, real * 2.6); camY += (ty2 - camY) * Math.min(1, real * 2.6);
   // dérive lente de la caméra, comme portée à l'épaule
   const sx = Math.sin(t * 0.35) * 2 + (shake > 0 && !M.noShake ? (Math.random() - 0.5) * 22 * shake : 0), sy = Math.cos(t * 0.27) * 1.5 + (shake > 0 && !M.noShake ? (Math.random() - 0.5) * 22 * shake : 0);
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0); ctx.fillStyle = "#06090b"; ctx.fillRect(0, 0, VW, VH);
@@ -646,7 +666,7 @@ function render(now, real) {
   drawTrackCable(t);
   if (rame.state !== "away") drawRame(rame.y, t);
   // trajet du joueur et onde au clic
-  if (me.path.length) { ctx.fillStyle = "rgba(242,180,90,.55)"; let a = me; for (const q of me.path) { const steps = Math.max(1, Math.floor(Math.hypot(q.x - a.x, q.y - a.y) / 0.02)); for (let i = 1; i <= steps; i++) { const p = toScr({ x: a.x + (q.x - a.x) * (i / steps), y: a.y + (q.y - a.y) * (i / steps) }); ctx.beginPath(); ctx.arc(p.x, p.y, 2, 0, Math.PI * 2); ctx.fill(); } a = q; } }
+  if (me.path.length && !S.follow) { const q = toScr(me.path[me.path.length - 1]), k = 0.5 + 0.5 * Math.sin(t * 5); ctx.strokeStyle = `rgba(242,180,90,${0.35 + 0.25 * k})`; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.ellipse(q.x, q.y, 9 + k * 2, (9 + k * 2) * 0.45, 0, 0, Math.PI * 2); ctx.stroke(); }
   for (const r of ripples) { r.k += real * 1.6; const p = toScr(r); ctx.strokeStyle = `rgba(242,180,90,${Math.max(0, 1 - r.k)})`; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(p.x, p.y, 6 + r.k * 30, (6 + r.k * 30) * 0.45, 0, 0, Math.PI * 2); ctx.stroke(); }
   while (ripples.length && ripples[0].k > 1) ripples.shift();
   // reflets puis personnages, triés par profondeur
@@ -684,9 +704,14 @@ function render(now, real) {
   // phares de la rame
   if (rame.state === "arriving" || rame.state === "leaving") { const c = toScr(trackPoint(rame.y + (rame.state === "arriving" ? 0.13 : -0.13))), g = ctx.createRadialGradient(c.x, c.y, 0, c.x, c.y, 160 * S2()); g.addColorStop(0, "rgba(255,240,200,.45)"); g.addColorStop(1, "rgba(255,240,200,0)"); ctx.fillStyle = g; ctx.fillRect(c.x - 160 * S2(), c.y - 160 * S2(), 320 * S2(), 320 * S2()); }
   ctx.globalCompositeOperation = "source-over";
-  // bulles
-  for (const bb of bubbles) { if (!bb.a.vis) continue; const p = toScr(bb.a), h = 0.15 * IH * S2(), pop = Math.min(1, (4.5 - bb.life) * 5); ctx.font = `600 ${Math.max(12, Math.round(14 * Math.min(1.3, S2() * 1.4)))}px Inter, sans-serif`; const w = Math.min(ctx.measureText(bb.txt).width + 16, VW - 20); const x = Math.max(10 + w / 2, Math.min(VW - 10 - w / 2, p.x)), y = p.y - h - 10 - (1 - pop) * 8;
-    ctx.globalAlpha = Math.min(1, bb.life) * pop; ctx.fillStyle = "rgba(8,12,14,.92)"; ctx.fillRect(x - w / 2, y - 22, w, 26); ctx.strokeStyle = "#f2b45a"; ctx.strokeRect(x - w / 2 + 0.5, y - 21.5, w - 1, 25); ctx.fillStyle = "#e8e4da"; ctx.textAlign = "center"; ctx.fillText(bb.txt, x, y - 4, w - 12); ctx.globalAlpha = 1; }
+  // bulles de parole : arrondies, sur plusieurs lignes, avec une pointe vers celui qui parle
+  for (const bb of bubbles) { if (!bb.a.vis) continue; const p = toScr(bb.a), h = 0.15 * IH * S2(); if (p.x < -20 || p.x > VW + 20 || p.y < 120 || p.y - h > VH - 40) continue; const pop = Math.min(1, (bb.max - bb.life) * 6), fs = Math.max(12, Math.round(13 * Math.min(1.25, S2() * 1.4))), col = TAGC[bb.a.img] || "#f2b45a";
+    ctx.font = `500 ${fs}px Inter, sans-serif`; const maxW = Math.min(230, VW - 40), words = bb.txt.split(" "), lines = []; let cur = "";
+    for (const wd of words) { const tr = cur ? cur + " " + wd : wd; if (ctx.measureText(tr).width > maxW && cur) { lines.push(cur); cur = wd; } else cur = tr; } lines.push(cur);
+    const w = Math.max(...lines.map(l => ctx.measureText(l).width)) + 22, bh = lines.length * (fs + 4) + 14, x = Math.max(8 + w / 2, Math.min(VW - 8 - w / 2, p.x)), y = Math.max(64 + bh, p.y - h - 16) - (1 - pop) * 6, tx = Math.max(x - w / 2 + 14, Math.min(x + w / 2 - 14, p.x));
+    ctx.globalAlpha = Math.min(1, bb.life * 1.5) * pop; ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(x - w / 2, y - bh, w, bh, 10); else ctx.rect(x - w / 2, y - bh, w, bh); ctx.moveTo(tx - 7, y - 1); ctx.lineTo(tx, y + 9); ctx.lineTo(tx + 7, y - 1);
+    ctx.fillStyle = "rgba(240,238,230,.96)"; ctx.shadowColor = "rgba(0,0,0,.55)"; ctx.shadowBlur = 10; ctx.fill(); ctx.shadowBlur = 0; ctx.strokeStyle = col; ctx.lineWidth = 1.5; ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(x - w / 2, y - bh, w, bh, 10); ctx.stroke();
+    ctx.fillStyle = "#14191c"; ctx.textAlign = "center"; lines.forEach((l, i) => ctx.fillText(l, x, y - bh + 7 + fs + i * (fs + 4) - 2)); ctx.globalAlpha = 1; }
   ctx.restore();
   // panne de lumière : noir presque total, sauf un halo autour de vous
   if (S.dark > 0) { const k = Math.min(1, S.dark * 2), p = toScr(A.player), g = ctx.createRadialGradient(p.x, p.y - 30, 30, p.x, p.y - 30, 230); g.addColorStop(0, `rgba(0,0,4,${0.35 * k})`); g.addColorStop(1, `rgba(0,0,4,${0.93 * k})`); ctx.fillStyle = g; ctx.fillRect(0, 0, VW, VH); }
@@ -714,49 +739,71 @@ function render(now, real) {
 }
 // démarche : rebond, balancement, inclinaison ; à l'arrêt, respiration
 function pose(a, t) {
-  const moving = a.path.length > 0, ph = (a.walk || 0) * 11, seed = a.x * 13 + a.img.length;
-  if (moving) return { bob: Math.abs(Math.sin(ph)) * 0.035, rot: Math.sin(ph) * 0.045 + a.dir * 0.04, sy: 1 - Math.abs(Math.cos(ph)) * 0.025, sx: 1 + Math.abs(Math.cos(ph)) * 0.012 };
-  return { bob: 0, rot: Math.sin(t * 0.9 + seed) * 0.012, sy: 1 + Math.sin(t * 1.9 + seed) * 0.008, sx: 1 - Math.sin(t * 1.9 + seed) * 0.004 };
+  const moving = a.path.length > 0, ph = (a.walk || 0) * 11, seed = a.img.length * 1.7 + (a.name || "").length;
+  if (a.flip === undefined) a.flip = a.dir; a.flip += (a.dir - a.flip) * 0.22; // demi-tour progressif
+  if (moving) return { bob: Math.abs(Math.sin(ph)) * 0.028, rot: Math.sin(ph) * 0.03 + a.dir * 0.03, sy: 1 - Math.abs(Math.cos(ph)) * 0.02, sx: 1 + Math.abs(Math.cos(ph)) * 0.01 };
+  // à l'arrêt : respiration, et le poids qui passe lentement d'une jambe à l'autre
+  const br = Math.sin(t * 1.5 + seed), sw = Math.sin(t * 0.33 + seed * 2);
+  return { bob: 0, rot: sw * 0.022, sy: 1 + br * 0.013, sx: 1 - br * 0.006 };
 }
 function drawReflection(a, t) {
   const im = viewImg(a); if (!im || roomOf(a) === "ctrl") return;
   const p = toScr(a), h = 0.15 * IH * S2(), w = (h * im.width) / im.height, ps = pose(a, t), wet = a.y > 0.55 ? 0.22 : 0.12;
   ctx.save(); ctx.beginPath(); ctx.rect(p.x - w, p.y, w * 2, h * 0.55); ctx.clip();
-  ctx.translate(p.x, p.y); ctx.rotate(-ps.rot * 0.6); ctx.scale(a.dir < 0 ? -ps.sx : ps.sx, -ps.sy); ctx.globalAlpha = wet; ctx.drawImage(im, -w / 2, -h, w, h); ctx.restore();
+  ctx.translate(p.x, p.y); ctx.rotate(-ps.rot * 0.6); ctx.scale(a.flip * ps.sx, -ps.sy); ctx.globalAlpha = wet; ctx.drawImage(im, -w / 2, -h, w, h); ctx.restore();
   ctx.globalAlpha = 1;
 }
 /* Animation « découpée » : le personnage peint est coupé aux hanches ; chaque jambe pivote à son tour
    autour de la hanche (vrais pas), le buste suit avec un léger décalage. */
 const HIP = 0.56;
-function drawBody(im, w, h, a, ps) {
-  const moving = a.path.length > 0, ph = (a.walk || 0) * 11, swing = moving ? Math.sin(ph) * 0.32 : 0, iw = im.width, ih = im.height, hy = ih * HIP, legH = h * (1 - HIP);
+function drawBody(c, im, w, h, a, ps) {
+  const moving = a.path.length > 0, ph = (a.walk || 0) * 11, swing = moving ? Math.sin(ph) * 0.26 * Math.min(1, (a.v || 0) / 0.05) : 0, iw = im.width, ih = im.height, hy = ih * HIP, legH = h * (1 - HIP);
   // jambes : moitié gauche et moitié droite du bas du corps, en opposition de phase
   for (const [side, sgn] of [[0, 1], [1, -1]]) {
     const sx = side * iw / 2, dx = -w / 2 + side * w / 2;
-    ctx.save(); ctx.translate(dx + w / 4, -legH); ctx.rotate(swing * sgn); ctx.translate(0, Math.max(0, -Math.cos(ph + side * Math.PI)) * legH * 0.06 * (moving ? 1 : 0));
-    ctx.drawImage(im, sx, hy, iw / 2, ih - hy, -w / 4, 0, w / 2, legH + 1); ctx.restore();
+    c.save(); c.translate(dx + w / 4, -legH); c.rotate(swing * sgn); c.translate(0, Math.max(0, -Math.cos(ph + side * Math.PI)) * legH * 0.06 * (moving ? 1 : 0));
+    c.drawImage(im, sx, hy, iw / 2, ih - hy, -w / 4, 0, w / 2, legH + 1); c.restore();
   }
   // buste : léger contre-balancement et rebond à chaque pas
-  ctx.save(); ctx.translate(0, -legH); ctx.rotate(moving ? -Math.sin(ph) * 0.05 : 0);
-  ctx.drawImage(im, 0, 0, iw, hy + ih * 0.02, -w / 2, -h * HIP, w, h * HIP + h * 0.02); ctx.restore();
+  c.save(); c.translate(0, -legH); c.rotate(moving ? -Math.sin(ph) * 0.05 : 0);
+  c.drawImage(im, 0, 0, iw, hy + ih * 0.02, -w / 2, -h * HIP, w, h * HIP + h * 0.02); c.restore();
 }
 // étiquettes : un nom et une couleur par personnage, pour ne jamais les perdre de vue
 const TAGN = { odile: "Odile", gerald: "Gilet jaune", bastien: "Bastien", delattre: "Mme Delattre" };
 const TAGC = { odile: "#6fd3c8", gerald: "#f2d43a", bastien: "#9db8ff", delattre: "#f0a8c8", vasseur: "#e0533d" };
 function drawTag(a, t) {
   if (bubbles.some(b => b.a === a)) return;
+  // le nom n'apparaît que lorsqu'on s'approche : pas d'étiquette flottante en permanence
+  const me = A.player, dist = Math.hypot(me.x - a.x, (me.y - a.y) * 0.56), k = Math.max(0, Math.min(1, (0.2 - dist) / 0.06)); if (k <= 0) return;
   const p = toScr(a), h = 0.15 * IH * S2(), col = TAGC[a.img];
-  ctx.strokeStyle = col; ctx.globalAlpha = 0.55 + 0.2 * Math.sin(t * 2.4 + a.x * 9); ctx.lineWidth = 1.5; ctx.beginPath(); ctx.ellipse(p.x, p.y, h * 0.22, h * 0.065, 0, 0, Math.PI * 2); ctx.stroke(); ctx.globalAlpha = 1;
-  ctx.font = `600 ${Math.max(10, Math.round(11 * Math.min(1.3, S2() * 1.4)))}px Inter, sans-serif`; ctx.textAlign = "center";
-  const w = ctx.measureText(TAGN[a.img]).width + 10, y = p.y - h - 8; ctx.fillStyle = "rgba(6,9,11,.7)"; ctx.fillRect(p.x - w / 2, y - 12, w, 16); ctx.fillStyle = col; ctx.fillText(TAGN[a.img], p.x, y);
+  ctx.globalAlpha = k * 0.92; ctx.font = `600 ${Math.max(10, Math.round(11 * Math.min(1.3, S2() * 1.4)))}px Inter, sans-serif`; ctx.textAlign = "center";
+  ctx.shadowColor = "rgba(0,0,0,.9)"; ctx.shadowBlur = 6; ctx.fillStyle = col; ctx.fillText(TAGN[a.img], p.x, p.y - h - 8); ctx.shadowBlur = 0; ctx.globalAlpha = 1;
 }
+// lumière ambiante à l'endroit du personnage : distance au néon le plus proche, couleur de la zone, néon défaillant
+function lightAt(a, t) {
+  let best = null, bd = 9; for (const l of LIGHTS) { const d = Math.hypot(a.x - l.x, (a.y - l.y) * 0.56) / l.r; if (d < bd) { bd = d; best = l; } }
+  const fl = best && best.bad ? flick(best, t) : 1, dark = Math.min(0.42, Math.max(0, (bd - 0.5) * 0.3)) + (1 - fl) * 0.22 + (S.dark > 0 ? 0.4 : 0);
+  const warm = a.x > 0.6 || (rame.state !== "away" && a.x > 0.56);
+  return { l: best, dark: Math.min(0.75, dark), tint: warm ? "rgba(255,168,84,.16)" : roomOf(a) === "ctrl" ? "rgba(90,235,200,.14)" : "rgba(70,190,200,.13)" };
+}
+const TC = document.createElement("canvas"), tctx = TC.getContext("2d");
 function drawAgent(a, t) {
   const pk = poseOf(a), pp = pk ? POSE[pk] : null, p = toScr(pp ? { x: a.x + (pp.dx || 0), y: a.y + (pp.dy || 0) } : a), h = 0.15 * IH * S2() * (pp ? pp.h : 1), im = viewImg(a), ps = pose(a, t), side = pk || ((a.face || "f") === "s" && IMG[`${a.img}_s`]);
-  ctx.fillStyle = "rgba(0,0,0,.45)"; ctx.beginPath(); ctx.ellipse(p.x, p.y, h * (side ? 0.26 : 0.2) * (1 - ps.bob * 2), h * 0.06, 0, 0, Math.PI * 2); ctx.fill();
-  if (im) { const w = (h * im.width) / im.height; ctx.save(); ctx.translate(p.x, p.y - ps.bob * h); ctx.rotate(ps.rot * (side ? 0.3 : 0.5)); ctx.scale(a.dir < 0 ? -ps.sx : ps.sx, ps.sy);
-    if (side || !a.path.length) ctx.drawImage(im, -w / 2, -h, w, h); else drawBody(im, w, h, a, ps); ctx.restore(); }
-  else { ctx.fillStyle = a === A.player ? "#e8e4da" : "#6fd3c8"; ctx.beginPath(); ctx.arc(p.x, p.y - h * 0.5, h * 0.2, 0, Math.PI * 2); ctx.fill(); }
-  if (a === A.player) { ctx.strokeStyle = `rgba(242,180,90,${0.5 + 0.25 * Math.sin(t * 3)})`; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(p.x, p.y, h * 0.24, h * 0.07, 0, 0, Math.PI * 2); ctx.stroke(); }
+  const L = lightAt(a, t), w = im ? (h * im.width) / im.height : h * 0.4;
+  // ombre portée : allongée à l'opposé du néon le plus proche, plus une ombre de contact sous les pieds
+  if (L.l) { const lp = toScr(L.l), vx = p.x - lp.x, vy = (p.y - lp.y), vl = Math.hypot(vx, vy) || 1, len = h * Math.min(0.55, 0.16 + vl / (IW * S2()) * 1.6), ang = Math.atan2(vy * 0.5, vx);
+    ctx.save(); ctx.translate(p.x + (vx / vl) * len * 0.5, p.y + (vy / vl) * len * 0.22); ctx.rotate(ang); const g = ctx.createRadialGradient(0, 0, 0, 0, 0, len); g.addColorStop(0, `rgba(0,0,0,${0.34 * (1 - L.dark)})`); g.addColorStop(1, "rgba(0,0,0,0)"); ctx.fillStyle = g; ctx.scale(1, 0.34); ctx.beginPath(); ctx.arc(0, 0, len, 0, Math.PI * 2); ctx.fill(); ctx.restore(); }
+  ctx.fillStyle = "rgba(0,0,0,.5)"; ctx.beginPath(); ctx.ellipse(p.x, p.y, w * 0.3 * (1 - ps.bob * 2), h * 0.035, 0, 0, Math.PI * 2); ctx.fill();
+  if (!im) { ctx.fillStyle = "#6fd3c8"; ctx.beginPath(); ctx.arc(p.x, p.y - h * 0.5, h * 0.2, 0, Math.PI * 2); ctx.fill(); return; }
+  // le personnage est dessiné à part, teinté par la lumière du lieu, puis posé dans la scène
+  const W = Math.ceil(w * 2.2 * DPR), H = Math.ceil(h * 1.35 * DPR); if (TC.width < W) TC.width = W; if (TC.height < H) TC.height = H;
+  tctx.setTransform(1, 0, 0, 1, 0, 0); tctx.globalCompositeOperation = "source-over"; tctx.clearRect(0, 0, TC.width, TC.height);
+  tctx.setTransform(DPR, 0, 0, DPR, w * 1.1 * DPR, h * 1.28 * DPR); tctx.translate(0, -ps.bob * h); tctx.rotate(ps.rot * (side ? 0.3 : 0.5)); tctx.scale(a.flip * ps.sx, ps.sy);
+  if (side || !a.path.length) tctx.drawImage(im, -w / 2, -h, w, h); else drawBody(tctx, im, w, h, a, ps);
+  tctx.setTransform(1, 0, 0, 1, 0, 0); tctx.globalCompositeOperation = "source-atop"; tctx.fillStyle = L.tint; tctx.fillRect(0, 0, W, H); tctx.fillStyle = `rgba(4,8,12,${L.dark})`; tctx.fillRect(0, 0, W, H);
+  ctx.drawImage(TC, 0, 0, W, H, p.x - w * 1.1, p.y - h * 1.28, W / DPR, H / DPR);
+  // au début de la soirée, un petit repère au-dessus de vous
+  if (a === A.player && S.t < 6) { ctx.fillStyle = `rgba(242,180,90,${Math.min(1, (6 - S.t) / 2) * (0.6 + 0.3 * Math.sin(t * 5))})`; const y = p.y - h - 14 + Math.sin(t * 4) * 3; ctx.beginPath(); ctx.moveTo(p.x, y + 8); ctx.lineTo(p.x - 6, y); ctx.lineTo(p.x + 6, y); ctx.closePath(); ctx.fill(); }
 }
 // la voie monte vers le haut à droite ; la rame glisse le long de cet axe
 // axe des rails relevé sur l'illustration : x = 0,65 en bas (y = 0,9), x = 0,87 en haut (y = 0,1)
@@ -805,7 +852,8 @@ const fmtT = t => { const s = 21 * 3600 + 54 * 60 + Math.floor(t), h = Math.floo
 // tant que le joueur n'a pas vécu la première fin, rien ne dit que la soirée se répète
 const revealed = () => M.loops > 1;
 function updateLoopLbl() { $loop.textContent = revealed() ? `Boucle ${M.loops}` : ""; }
-function updateGoal() { const el = document.getElementById("goal"); if (el) el.textContent = goal(); }
+let goalT = 0;
+function updateGoal() { const el = document.getElementById("goal"); if (!el) return; const g = goal(); if (el.textContent !== g || !goalT) { el.textContent = g; el.classList.remove("off"); clearTimeout(goalT); goalT = setTimeout(() => el.classList.add("off"), 8000); } }
 const $hide = document.getElementById("hideBar"); let hideKey = "";
 function updateHideBar() {
   const g = A.gerald, busy = S.hidden && g.vis && roomOf(g) === "ctrl" && near(g, P.cabinet, 0.04);
@@ -817,7 +865,7 @@ function updateHideBar() {
   if (busy) btn("Le surprendre", () => { S.hidden = false; A.player.vis = true; S.gerInterrupted = true; S.gerFled = true; say(g, "Merde ! Qui êtes-vous ?!"); toast("Il s'enfuit en laissant tout en plan"); hideKey = ""; updateHideBar(); });
   btn("Sortir de la cachette", () => { S.hidden = false; A.player.vis = true; hideKey = ""; updateHideBar(); });
 }
-let toastT = 0; function toast(msg) { $toast.textContent = msg; $toast.hidden = false; toastT = 3.2; }
+let toastT = 0; function toast(msg) { const pa = msg.startsWith("📢") || msg.startsWith("📻"); $toast.className = pa ? "pa" : ""; $toast.textContent = pa ? msg.replace(/^📢 |^📻 /, "") : msg; $toast.hidden = false; toastT = pa ? 5 : 3.2; if (pa) Snd.chime(); }
 const ITEMS = { registre: "Registre du poste", helice: "Hélice en plastique", pince: "Pince coupante de Bastien", goupille: "Vieille goupille rouge", piece: "Pièce de 2 €", cafe: "Café chaud", photo: "Vidéo de Bastien", enveloppe: "Enveloppe de « V. »", journal: "Journal plié", badge: "Badge « TechniRail »", cliche: "Photo du sabotage", bande: "Enregistrement du local" };
 const gSeen = () => !!S.gerSeen; // personne ne parle de l'homme au gilet jaune avant son arrivée (21:54:48)
 const hasProof = () => (has("photo") && S.photo === "proof") || has("cliche") || has("bande");
@@ -1100,7 +1148,7 @@ cv.addEventListener("pointermove", e => {
   if (hit.kind === "floor") { $hint.hidden = true; cv.style.cursor = "default"; return; }
   $hint.hidden = false; $hint.textContent = hit.name; $hint.style.left = e.clientX - r.left + "px"; $hint.style.top = e.clientY - r.top + "px"; cv.style.cursor = "pointer";
 });
-const $tut = document.getElementById("tut"), TUT = ["Touchez le sol pour vous déplacer.", "Touchez une personne pour lui parler.", "Les points lumineux signalent ce qu'on peut examiner. Touchez-en un."];
+const $tut = document.getElementById("tut"); const TUT = ["👆 Touchez le sol pour vous déplacer.", "👆 Touchez une personne pour lui parler.", "👆 Les points lumineux signalent ce qu'on peut examiner. Touchez-en un."];
 let tutKey = "";
 function tutStep(n) { if ((M.tut || 0) === n) { M.tut = n + 1; saveM(); } }
 function updateTut() { const n = M.tut || 0, show = n < TUT.length && !revealed() && $sheet.hidden && $ov.hidden && $jr.hidden && !S.over, key = show ? "s" + n : ""; if (key === tutKey) return; tutKey = key; $tut.hidden = !show; if (show) $tut.textContent = TUT[n]; }
@@ -1313,7 +1361,7 @@ function frame(now) {
     if (S.fixed && !S.selfFixed && !S.gerCaught && A.gerald.vis) { S.gerCaught = true; say(A.gerald, "Lâchez-moi !"); }
     if (S.t >= LOOP && !S.over) { S.t = LOOP; endLoop(); }
   }
-  for (const b of bubbles) b.life -= real; while (bubbles.length && bubbles[0].life <= 0) bubbles.shift();
+  for (let i = bubbles.length - 1; i >= 0; i--) { bubbles[i].life -= real; if (bubbles[i].life <= 0) bubbles.splice(i, 1); }
   if (toastT > 0) { toastT -= real; if (toastT <= 0) $toast.hidden = true; }
   $clock.textContent = fmtT(S.t); $clock.classList.toggle("late", S.t > 345);
   if (rewindT > 0) rewindT = Math.max(0, rewindT - real);
