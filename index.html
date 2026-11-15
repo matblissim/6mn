@@ -277,7 +277,7 @@ const CTRL = { x0: 0.285, y0: 0.195, x1: 0.4, y1: 0.372 };
 const DOOR_IN = { x: 0.367, y: 0.33 }, DOOR_OUT = { x: 0.367, y: 0.45 }, ENTRANCE = { x: 0.18, y: 0.69 };
 const P = {
   start: { x: 0.2, y: 0.7 }, outside: { x: 0.05, y: 0.84 },
-  desk: { x: 0.3, y: 0.25 }, cabinet: { x: 0.35, y: 0.215 }, window: { x: 0.33, y: 0.445 },
+  desk: { x: 0.3, y: 0.25 }, cabinet: { x: 0.352, y: 0.262 }, window: { x: 0.33, y: 0.445 },
   vending: { x: 0.47, y: 0.925 }, bench: { x: 0.28, y: 0.465 }, ticket: { x: 0.235, y: 0.6 },
   gerWait: { x: 0.712, y: 0.29 }, gerDoor: { x: 0.46, y: 0.45 }, gerEnd: { x: 0.6, y: 0.68 }, gerCall: { x: 0.2, y: 0.72 },
   bastPlat: { x: 0.635, y: 0.58 }, film: { x: 0.45, y: 0.5 }, board: { x: 0.66, y: 0.47 }, delWait: { x: 0.235, y: 0.62 }, delBoard: { x: 0.645, y: 0.52 }
@@ -393,7 +393,7 @@ const IMG = {};
 for (const n of ["joueur", "odile", "bastien", "delattre", "gerald"]) for (const v of ["f", "b", "s", "w"]) { const im = new Image(); im.onload = () => { IMG[`${n}_${v}`] = im; }; im.src = `img/${n}_${v}.webp`; }
 for (const n of ["gerald_phone", "gerald_work", "odile_cafe", "bastien_sit", "bastien_drone", "delattre_point"]) { const im = new Image(); im.onload = () => { IMG[n] = im; }; im.src = `img/${n}.webp`; }
 // poses particulières (à l'arrêt) : hauteur relative et décalage pour s'asseoir sur le banc
-const POSE = { gerald_phone: { h: 1 }, gerald_work: { h: 0.92 }, odile_cafe: { h: 0.97 }, bastien_sit: { h: 0.8, dx: -0.03, dy: -0.035 }, bastien_drone: { h: 1.05 }, delattre_point: { h: 1 } };
+const POSE = { gerald_phone: { h: 1 }, gerald_work: { h: 0.9, dy: 0.004 }, odile_cafe: { h: 0.97 }, bastien_sit: { h: 0.8, dx: -0.03, dy: -0.035 }, bastien_drone: { h: 1.05 }, delattre_point: { h: 1 } };
 const poseOf = a => (a.pose && IMG[a.pose] && (!a.path.length || a.pose === "odile_cafe") ? a.pose : null);
 // vue à afficher : de dos quand il s'éloigne, de profil quand il traverse (deux images alternées), de face sinon
 function viewImg(a) {
@@ -431,7 +431,8 @@ function inPoly(p, poly) { let c = false; for (let i = 0, j = poly.length - 1; i
 const blocked = p => BLOCKS.some(r => p.x > r.x0 && p.x < r.x1 && p.y > r.y0 && p.y < r.y1);
 const walkable = p => inPoly(p, FLOOR) && !blocked(p);
 function nearestOnSeg(p, a, b) { const dx = b.x - a.x, dy = b.y - a.y, k = Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / (dx * dx + dy * dy || 1))); return { x: a.x + dx * k, y: a.y + dy * k }; }
-function nudgeIn(q) { if (walkable(q)) return q; for (const r of [0.004, 0.008, 0.014]) for (let i = 0; i < 12; i++) { const c = { x: q.x + Math.cos(i * Math.PI / 6) * r, y: q.y + Math.sin(i * Math.PI / 6) * r }; if (walkable(c)) return c; } return q; }
+// rentre un point dans le sol praticable, avec une vraie marge : on ne longe jamais un mur au millimètre
+function nudgeIn(q) { for (const r of [0.008, 0.012, 0.018, 0.004]) for (let i = 0; i < 16; i++) { const cx = Math.cos(i * Math.PI / 8), cy = Math.sin(i * Math.PI / 8), c = { x: q.x + cx * r, y: q.y + cy * r }; if (walkable(c) && walkable({ x: q.x + cx * r * 1.6, y: q.y + cy * r * 1.6 }) && walkable({ x: c.x - cy * r * 0.5, y: c.y + cx * r * 0.5 }) && walkable({ x: c.x + cy * r * 0.5, y: c.y - cx * r * 0.5 })) return c; } return q; }
 function clampWalk(p) {
   if (walkable(p)) return { x: p.x, y: p.y };
   let best = null, bd = 9; const segs = [];
@@ -464,7 +465,7 @@ function goTo(a, target) {
 function stepAgent(a, dt, speed) {
   if (!a.path.length) { a.v = 0; return true; }
   // virage arrondi : on vise déjà le point suivant quand on est tout près d'un coin
-  if (a.path.length > 1 && Math.hypot(a.path[0].x - a.x, (a.path[0].y - a.y) * 0.56) < 0.012) a.path.shift();
+  if (a.path.length > 1 && Math.hypot(a.path[0].x - a.x, (a.path[0].y - a.y) * 0.56) < 0.002) a.path.shift();
   const p = a.path[0], dx = p.x - a.x, dy = (p.y - a.y) * 0.56, d = Math.hypot(dx, dy);
   // distance restante jusqu'au bout du trajet, pour freiner en douceur à l'arrivée
   let rest = d; for (let i = 1; i < a.path.length; i++) rest += Math.hypot(a.path[i].x - a.path[i - 1].x, (a.path[i].y - a.path[i - 1].y) * 0.56);
