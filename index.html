@@ -923,8 +923,8 @@ function endLoop() {
 }
 // ce que cette boucle a appris, et un conseil pour la suivante
 function loopSummary() {
-  const nw = M.clues.filter(k => !S.cluesAtStart.includes(k));
-  return `<div class="sum" style="animation-delay:${0.6 + 4 * 1.3}s"><b>${revealed() ? "Cette fois" : "Ce que vous avez remarqué"} :</b> ${nw.length ? nw.length + " nouvel" + (nw.length > 1 ? "s" : "") + " indice" + (nw.length > 1 ? "s" : "") + " — " + nw.filter(k => k !== "chute").slice(0, 3).map(k => CLUES[k].split(/[.:]/)[0]).join(" · ") + (nw.length > 3 ? "…" : "") : "aucun nouvel indice."}${revealed() ? `<br><b>Piste :</b> ${goal()}` : ""}</div>`;
+  const nw = M.clues.filter(k => !S.cluesAtStart.includes(k) && k !== "chute");
+  return `<div class="sum" style="animation-delay:${0.6 + 4 * 1.3}s"><b>${revealed() ? "Cette fois" : "Ce que vous avez remarqué"} :</b> ${nw.length ? (nw.length > 1 ? nw.length + " nouveaux indices" : "un nouvel indice") + " — " + nw.slice(0, 3).map(k => CLUES[k].split(/[.:]/)[0]).join(" · ") + (nw.length > 3 ? "…" : "") : "aucun nouvel indice."}${revealed() ? `<br><b>Piste :</b> ${goal()}` : ""}</div>`;
 }
 function finalStats() {
   const mins = Math.round((M.playS || 0) / 60), rank = M.loops <= 3 ? "Détective légendaire" : M.loops <= 6 ? "Fin limier" : M.loops <= 10 ? "Enquêteur tenace" : "Témoin obstiné";
