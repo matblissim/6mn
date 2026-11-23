@@ -37,7 +37,7 @@ import * as SkeletonUtils from "./lib/addons/utils/SkeletonUtils.js";
 
 const cv = document.getElementById("cv");
 const renderer = new THREE.WebGLRenderer({ canvas: cv, antialias: true, powerPreference: "high-performance" });
-renderer.setPixelRatio(Math.min(2, devicePixelRatio || 1));
+renderer.setPixelRatio(Math.min(1.5, devicePixelRatio || 1));
 renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.3; renderer.outputColorSpace = THREE.SRGBColorSpace;
 const scene = new THREE.Scene(); scene.background = new THREE.Color(0x05080a); scene.fog = new THREE.FogExp2(0x070c10, 0.016);
@@ -55,7 +55,7 @@ const M = {
   plat: new THREE.MeshStandardMaterial({ map: (() => { const t = tiles([150, 132, 100], "#4a4030", 4); t.repeat.set(1.5, 5); return t; })(), roughness: 0.45 }),
   wall: new THREE.MeshStandardMaterial({ color: 0x6d8e94, roughness: 0.85 }), dark: new THREE.MeshStandardMaterial({ color: 0x141a1d, roughness: 0.8 }),
   metal: new THREE.MeshStandardMaterial({ color: 0x2a3438, roughness: 0.45, metalness: 0.7 }), wood: new THREE.MeshStandardMaterial({ color: 0x6b4a2c, roughness: 0.7 }),
-  glass: new THREE.MeshPhysicalMaterial({ color: 0x9fe6dc, roughness: 0.05, transmission: 0.9, transparent: true, opacity: 0.28, thickness: 0.1 }),
+  glass: new THREE.MeshStandardMaterial({ color: 0x9fe6dc, roughness: 0.05, metalness: 0.2, transparent: true, opacity: 0.22, depthWrite: false }),
   yellow: new THREE.MeshStandardMaterial({ color: 0xe0b020, roughness: 0.6 }), white: new THREE.MeshStandardMaterial({ color: 0xe9e6de, roughness: 0.5 }), red: new THREE.MeshStandardMaterial({ color: 0xb8322a, roughness: 0.5 }),
   neon: new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xbff5ee, emissiveIntensity: 2.2 }), warm: new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xffc070, emissiveIntensity: 2 }),
   screen: new THREE.MeshStandardMaterial({ color: 0x0c3a2c, emissive: 0x38e09a, emissiveIntensity: 1.3 })
@@ -63,56 +63,97 @@ const M = {
 const colliders = []; // obstacles au sol : rectangles [x0, z0, x1, z1]
 function box(w, h, d, x, y, z, mat, opt = {}) { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat); m.position.set(x, y, z); m.castShadow = opt.cast !== false; m.receiveShadow = true; scene.add(m); if (opt.solid) colliders.push([x - w / 2, z - d / 2, x + w / 2, z + d / 2]); return m; }
 
-/* ---------- la station : hall (x −8…5), quai (x 5…9), voie (x 9…13) ---------- */
-const fl = new THREE.Mesh(new THREE.PlaneGeometry(13, 12), M.floor); fl.rotation.x = -Math.PI / 2; fl.position.set(-1.5, 0, 0); fl.receiveShadow = true; scene.add(fl);
-const pl = new THREE.Mesh(new THREE.PlaneGeometry(4, 16), M.plat); pl.rotation.x = -Math.PI / 2; pl.position.set(7, 0.01, -2); pl.receiveShadow = true; scene.add(pl);
-box(0.25, 0.02, 16, 8.85, 0.02, -2, M.yellow, { cast: false });               // ligne jaune
-box(4.4, 0.6, 30, 11.2, -0.45, -6, M.dark, { cast: false });                  // fosse de la voie
-for (const x of [10.3, 11.9]) box(0.12, 0.12, 30, x, -0.1, -6, M.metal);     // rails
-for (let z = -20; z < 8; z += 1.4) box(2.4, 0.08, 0.3, 11.1, -0.13, z, M.wood, { cast: false });
-box(13.4, 4, 0.3, -1.5, 2, -6.15, M.wall, { solid: true });                   // mur du fond
-box(0.3, 4, 12, -8.15, 2, 0, M.wall, { solid: true });                        // mur gauche
-box(13.4, 1, 0.2, -1.5, 0.5, 6.1, M.metal, { solid: true });                  // rambarde devant
-box(0.9, 4, 0.9, 4.9, 2, -1.2, M.wall, { solid: true });                      // pilier
-box(0.25, 0.35, 0.12, 4.4, 1.3, -1.2, M.yellow); box(0.12, 0.12, 0.05, 4.33, 1.3, -1.2, new THREE.MeshStandardMaterial({ color: 0xff2a1a, emissive: 0xff2a1a, emissiveIntensity: 2 }));
-// le local vitré d'Odile (x −7.6…−3.6, z −5.9…−2.6), porte à droite
-box(4.2, 0.9, 0.12, -5.6, 0.45, -2.6, M.metal, { solid: true }); box(4.2, 1.7, 0.06, -5.6, 1.75, -2.6, M.glass, { cast: false });
-box(0.12, 2.6, 3.3, -3.5, 1.3, -4.25, M.glass, { cast: false, solid: true }); box(4.4, 0.12, 3.5, -5.6, 2.66, -4.3, M.metal);
-for (const [x, z] of [[-7.7, -2.6], [-3.5, -2.6]]) box(0.14, 2.7, 0.14, x, 1.35, z, M.metal);
-box(1.6, 0.8, 0.7, -6.4, 0.4, -3.5, M.wood); for (const x of [-6.8, -6.0]) { box(0.6, 0.45, 0.06, x, 1.1, -3.4, M.dark); box(0.52, 0.37, 0.02, x, 1.1, -3.36, M.screen, { cast: false }); }
-for (let i = 0; i < 3; i++) { box(0.85, 1.9, 0.5, -6.9 + i * 0.95, 0.95, -5.6, M.metal); box(0.5, 0.25, 0.02, -6.9 + i * 0.95, 1.4, -5.34, M.screen, { cast: false }); }
-// banc, distributeurs, poubelle
-box(2.6, 0.12, 0.6, -7.2, 0.5, 1.2, M.wood, { solid: true }); box(2.6, 0.7, 0.1, -7.2, 0.95, 0.95, M.wood); for (const x of [-8.3, -6.1]) box(0.1, 0.5, 0.6, x, 0.25, 1.2, M.metal);
-box(1.1, 2, 0.9, -7.4, 1, 3.6, M.metal, { solid: true }); box(0.6, 0.5, 0.03, -7.4, 1.35, 4.07, new THREE.MeshStandardMaterial({ color: 0x222, emissive: 0xcfe8ff, emissiveIntensity: 1 }), { cast: false });
-box(1.5, 2.2, 1, 0.6, 1.1, 3.4, M.dark, { solid: true }); box(1.1, 1.5, 0.04, 0.45, 1.25, 3.92, new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xffc860, emissiveIntensity: 1.6 }), { cast: false });
-for (let r = 0; r < 4; r++) for (let c = 0; c < 5; c++) box(0.14, 0.2, 0.05, 0.05 + c * 0.2, 0.75 + r * 0.33, 3.95, new THREE.MeshStandardMaterial({ color: [0xd84a3a, 0x3aa0d8, 0xe0b020, 0x5ad86a][(r + c) % 4] }), { cast: false });
-box(0.5, 0.9, 0.5, 3.9, 0.45, -0.2, M.metal, { solid: true });
+/* ---------- la station, resserrée : hall (x −5.6…3), quai (x 3…6), voie (x 6…9.6), profondeur z −4.5…4.5 ---------- */
+const fl = new THREE.Mesh(new THREE.PlaneGeometry(9, 9.2), M.floor); fl.rotation.x = -Math.PI / 2; fl.position.set(-1.3, 0, 0); fl.receiveShadow = true; scene.add(fl);
+const pl = new THREE.Mesh(new THREE.PlaneGeometry(3, 16), M.plat); pl.rotation.x = -Math.PI / 2; pl.position.set(4.5, 0.01, -3.5); pl.receiveShadow = true; scene.add(pl);
+box(0.2, 0.02, 16, 5.9, 0.02, -3.5, M.yellow, { cast: false });               // ligne jaune
+box(3.6, 0.6, 30, 7.8, -0.45, -6, M.dark, { cast: false });                   // fosse de la voie
+for (const x of [7.1, 8.5]) box(0.12, 0.12, 30, x, -0.1, -6, M.metal);       // rails
+for (let z = -20; z < 6; z += 1.4) box(2, 0.08, 0.3, 7.8, -0.13, z, M.wood, { cast: false });
+box(11.8, 4, 0.3, 0.2, 2, -4.65, M.wall, { solid: true });                    // mur du fond
+box(0.3, 4, 9.6, -5.75, 2, 0, M.wall, { solid: true });                       // mur gauche
+box(11.8, 1, 0.2, 0.2, 0.5, 4.6, M.metal, { solid: true });                   // rambarde devant
+box(0.8, 4, 0.8, 3, 2, -0.8, M.wall, { solid: true });                        // pilier
+box(0.25, 0.35, 0.12, 2.55, 1.3, -0.8, M.yellow); box(0.12, 0.12, 0.05, 2.48, 1.3, -0.8, new THREE.MeshStandardMaterial({ color: 0xff2a1a, emissive: 0xff2a1a, emissiveIntensity: 2 }));
+// le local vitré d'Odile (x −5.5…−2.5, z −4.5…−2.2), vitre devant, porte à droite
+box(3, 0.9, 0.12, -4, 0.45, -2.2, M.metal, { solid: true }); box(3, 1.7, 0.06, -4, 1.75, -2.2, M.glass, { cast: false });
+box(0.12, 2.6, 2.3, -2.5, 1.3, -3.35, M.glass, { cast: false, solid: true }); box(3.2, 0.12, 2.5, -4, 2.66, -3.35, M.metal);
+for (const [x, z] of [[-5.5, -2.2], [-2.5, -2.2]]) box(0.14, 2.7, 0.14, x, 1.35, z, M.metal);
+box(1.6, 0.8, 0.6, -4, 0.4, -2.65, M.wood); for (const x of [-4.4, -3.6]) { box(0.6, 0.45, 0.06, x, 1.1, -2.6, M.dark); box(0.52, 0.37, 0.02, x, 1.1, -2.56, M.screen, { cast: false }); }
+for (let i = 0; i < 3; i++) { box(0.8, 1.9, 0.45, -5 + i * 0.85, 0.95, -4.25, M.metal); box(0.5, 0.25, 0.02, -5 + i * 0.85, 1.4, -4.02, M.screen, { cast: false }); }   // armoires techniques
+// banc le long du mur gauche, distributeur de friandises
+box(2.2, 0.12, 0.6, -4.3, 0.5, 0.6, M.wood, { solid: true }); box(2.2, 0.7, 0.1, -4.3, 0.95, 0.33, M.wood); for (const x of [-5.3, -3.3]) box(0.1, 0.5, 0.6, x, 0.25, 0.6, M.metal);
+box(0.9, 1.9, 1, -5.1, 0.95, 3.2, M.dark, { solid: true }); box(0.04, 1.3, 0.8, -4.64, 1.15, 3.2, new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xffc860, emissiveIntensity: 1.2 }), { cast: false });
+for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) box(0.05, 0.18, 0.14, -4.61, 0.7 + r * 0.3, 2.9 + c * 0.2, new THREE.MeshStandardMaterial({ color: [0xd84a3a, 0x3aa0d8, 0xe0b020, 0x5ad86a][(r + c) % 4] }), { cast: false });
+box(0.45, 0.85, 0.45, 2.2, 0.43, 0.3, M.metal, { solid: true });            // poubelle, au pied du pilier
+
+/* ---------- la machine à café, contre le mur du fond ---------- */
+const interact = [], texL = new THREE.TextureLoader();
+const coffee = new THREE.Group(); coffee.position.set(0.35, 0, -4.18); scene.add(coffee); colliders.push([-0.15, -4.5, 0.85, -3.85]);
+const cafeMenu = (() => { const c = document.createElement("canvas"); c.width = 256; c.height = 400; const g = c.getContext("2d");
+  const gr = g.createLinearGradient(0, 0, 0, 400); gr.addColorStop(0, "#2a120c"); gr.addColorStop(1, "#140806"); g.fillStyle = gr; g.fillRect(0, 0, 256, 400);
+  g.fillStyle = "#f3c27a"; g.font = "700 34px Georgia, serif"; g.textAlign = "center"; g.fillText("Café", 128, 52); g.font = "italic 16px Georgia, serif"; g.fillStyle = "#d9a463"; g.fillText("de la gare basse", 128, 76);
+  g.strokeStyle = "#7a4a26"; g.lineWidth = 2; g.beginPath(); g.moveTo(40, 92); g.lineTo(216, 92); g.stroke();
+  const items = [["Expresso", "0,60 €"], ["Café long", "0,60 €"], ["Café crème", "0,70 €"], ["Cappuccino", "0,80 €"], ["Chocolat", "0,80 €"], ["Thé citron", "0,50 €"]];
+  g.textAlign = "left"; items.forEach(([n, p], i) => { const y = 128 + i * 42; g.fillStyle = "#3a1d12"; g.fillRect(24, y - 24, 208, 34); g.fillStyle = "#f6e6cc"; g.font = "18px system-ui, sans-serif"; g.fillText(n, 36, y); g.textAlign = "right"; g.fillStyle = "#f3c27a"; g.fillText(p, 220, y); g.textAlign = "left";
+    g.fillStyle = i === 1 ? "#ffcf6a" : "#6a3a22"; g.beginPath(); g.arc(14, y - 7, 6, 0, 7); g.fill(); });
+  g.fillStyle = "#0b1a12"; g.fillRect(40, 372, 176, 22); g.fillStyle = "#59f0a0"; g.font = "13px ui-monospace, monospace"; g.textAlign = "center"; g.fillText("INSÉREZ 0,60 €", 128, 388); return c; })();
+{ const body = new THREE.MeshStandardMaterial({ color: 0x5b1d1a, roughness: 0.35, metalness: 0.45 }), chrome = new THREE.MeshStandardMaterial({ color: 0xd9dde0, roughness: 0.18, metalness: 1 }), black = new THREE.MeshStandardMaterial({ color: 0x0c0d0e, roughness: 0.6 });
+  const add = (geo, mat, x, y, z) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.castShadow = true; m.receiveShadow = true; coffee.add(m); return m; };
+  add(new THREE.BoxGeometry(0.9, 1.86, 0.6), body, 0, 0.93, 0);                                   // carrosserie
+  add(new THREE.BoxGeometry(0.94, 0.06, 0.64), chrome, 0, 1.89, 0); add(new THREE.BoxGeometry(0.94, 0.05, 0.64), chrome, 0, 0.03, 0);
+  for (const x of [-0.455, 0.455]) add(new THREE.BoxGeometry(0.02, 1.86, 0.62), chrome, x, 0.93, 0);
+  const tm = new THREE.CanvasTexture(cafeMenu); tm.colorSpace = THREE.SRGBColorSpace;
+  add(new THREE.PlaneGeometry(0.56, 0.875), new THREE.MeshStandardMaterial({ map: tm, emissiveMap: tm, emissive: 0xffffff, emissiveIntensity: 0.9, roughness: 0.3 }), -0.08, 1.28, 0.302);
+  for (let i = 0; i < 6; i++) add(new THREE.CylinderGeometry(0.025, 0.025, 0.02, 16).rotateX(Math.PI / 2), i === 1 ? new THREE.MeshStandardMaterial({ color: 0xffcf6a, emissive: 0xffa030, emissiveIntensity: 1.5 }) : chrome, 0.32, 1.6 - i * 0.09, 0.31);
+  add(new THREE.BoxGeometry(0.1, 0.16, 0.02), black, 0.32, 1.02, 0.305); add(new THREE.BoxGeometry(0.05, 0.008, 0.01), chrome, 0.32, 1.06, 0.318);   // fente à pièces
+  add(new THREE.BoxGeometry(0.42, 0.36, 0.2), black, 0, 0.62, 0.22);                            // niche du gobelet
+  add(new THREE.BoxGeometry(0.4, 0.02, 0.18), chrome, 0, 0.45, 0.23);                            // grille d'égouttage
+  const cup = add(new THREE.CylinderGeometry(0.036, 0.028, 0.09, 20, 1, true), new THREE.MeshStandardMaterial({ color: 0xf4efe6, roughness: 0.6, side: THREE.DoubleSide }), 0, 0.51, 0.25);
+  add(new THREE.CircleGeometry(0.034, 20).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0x3a1f10, roughness: 0.2 }), 0, 0.545, 0.25);
+  const glow = new THREE.PointLight(0xffb060, 3, 1.4); glow.position.set(0, 0.72, 0.28); coffee.add(glow);
+  // la vapeur au-dessus du gobelet
+  const sg = new THREE.BufferGeometry(), sp = new Float32Array(18 * 3); for (let i = 0; i < 18; i++) { sp[i * 3] = (Math.random() - 0.5) * 0.04; sp[i * 3 + 1] = 0.56 + Math.random() * 0.22; sp[i * 3 + 2] = 0.25; }
+  sg.setAttribute("position", new THREE.BufferAttribute(sp, 3)); coffee.add(new THREE.Points(sg, new THREE.PointsMaterial({ color: 0xffffff, size: 0.035, transparent: true, opacity: 0.35, depthWrite: false })));
+  coffee.userData.steam = sg;
+  { const c = document.createElement("canvas"); c.width = 512; c.height = 64; const g = c.getContext("2d"); g.fillStyle = "#1a0906"; g.fillRect(0, 0, 512, 64);
+    g.fillStyle = "#ffb35a"; g.font = "700 38px Georgia, serif"; g.textAlign = "center"; g.fillText("CAFÉ  ·  CHAUD  ·  24 H / 24", 256, 46); const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
+    add(new THREE.PlaneGeometry(0.8, 0.1), new THREE.MeshStandardMaterial({ map: t, emissiveMap: t, emissive: 0xffffff, emissiveIntensity: 1.1 }), 0, 1.79, 0.302); }   // enseigne lumineuse
+  const hit = new THREE.Mesh(new THREE.BoxGeometry(1, 1.95, 0.7), new THREE.MeshBasicMaterial({ visible: false })); hit.position.y = 0.97; coffee.add(hit);
+  hit.userData = { title: "Machine à café", img: cafeMenu.toDataURL("image/png"), spot: new THREE.Vector3(1.05, 0, -3.35),
+    text: () => F.cafeItem ? "Le gobelet fume dans votre main. Il est pour votre mère." : F.cafeDone ? "La machine ronronne. Votre mère a déjà son café." : "Une vieille machine bordeaux, plus âgée que vous. Le menu grésille. « INSÉREZ 0,60 € ».",
+    opts: () => F.cafeItem || F.cafeDone ? [] : [["Prendre un café long pour Maman (0,60 €)", () => { F.cafeItem = 1; pour(); readProp(hit); }]] };
+  interact.push(hit); }
+// petit son de machine (synthétisé, gratuit) : bip, puis écoulement
+let AC = null; function pour() { try { AC = AC || new AudioContext(); const t = AC.currentTime, o = AC.createOscillator(), g = AC.createGain(); o.frequency.value = 1320; g.gain.setValueAtTime(0.06, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.15); o.connect(g).connect(AC.destination); o.start(t); o.stop(t + 0.16);
+  const n = AC.createBuffer(1, AC.sampleRate * 2, AC.sampleRate), d = n.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * 0.5; const s = AC.createBufferSource(), f = AC.createBiquadFilter(), g2 = AC.createGain(); s.buffer = n; f.type = "bandpass"; f.frequency.value = 900; f.Q.value = 0.8;
+  g2.gain.setValueAtTime(0, t + 0.3); g2.gain.linearRampToValueAtTime(0.05, t + 0.5); g2.gain.linearRampToValueAtTime(0, t + 2.2); s.connect(f).connect(g2).connect(AC.destination); s.start(t + 0.3); } catch (e) {} }
+
 // affiches au mur du fond : on peut s'en approcher pour les lire
-const posters = [], texL = new THREE.TextureLoader();
 function poster(src, x, y, w, h, data) { const t = texL.load(src); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
   const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshStandardMaterial({ map: t, emissiveMap: t, emissive: 0xffffff, emissiveIntensity: 0.28, roughness: 0.85 }));
-  m.position.set(x, y, -5.98); m.receiveShadow = true; scene.add(m); m.userData = { ...data, img: src, spot: new THREE.Vector3(x, 0, -4.9) }; posters.push(m); return m; }
-poster("affiche_poma.webp", -1.5, 2.05, 1.8, 1.09, { title: "Affiche", text: "« LAON — DERNIER VOYAGE — Samedi 27 août 2016. 1989 – 2016 · Merci de nous avoir portés. » Quelqu'un a dessiné un cœur au feutre dans le coin." });
-poster("affiche_vasseur.webp", 1.4, 1.95, 0.82, 1.4, { title: "Affiche", text: "« BIENTÔT ICI — Les Terrasses de la Cuve — Vasseur Immobilier, Laon. » Un immeuble de verre, à la place exacte de la station. L'affiche est neuve. Elle a été collée ce soir.", fx: () => F.vasseur = 1 });
+  m.position.set(x, y, -4.48); m.receiveShadow = true; scene.add(m); m.userData = { ...data, img: src, spot: new THREE.Vector3(x + 0.55, 0, -3.5) }; interact.push(m); return m; }
+poster("affiche_poma.webp", -1.35, 2.05, 1.6, 0.97, { title: "Affiche", text: "« LAON — DERNIER VOYAGE — Samedi 27 août 2016. 1989 – 2016 · Merci de nous avoir portés. » Quelqu'un a dessiné un cœur au feutre dans le coin." });
+poster("affiche_vasseur.webp", 1.75, 1.95, 0.78, 1.33, { title: "Affiche", text: "« BIENTÔT ICI — Les Terrasses de la Cuve — Vasseur Immobilier, Laon. » Un immeuble de verre, à la place exacte de la station. L'affiche est neuve. Elle a été collée ce soir.", fx: () => F.vasseur = 1 });
 // néons (les tubes, et leur lumière)
-function neon(x, z, len, mat, color, power, shadow) { const t = box(len, 0.08, 0.14, x, 3.6, z, mat, { cast: false }); const l = new THREE.SpotLight(color, power, 16, 1.05, 0.7, 1.3); l.position.set(x, 3.5, z); l.target.position.set(x, 0, z); if (shadow) { l.castShadow = true; l.shadow.mapSize.set(1024, 1024); l.shadow.bias = -0.0015; l.shadow.radius = 4; } scene.add(l, l.target); return l; }
-const nA = neon(-5.6, -4.2, 2.6, M.neon, 0x9ff0e2, 90, false), nB = neon(-1, 0, 3, M.neon, 0xa8f2e8, 170, true), nC = neon(-5.5, 3.2, 2.4, M.neon, 0x9fe8e8, 110, false), nD = neon(7, -1, 0.6, M.warm, 0xffb060, 150, false);
+function neon(x, z, len, mat, color, power, shadow) { const t = box(len, 0.08, 0.14, x, 3.6, z, mat, { cast: false }); const l = new THREE.SpotLight(color, power, 14, 1.05, 0.7, 1.3); l.position.set(x, 3.5, z); l.target.position.set(x, 0, z); if (shadow) { l.castShadow = true; l.shadow.mapSize.set(1024, 1024); l.shadow.bias = -0.0015; l.shadow.radius = 4; } scene.add(l, l.target); return l; }
+const nA = neon(-4, -3.4, 2.2, M.neon, 0x9ff0e2, 80, false), nB = neon(-0.8, 0.3, 3, M.neon, 0xa8f2e8, 150, true), nC = neon(-3.8, 2.6, 2, M.neon, 0x9fe8e8, 90, false), nD = neon(4.5, -1, 0.6, M.warm, 0xffb060, 130, false);
 scene.add(new THREE.HemisphereLight(0x7fa6b4, 0x1a2226, 1.25)); scene.add(new THREE.AmbientLight(0x2a4048, 0.9));
 // lumière d'appoint douce venant de la caméra, pour lire les visages et les volumes
 const fill = new THREE.DirectionalLight(0xbfe0ea, 0.55); fill.position.set(3, 8, 10); scene.add(fill);
 // la rame à quai
-const rame = new THREE.Group(); scene.add(rame); rame.position.set(11.1, 0, -30);
+const rame = new THREE.Group(); scene.add(rame); rame.position.set(7.8, 0, -30);
 { const b = new THREE.Mesh(new THREE.BoxGeometry(2.3, 2.1, 6.4), M.white); b.position.y = 1.35; b.castShadow = true; rame.add(b);
   const s = new THREE.Mesh(new THREE.BoxGeometry(2.34, 0.3, 6.44), M.red); s.position.y = 0.95; rame.add(s);
   const w = new THREE.Mesh(new THREE.BoxGeometry(2.36, 0.75, 5.6), new THREE.MeshStandardMaterial({ color: 0x1a1a1a, emissive: 0xffc878, emissiveIntensity: 1.4 })); w.position.y = 1.75; rame.add(w);
   const r = new THREE.Mesh(new THREE.BoxGeometry(2.1, 0.2, 6), M.dark); r.position.y = 2.5; rame.add(r);
   const hl = new THREE.PointLight(0xfff0c8, 40, 14); hl.position.set(0, 1.2, 3.6); rame.add(hl); }
 // pluie derrière la rambarde
-const rainN = 500, rainG = new THREE.BufferGeometry(), rp = new Float32Array(rainN * 3); for (let i = 0; i < rainN; i++) { rp[i * 3] = -9 + Math.random() * 22; rp[i * 3 + 1] = Math.random() * 7; rp[i * 3 + 2] = 6.6 + Math.random() * 6; }
+const rainN = 400, rainG = new THREE.BufferGeometry(), rp = new Float32Array(rainN * 3); for (let i = 0; i < rainN; i++) { rp[i * 3] = -7 + Math.random() * 18; rp[i * 3 + 1] = Math.random() * 7; rp[i * 3 + 2] = 5 + Math.random() * 5; }
 rainG.setAttribute("position", new THREE.BufferAttribute(rp, 3)); scene.add(new THREE.Points(rainG, new THREE.PointsMaterial({ color: 0x9fc0cc, size: 0.05, transparent: true, opacity: 0.6 })));
 
 /* ---------- personnages : un mannequin aux proportions réalistes, habillé et coiffé pour chaque rôle ---------- */
-const chars = []; let BASE = null, CLIPS = {}, HEAD = null, CHEST = null, SCALE = 1, WALK = 1.4;
+const chars = []; let BASE = null, CLIPS = {}, HEAD = null, CHEST = null, SCALE = 1, WALK = 1.4, RUN = 3.4;
 const flat = c => new THREE.MeshStandardMaterial({ color: c, roughness: 0.75, flatShading: true });
 function part(geo, color, x, y, z, parent, sx = 1, sy = 1, sz = 1) { const m = new THREE.Mesh(geo, flat(color)); m.position.set(x, y, z); m.scale.set(sx, sy, sz); m.castShadow = true; parent.add(m); return m; }
 const CAST = {
@@ -149,8 +190,8 @@ function clipsFor(id, root) { const own = OWN[id]; if (!own) return CLIPS;
 const ADDC = new Map(); function ADD(CL, n) { const key = CL[n]; if (!ADDC.has(key)) ADDC.set(key, THREE.AnimationUtils.makeClipAdditive(key.clone())); return ADDC.get(key); }
 function gesture(mixer, acts, k, clip) { acts[k] = mixer.clipAction(clip, undefined, THREE.AdditiveAnimationBlendMode); }
 function rig(id, root, name, rot) { const mixer = new THREE.AnimationMixer(root), acts = {}, CL = clipsFor(id, root); const act = (key, clip) => { acts[key] = mixer.clipAction(CL[clip]); return acts[key]; };
-  act("idle", "idle").play(); act("walk", "walk").play().setEffectiveWeight(0); for (const [k, n] of [["wave", "agree"], ["no", "headShake"], ["sad", "sad_pose"], ["sneak", "sneak_pose"]]) gesture(mixer, acts, k, ADD(CL, n));
-  const c = { id, root, mixer, acts, w: 0, path: [], speed: 0, name, yaw: rot, pose: null }; chars.push(c); return c; }
+  act("idle", "idle").play(); act("walk", "walk").play().setEffectiveWeight(0); act("run", "run").play().setEffectiveWeight(0); for (const [k, n] of [["wave", "agree"], ["no", "headShake"], ["sad", "sad_pose"], ["sneak", "sneak_pose"]]) gesture(mixer, acts, k, ADD(CL, n));
+  const c = { id, root, mixer, acts, w: 0, r: 0, path: [], speed: 0, name, yaw: rot, pose: null }; chars.push(c); return c; }
 function makeChar(id, { x, z, rot = 0, name }) {
   // un vrai personnage modélisé, quand on en a un pour ce rôle ; sinon le mannequin habillé
   if (MODELS[id]) { const src = MODELS[id], root = src; if (!src.userData.k) { src.updateMatrixWorld(true); const b = new THREE.Box3().setFromObject(src); src.userData.k = 1.74 / (b.max.y - b.min.y); }
@@ -187,21 +228,23 @@ function makeChar(id, { x, z, rot = 0, name }) {
   if (L.handbag) { const hb = attach(bones.mixamorigLeftHand, wp(bones.mixamorigLeftHand)); part(new THREE.BoxGeometry(ht * 1.1, w * 0.6, d * 0.4), L.handbag, ht * 0.75, 0, 0, hb); }
   root.position.set(x, 0, z); root.rotation.y = rot; scene.add(root); const mixer = new THREE.AnimationMixer(root), acts = {}, CL = CLIPS;
   const act = (key, clip) => { acts[key] = mixer.clipAction(CLIPS[clip]); return acts[key]; };
-  act("idle", "idle").play(); act("walk", "walk").play().setEffectiveWeight(0); for (const [k, n] of [["wave", "agree"], ["no", "headShake"], ["sad", "sad_pose"], ["sneak", "sneak_pose"]]) gesture(mixer, acts, k, ADD(CL, n));
-  const c = { id, root, mixer, acts, w: 0, path: [], speed: 0, name, yaw: rot, pose: null }; chars.push(c); return c;
+  act("idle", "idle").play(); act("walk", "walk").play().setEffectiveWeight(0); act("run", "run").play().setEffectiveWeight(0); for (const [k, n] of [["wave", "agree"], ["no", "headShake"], ["sad", "sad_pose"], ["sneak", "sneak_pose"]]) gesture(mixer, acts, k, ADD(CL, n));
+  const c = { id, root, mixer, acts, w: 0, r: 0, path: [], speed: 0, name, yaw: rot, pose: null }; chars.push(c); return c;
 }
 function setPose(c, k) { if (c.pose === k) return; if (c.pose) c.acts[c.pose].fadeOut(0.3); c.pose = k; if (k) c.acts[k].reset().fadeIn(0.3).play(); }
 function stepChar(c, dt) {
   let moving = false;
   if (c.path.length) { const t = c.path[0], dx = t.x - c.root.position.x, dz = t.z - c.root.position.z, d = Math.hypot(dx, dz);
     if (d < 0.08) c.path.shift(); else { moving = true; const want = Math.atan2(dx, dz); let dy = want - c.yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); c.yaw += dy * Math.min(1, dt * 8);
-      c.speed += ((Math.min(1, d / 0.6 + 0.35) * WALK) - c.speed) * Math.min(1, dt * 6); const st = c.speed * dt * Math.max(0.2, Math.cos(dy)), nx = c.root.position.x + Math.sin(c.yaw) * st, nz = c.root.position.z + Math.cos(c.yaw) * st;
+      // au-delà de 3 m de trajet restant, Camille court ; on ralentit en arrivant
+      let left = d; for (let k = 1; k < c.path.length; k++) left += c.path[k].distanceTo(c.path[k - 1]); c.r += (((c === player && left > 3) ? 1 : 0) - c.r) * Math.min(1, dt * 4);
+      c.speed += ((Math.min(1, left / 0.6 + 0.35) * (WALK + (RUN - WALK) * c.r)) - c.speed) * Math.min(1, dt * 6); const st = c.speed * dt * Math.max(0.2, Math.cos(dy)), nx = c.root.position.x + Math.sin(c.yaw) * st, nz = c.root.position.z + Math.cos(c.yaw) * st;
       if (free(nx, nz)) c.root.position.set(nx, 0, nz); else if (free(nx, c.root.position.z)) c.root.position.x = nx; else if (free(c.root.position.x, nz)) c.root.position.z = nz; else c.path = []; } }
-  if (!moving) c.speed += (0 - c.speed) * Math.min(1, dt * 8);
+  if (!moving) { c.speed += (0 - c.speed) * Math.min(1, dt * 8); c.r += (0 - c.r) * Math.min(1, dt * 6); }
   c.root.rotation.y = c.yaw; c.w += ((moving ? 1 : 0) - c.w) * Math.min(1, dt * 7);
-  c.acts.walk.setEffectiveWeight(c.w); c.acts.idle.setEffectiveWeight(1 - c.w); c.acts.walk.timeScale = Math.max(0.5, c.speed / WALK); c.mixer.update(dt);
+  c.acts.walk.setEffectiveWeight(c.w * (1 - c.r)); c.acts.run.setEffectiveWeight(c.w * c.r); c.acts.idle.setEffectiveWeight(1 - c.w); c.acts.walk.timeScale = Math.max(0.5, Math.min(1.6, c.speed / WALK)); c.acts.run.timeScale = Math.max(0.6, Math.min(1.3, c.speed / RUN)); c.mixer.update(dt);
 }
-const R = 0.32, free = (x, z) => x > -7.7 && x < 8.5 && z > -5.7 && z < 5.7 && !colliders.some(([x0, z0, x1, z1]) => x > x0 - R && x < x1 + R && z > z0 - R && z < z1 + R);
+const R = 0.32, free = (x, z) => x > -5.45 && x < 5.65 && z > -4.3 && z < 4.3 && !colliders.some(([x0, z0, x1, z1]) => x > x0 - R && x < x1 + R && z > z0 - R && z < z1 + R);
 
 /* ---------- caméra, clics, dialogue ---------- */
 let player, odile, gerald, talking = false, camPos = new THREE.Vector3(0, 9, 12), camLook = new THREE.Vector3();
@@ -212,13 +255,31 @@ cv.addEventListener("pointerdown", e => {
   if (talking || !player) return; const r = cv.getBoundingClientRect(); ray.setFromCamera(new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1), camera);
   // un personnage touché (ou visé à moins de 0,7 m) : on va lui parler
   let best = null, bd = 0.7; for (const c of chars) { if (c === player) continue; const d = ray.intersectObject(c.root, true).length ? 0 : ray.ray.distanceToPoint(c.root.position.clone().setY(1)); if (d < bd) { bd = d; best = c; } }
-  if (best) { player.goal = best; player.path = [approach(best)]; marker.material.opacity = 0; return; }
-  const hp = ray.intersectObjects(posters, false)[0]; if (hp) { player.goal = hp.object; player.path = [hp.object.userData.spot.clone()]; marker.material.opacity = 0; return; }
-  const p = new THREE.Vector3(); if (!ray.ray.intersectPlane(ground, p)) return; p.x = Math.max(-7.6, Math.min(8.4, p.x)); p.z = Math.max(-5.6, Math.min(5.6, p.z));
-  player.path = [p]; player.goal = null; marker.position.set(p.x, 0.03, p.z); marker.material.opacity = 0.9;
+  if (best) { player.goal = best; player.path = route(player.root.position, approach(best)); marker.material.opacity = 0; return; }
+  const hp = ray.intersectObjects(interact, false)[0]; if (hp) { player.goal = hp.object; player.path = route(player.root.position, hp.object.userData.spot); marker.material.opacity = 0; return; }
+  const p = new THREE.Vector3(); if (!ray.ray.intersectPlane(ground, p)) return; p.x = Math.max(-5.4, Math.min(5.6, p.x)); p.z = Math.max(-4.25, Math.min(4.25, p.z));
+  player.path = route(player.root.position, p); player.goal = null; const e2 = player.path[player.path.length - 1] || p; marker.position.set(e2.x, 0.03, e2.z); marker.material.opacity = 0.9;
 });
 // point d'arrêt devant quelqu'un : à 1,1 m, du côté du joueur ; Odile se parle à travers la vitre de son local
-function approach(c) { if (c === odile) return new THREE.Vector3(-5.2, 0, -1.9); const o = c.root.position, d = player.root.position.clone().sub(o).setY(0); if (d.lengthSq() < 0.01) d.set(0, 0, 1); d.normalize();
+// chemin : grille de 25 cm sur le sol libre, A*, puis on ne garde que les virages (lignes droites dès qu'on voit le but)
+const CELL = 0.25, GX0 = -5.5, GZ0 = -4.35, GW = Math.ceil(11.2 / CELL), GH = Math.ceil(8.7 / CELL);
+let GRID = null; function grid() { if (GRID) return GRID; GRID = new Uint8Array(GW * GH); for (let j = 0; j < GH; j++) for (let i = 0; i < GW; i++) GRID[j * GW + i] = free(GX0 + (i + 0.5) * CELL, GZ0 + (j + 0.5) * CELL) ? 1 : 0; return GRID; }
+const sees = (a, b) => { const n = Math.ceil(a.distanceTo(b) / 0.1); for (let k = 1; k <= n; k++) { const t = k / n; if (!free(a.x + (b.x - a.x) * t, a.z + (b.z - a.z) * t)) return false; } return true; };
+function route(from, to) { const G = grid(), cl = (v, n) => Math.max(0, Math.min(n - 1, v));
+  const cell = v => [cl(Math.floor((v.x - GX0) / CELL), GW), cl(Math.floor((v.z - GZ0) / CELL), GH)];
+  const near = ([i, j]) => { if (G[j * GW + i]) return [i, j]; for (let r = 1; r < 12; r++) for (let dj = -r; dj <= r; dj++) for (let di = -r; di <= r; di++) { const a = i + di, b = j + dj; if (a >= 0 && b >= 0 && a < GW && b < GH && G[b * GW + a]) return [a, b]; } return [i, j]; };
+  const [si, sj] = near(cell(from)), [ti, tj] = near(cell(to)), goal = tj * GW + ti, start = sj * GW + si;
+  const end = G[cell(to)[1] * GW + cell(to)[0]] && free(to.x, to.z) ? to.clone().setY(0) : new THREE.Vector3(GX0 + (ti + 0.5) * CELL, 0, GZ0 + (tj + 0.5) * CELL);
+  if (sees(from, end)) return [end];
+  const gs = new Float32Array(GW * GH).fill(1e9), prev = new Int32Array(GW * GH).fill(-1), open = [start]; gs[start] = 0; const h = k => Math.hypot(k % GW - ti, Math.floor(k / GW) - tj);
+  while (open.length) { let bi = 0; for (let k = 1; k < open.length; k++) if (gs[open[k]] + h(open[k]) < gs[open[bi]] + h(open[bi])) bi = k; const cur = open.splice(bi, 1)[0]; if (cur === goal) break;
+    const ci = cur % GW, cj = Math.floor(cur / GW);
+    for (const [di, dj] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]]) { const a = ci + di, b = cj + dj; if (a < 0 || b < 0 || a >= GW || b >= GH || !G[b * GW + a]) continue; if (di && dj && (!G[cj * GW + a] || !G[b * GW + ci])) continue;
+      const k = b * GW + a, ng = gs[cur] + (di && dj ? 1.414 : 1); if (ng < gs[k]) { gs[k] = ng; prev[k] = cur; if (!open.includes(k)) open.push(k); } } }
+  if (prev[goal] < 0 && goal !== start) return [end];
+  const pts = []; for (let k = goal; k >= 0 && k !== start; k = prev[k]) pts.unshift(new THREE.Vector3(GX0 + (k % GW + 0.5) * CELL, 0, GZ0 + (Math.floor(k / GW) + 0.5) * CELL)); pts.push(end);
+  const out = []; let a = from.clone().setY(0); for (let k = 0; k < pts.length; k++) { if (k === pts.length - 1 || !sees(a, pts[k + 1])) { out.push(pts[k]); a = pts[k]; } } return out; }
+function approach(c) { if (c === odile) return new THREE.Vector3(-3.9, 0, -1.6); const o = c.root.position, d = player.root.position.clone().sub(o).setY(0); if (d.lengthSq() < 0.01) d.set(0, 0, 1); d.normalize();
   for (let k = 0; k < 8; k++) { const a = (k % 2 ? 1 : -1) * Math.ceil(k / 2) * 0.6, v = d.clone().applyAxisAngle(new THREE.Vector3(0, 1, 0), a).multiplyScalar(1.1).add(o); if (free(v.x, v.z)) return v.setY(0); } return o.clone().setY(0); }
 const $dlg = document.getElementById("dlg"), $txt = document.getElementById("dTxt"), $opts = document.getElementById("dOpts"), $img = document.getElementById("dImg"); let voice = null;
 function say(text, img, mp3, opts, title) { $dlg.hidden = false; $dlg.querySelector("h2").textContent = title || ""; document.getElementById("help").hidden = true; $txt.textContent = text; $img.src = img; $opts.innerHTML = ""; if (voice) voice.pause(); if (mp3) { voice = new Audio(mp3); voice.play().catch(() => {}); }
@@ -233,7 +294,8 @@ const DLG = {
     ["« Je peux t'aider à quelque chose ? »", "« Mon registre. Je l'ai oublié sur le banc en arrivant, le cahier bleu. Tu me le rapportes ? Je ne peux pas quitter le poste. » Elle ajoute, trop vite : « Pas avant 57, en tout cas. »", "o_registre", 0, null, () => F.cafe = 1],
     ["« Pourquoi “pas avant 57” ? »", "« Deux minutes, à 57. Un café. J'ai le droit, non ? »", "o_cafe57", 1, () => F.cafe],
     ["« L'homme au gilet jaune, tu le connais ? »", "Elle se raidit. « C'est un sous-traitant. » Un temps trop long. « Tu as une preuve ? Non ? Alors ne dis pas des choses pareilles. »", "o_soustraitant", 1, () => F.intrus, null, "no"],
-    ["« Le jeune à la casquette cache quelque chose. »", "« Le gamin ? Tu l'accuses sur quoi, sa casquette ? Apporte-moi quelque chose de concret. »", "o_gamin", 0, () => F.sac && !F.drone, null, "no"]] },
+    ["« Le jeune à la casquette cache quelque chose. »", "« Le gamin ? Tu l'accuses sur quoi, sa casquette ? Apporte-moi quelque chose de concret. »", "o_gamin", 0, () => F.sac && !F.drone, null, "no"],
+    ["« Je t'ai pris un café. »", "« Tu as pensé à moi. » Elle le prend à deux mains. « Bon. Je reste là, alors. »", "o_pense", 2, () => F.cafeItem, () => { F.cafeItem = 0; F.cafeDone = 1; }, "wave"]] },
   gerald: { name: "L'homme au gilet jaune", intro: "Grand, mâchoire serrée. Il regarde sa montre, puis la porte du local, puis sa montre.", lines: [
     ["« Vous travaillez ici ? »", "« Sous-traitance. Vérifications de fin d'exploitation. Écartez-vous, s'il vous plaît. »", "gerald_soustraitance", 0],
     ["« Vous attendez quoi ? »", "« Que vous me lâchiez. » Il regarde encore sa montre.", "g_lachiez", 1],
@@ -261,7 +323,7 @@ function talk(c) { talking = true; talkTo = c; c.hold = true; c.path = [];
   player.yaw = Math.atan2(c.root.position.x - player.root.position.x, c.root.position.z - player.root.position.z);
   if (c !== odile) c.yaw = Math.atan2(player.root.position.x - c.root.position.x, player.root.position.z - c.root.position.z);
   menu(c, DLG[c.id].intro, 0); }
-function readPoster(o) { talking = true; talkTo = o; player.yaw = Math.PI; const u = o.userData; if (u.fx) u.fx(); say(u.text, u.img, null, [["Partir", endTalk]], u.title); }
+function readProp(o) { talking = true; talkTo = o; { const w = o.getWorldPosition(new THREE.Vector3()); player.yaw = Math.atan2(w.x - player.root.position.x, w.z - player.root.position.z); } const u = o.userData; if (u.fx) u.fx(); say(typeof u.text === "function" ? u.text() : u.text, u.img, null, [...(u.opts ? u.opts() : []), ["Partir", endTalk]], u.title); }
 
 /* ---------- boucle ---------- */
 // modèles embarqués dans un script (les pages hébergées ne servent pas les fichiers .glb)
@@ -276,14 +338,16 @@ import("./xbot.js").then(async m => {
   // vitesse de marche déduite de l'animation : amplitude du pied × 2 par cycle, pour que les pieds ne glissent pas
   { const tmp = SkeletonUtils.clone(BASE), mx = new THREE.AnimationMixer(tmp), cl = CLIPS.walk; mx.clipAction(cl).play(); let f; tmp.traverse(o => { if (o.isBone && o.name === "mixamorigLeftFoot") f = o; }); let lo = 9, hi = -9;
     for (let i = 0; i <= 24; i++) { mx.setTime((cl.duration * i) / 24); tmp.updateMatrixWorld(true); f.getWorldPosition(v); lo = Math.min(lo, v.z); hi = Math.max(hi, v.z); } WALK = Math.max(0.8, Math.min(2.2, ((hi - lo) * 2 * SCALE) / cl.duration)); }
+  { const tmp = SkeletonUtils.clone(BASE), mx = new THREE.AnimationMixer(tmp), cl = CLIPS.run; mx.clipAction(cl).play(); let f; tmp.traverse(o => { if (o.isBone && o.name === "mixamorigLeftFoot") f = o; }); let lo = 9, hi = -9;
+    for (let i = 0; i <= 24; i++) { mx.setTime((cl.duration * i) / 24); tmp.updateMatrixWorld(true); f.getWorldPosition(v); lo = Math.min(lo, v.z); hi = Math.max(hi, v.z); } RUN = Math.max(WALK * 1.6, Math.min(4.5, ((hi - lo) * 2 * SCALE) / cl.duration)); }
   const P = (await import("./persos.js")).default; for (const [k, b64] of Object.entries(P)) { const g = await parse(b64); MODELS[k] = g.scene; OWN[k] = g.animations[0]; }
-  player = makeChar("camille", { x: -5.5, z: 4.6, rot: Math.PI, name: "Camille" });
-  odile = makeChar("odile", { x: -5.6, z: -3.9, rot: 0, name: "Odile" });
-  gerald = makeChar("gerald", { x: 6.6, z: -4, rot: 0, name: "Gérald" });
-  makeChar("bastien", { x: -6.4, z: 2.0, rot: 0.5, name: "Bastien" });
-  makeChar("delattre", { x: -6.3, z: 3.9, rot: 1.2, name: "Mme Delattre" });
-  if (location.hash === "#cast") { CASTING = true; chars.forEach((c, i) => { setPose(c, null); c.root.position.set(-4.6 + i * 1.15, 0, 0.5); c.yaw = 0.25 - i * 0.12; c.path = []; }); }
-  document.getElementById("load").hidden = true; window.__p3 = { player, odile, gerald, chars, F, talk, endTalk, posters, camera, free, WALK, SCALE, get t() { return T; } };
+  player = makeChar("camille", { x: -2.6, z: 3.4, rot: Math.PI, name: "Camille" });
+  odile = makeChar("odile", { x: -4, z: -3.4, rot: 0, name: "Odile" });
+  gerald = makeChar("gerald", { x: 4.4, z: -3.2, rot: 0, name: "Gérald" });
+  makeChar("bastien", { x: -3.9, z: 1.5, rot: 0.6, name: "Bastien" });
+  makeChar("delattre", { x: -0.9, z: 2.3, rot: -0.4, name: "Mme Delattre" });
+  if (location.hash === "#cast") { CASTING = true; chars.forEach((c, i) => { setPose(c, null); c.root.position.set(-3 + i * 1.15, 0, 0.9); c.yaw = 0.25 - i * 0.12; c.path = []; }); }
+  document.getElementById("load").hidden = true; window.__p3 = { RUN, player, odile, gerald, chars, F, talk, endTalk, interact, route, camera, free, WALK, SCALE, get t() { return T; } };
 }).catch(fail);
 const clock = new THREE.Clock(); let T = 0, gPhase = 0, callAt = 0, callDone = false, lastK = 0;
 // son spatialisé simplement : plus on est loin, moins on entend (plus rien au-delà de 14 m)
@@ -293,13 +357,13 @@ function frame() {
   const dt = Math.min(0.1, clock.getDelta()); T += dt;
   if (player) {
     // Gérald fait les cent pas sur le quai
-    if (CASTING) { for (const c of chars) stepChar(c, dt); camera.position.set(-2.3, 1.35, 4.6); camera.lookAt(-2.3, 0.95, 0.5); renderer.render(scene, camera); requestAnimationFrame(frame); return; }
-    if (!gerald.path.length && !gerald.hold) { gPhase++; gerald.path = [new THREE.Vector3(6.4 + (gPhase % 2) * 1.4, 0, gPhase % 2 ? 3.4 : -4.2)]; }
+    if (CASTING) { for (const c of chars) stepChar(c, dt); camera.position.set(-0.7, 1.35, 4.4); camera.lookAt(-0.7, 0.95, 0.9); renderer.render(scene, camera); requestAnimationFrame(frame); return; }
+    if (!gerald.path.length && !gerald.hold) { gPhase++; gerald.path = [new THREE.Vector3(4.1 + (gPhase % 2) * 1.1, 0, gPhase % 2 ? 2.9 : -3.7)]; }
     for (const c of chars) stepChar(c, talking && c === player ? 0 : dt), talking && c === player && c.mixer.update(dt);
     if (player.goal && !talking) { const g = player.goal;
-      if (g.isObject3D) { if (!player.path.length) { player.goal = null; readPoster(g); } }
+      if (g.isObject3D) { if (!player.path.length) { player.goal = null; readProp(g); } }
       else { const d = player.root.position.distanceTo(g.root.position);
-        if (g !== odile && player.path.length && d > 1.6 && T - (player.repath || 0) > 0.4) { player.path = [approach(g)]; player.repath = T; }
+        if (g !== odile && player.path.length && d > 1.6 && T - (player.repath || 0) > 0.6) { player.path = route(player.root.position, approach(g)); player.repath = T; }
         if (!player.path.length) { player.goal = null; if (g === odile || d < 2.2) talk(g); } } }
     // 21 h 54 min 25 s : le téléphone de Gérald sonne ; à moins de 5 m, Camille surprend la conversation
     if (!callAt && T > 25 && talkTo !== gerald) { callAt = T; gerald.hold = true; gerald.path = []; sfx("sons/telephone.mp3", gerald.root.position, 0.7); }
@@ -309,8 +373,10 @@ function frame() {
     if (!player.path.length) marker.material.opacity *= 0.9; marker.scale.setScalar(1 + Math.sin(T * 6) * 0.08);
     // caméra : suit le joueur de haut ; se rapproche par-dessus son épaule pendant un dialogue
     const pp = player.root.position, portrait = innerWidth < innerHeight;
-    const want = talking ? new THREE.Vector3(pp.x + 2.2, 2.6, pp.z + 3.6) : new THREE.Vector3(pp.x * 0.8 + 0.4, portrait ? 9.5 : 6.2, pp.z * 0.8 + (portrait ? 9.5 : 7.6));
-    const tp = talkTo ? (talkTo.isObject3D ? talkTo.position : talkTo.root.position) : pp, look = talking ? new THREE.Vector3(tp.x, talkTo && talkTo.isObject3D ? tp.y : 1.5, tp.z) : new THREE.Vector3(pp.x * 0.9, 1.1, pp.z * 0.85 - 0.6);
+    // pendant un dialogue : par-dessus l'épaule ; devant un objet (affiche, machine) : de trois quarts, à hauteur d'yeux
+    const prop = talkTo && talkTo.isObject3D, tp = talkTo ? (prop ? talkTo.getWorldPosition(new THREE.Vector3()) : talkTo.root.position) : pp;
+    const want = !talking ? (portrait ? new THREE.Vector3(pp.x * 0.7, 9, pp.z * 0.6 + 7.2) : new THREE.Vector3(pp.x * 0.8 + 0.4, 6.2, pp.z * 0.8 + 7.6)) : prop ? new THREE.Vector3(tp.x - (Math.sign(pp.x - tp.x) || 1) * 0.9, 1.7, tp.z + (portrait ? 3.6 : 2.7)) : new THREE.Vector3(pp.x + 2.2, 2.6, pp.z + 3.6);
+    const look = !talking ? (portrait ? new THREE.Vector3(pp.x * 0.7, 0.4, pp.z * 0.6 - 1.4) : new THREE.Vector3(pp.x * 0.9, 1.1, pp.z * 0.85 - 0.6)) : new THREE.Vector3(tp.x, prop ? Math.max(1.1, tp.y) : 1.5, tp.z);
     camPos.lerp(want, Math.min(1, dt * 2.2)); camLook.lerp(look, Math.min(1, dt * 3)); camera.position.copy(camPos); camera.lookAt(camLook);
   }
   // le néon du hall qui faiblit par à-coups ; la rame qui entre en gare puis repart
