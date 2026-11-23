@@ -78,6 +78,7 @@ button:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
 #sheet { max-height: 56%; background: linear-gradient(rgba(10,15,18,.9), rgba(8,11,13,.97)); border-top: 1px solid rgba(111,211,200,.35); backdrop-filter: blur(8px); }
 .opt { border-radius: 10px; transition: border-color .15s, transform .1s; } .opt:active { transform: scale(.985); }
 .chip { background: rgba(10,14,16,.78); border-color: rgba(242,180,90,.55); backdrop-filter: blur(6px); }
+.chip { display: inline-flex; align-items: center; gap: 6px; padding-left: 5px; } .chip img { width: 26px; height: 26px; border-radius: 50%; object-fit: cover; flex: none; box-shadow: 0 0 0 1px rgba(242,180,90,.35); }
 #sheet.talk { display: flex; gap: 14px; align-items: flex-end; }
 #sheet .por { flex: none; width: clamp(92px, 24vw, 190px); align-self: flex-end; margin-bottom: -18px; filter: drop-shadow(0 6px 18px rgba(0,0,0,.7)); }
 #sheet .body { flex: 1; min-width: 0; }
@@ -106,7 +107,13 @@ button:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
 .ach div.on { border-color: var(--amber); color: var(--bone); }
 .ach div b { display: block; font-size: 13px; }
 #overlay.scene { background: #000 center / cover no-repeat; }
-#overlay.scene > div { background: linear-gradient(rgba(0,0,0,.55), rgba(0,0,0,.82)); padding: 24px 18px; border-radius: 8px; max-width: 640px; }
+#overlay.scene { place-items: end center; animation: kb 18s ease-out both; }
+#overlay.scene > div { background: linear-gradient(rgba(0,0,0,.5), rgba(0,0,0,.86) 30%); padding: 22px 18px 20px; border-radius: 10px 10px 0 0; max-width: 680px; width: 100%; margin-bottom: 0; max-height: 92vh; overflow-y: auto; overscroll-behavior: contain; box-sizing: border-box; }
+@keyframes kb { from { background-size: auto 112%; } to { background-size: auto 100%; } }
+@media (min-aspect-ratio: 16/9) { #overlay.scene { animation: none; } }
+@media (min-aspect-ratio: 4/3) and (max-height: 640px) { #overlay.scene > div { max-width: min(580px, 52vw); padding: 16px 18px; } #overlay.scene .lines p { font-size: 13.5px; margin: 0 0 6px; } #overlay.scene .t { font-size: 30px; margin-bottom: 8px; } }
+@media (min-aspect-ratio: 4/3) { #overlay.scene { place-items: end start; } #overlay.scene > div { max-width: min(500px, 42vw); margin: 0 0 3vh 2vw; border-radius: 10px; text-align: left; max-height: 94vh; } #overlay.scene .lines p { font-size: 15px; } #overlay.scene .t { font-size: 40px; } }
+@media (prefers-reduced-motion: reduce) { #overlay.scene { animation: none; } }
 #overlay .two { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
 #overlay .chp { width: 120px; margin: 4px auto 0; display: block; opacity: 0; animation: up 1s ease-out forwards; }
 #overlay .big { font-size: clamp(40px, 11vw, 86px); letter-spacing: .1em; text-shadow: 0 4px 30px #000; margin-bottom: 4px; }
@@ -211,6 +218,7 @@ const CLUES = {
   dos: "Pendant le sabotage, le gilet jaune se retourne toutes les dix secondes. Il faut agir quand il a le dos tourné.",
   porte: "On peut coincer la porte du local avec un journal plié. Le gilet jaune perd de précieuses secondes à la forcer."
 };
+const END_ART = ["chute", "sursis", "alarm", "aveux", "win", "arrestation", "repere", "verite", "silence", "erreur", "ombre", "manuel", "achete"];
 const ENDINGS = ["chute", "sursis", "alarm", "aveux", "win", "arrestation", "repere", "verite", "silence", "erreur", "ombre", "manuel", "achete"];
 // piste du moment : ce que le joueur devrait chercher, selon ce qu'il sait déjà
 // coup de pouce : la même étape que la piste, mais dite clairement
@@ -873,7 +881,7 @@ const ICON = { registre: "📒", helice: "🌀", pince: "✂️", goupille: "�
 const IDESC = { registre: "Le cahier de service de votre mère. Elle l'a oublié sur le banc.", helice: "Une petite hélice noire, tombée de la poche de quelqu'un.", pince: "Trouvée dans le sac de Bastien. Une preuve… ou pas.", goupille: "Vieille goupille rouge, ramassée par terre. Le même modèle que celles de l'armoire.", piece: "De quoi payer un café au distributeur.", cafe: "Chaud. Quelqu'un en a peut-être besoin.", photo: "Ce que le drone de Bastien a filmé devant le local.", enveloppe: "5 000 € et un mot signé « V. ». À mettre en lieu sûr.", journal: "Plié en quatre, il ferait une bonne cale.", badge: "« TechniRail Services ». Une société que personne ne connaît.", cliche: "Le gilet jaune, la goupille à la main.", bande: "L'enregistrement de la caméra du local." };
 function renderInvOld() { $inv.innerHTML = ""; for (const it of S.items) { const s = document.createElement("span"); s.className = "chip"; s.textContent = ITEMS[it]; $inv.appendChild(s); } }
 const has = it => S.items.includes(it);
-function renderInv() { $inv.innerHTML = ""; for (const it of S.items) { const b = document.createElement("button"); b.type = "button"; b.className = "chip"; b.textContent = `${ICON[it] || "•"} ${ITEMS[it]}`; b.addEventListener("click", () => toast(IDESC[it] || ITEMS[it])); $inv.appendChild(b); } }
+function renderInv() { $inv.innerHTML = ""; for (const it of S.items) { const b = document.createElement("button"); b.type = "button"; b.className = "chip"; b.innerHTML = `<img src="img/ico_${it}.webp" alt="" onerror="this.replaceWith(document.createTextNode('${ICON[it] || "•"}'))"> ${ITEMS[it]}`; b.addEventListener("click", () => toast(IDESC[it] || ITEMS[it])); $inv.appendChild(b); } }
 function give(it) { if (!has(it)) { S.items.push(it); renderInv(); } }
 function take(it) { S.items = S.items.filter(x => x !== it); renderInv(); }
 
@@ -1227,7 +1235,9 @@ function finalStats() {
 function showOverlay(title, lines, btn, kind) {
   $ov.hidden = false;
   if (btn && !revealed()) btn = "Rouvrir les yeux";
-  $ov.className = (kind === "chute" && S.aboard) || !btn ? "scene" : ""; $ov.style.backgroundImage = kind === "chute" && S.aboard ? "url(img/cabine.jpg)" : !btn ? "url(img/title.jpg)" : "";
+  // chaque fin a son illustration plein écran ; la chute vécue à bord garde la vue depuis la cabine
+  const art = kind === "chute" && S.aboard ? "img/cabine.jpg" : END_ART.includes(kind) ? `img/fin_${kind}.jpg` : !btn ? "img/title.jpg" : "";
+  $ov.className = art ? "scene" : ""; $ov.style.backgroundImage = art ? `url(${art})` : "";
   $ov.innerHTML = `<div><p class="t">${title}</p><div class="lines">${lines.map((l, i) => `<p style="animation-delay:${0.4 + i * 1.3}s">${l}</p>`).join("")}</div>${btn ? loopSummary() : finalStats()}${btn ? `<button class="go" type="button" style="animation-delay:${0.6 + lines.length * 1.3}s">${btn}</button>` : `<button class="go" type="button" style="animation-delay:${0.6 + lines.length * 1.3}s">Rejouer depuis le début</button><p class="small">Fins découvertes : ${M.endings.length}/${ENDINGS.length}. Fiction : le POMA 2000 a réellement relié la gare à la ville haute de Laon de 1989 à 2016 ; personnages et événements sont inventés.</p>`}</div>`;
     $ov.querySelector(".go").addEventListener("click", () => {
     Voice.stop();
@@ -1263,7 +1273,7 @@ function cabinScene() {
 }
 // le dilemme final : dire toute la vérité, ou couvrir sa mère
 function choiceOverlay() {
-  S.over = true; paused = true; closeSheet(); Snd.tension(0.4); $ov.hidden = false; $ov.className = "scene"; $ov.style.backgroundImage = "";
+  S.over = true; paused = true; closeSheet(); Snd.tension(0.4); $ov.hidden = false; $ov.className = "scene"; $ov.style.backgroundImage = "url(img/fin_silence.jpg)";
   $ov.innerHTML = `<div><p class="t">21:59:48</p><div class="lines"><p style="animation-delay:.4s">Le frein est réarmé. La rame va partir. Dehors, un gyrophare bleu balaie la pluie.</p><p style="animation-delay:1.9s">Votre mère vous tend son téléphone. Les messages de Vasseur, les heures, tout y est.</p><p style="animation-delay:3.4s">« Fais ce qui est juste, Camille. Je ne te demanderai rien. »</p></div><img class="chp" alt="" src="img/p_odile_2.webp" style="animation-delay:3.4s"><div class="two"><button class="go" type="button" data-c="verite" style="animation-delay:5s">Tout donner à la police</button><button class="go" type="button" data-c="silence" style="animation-delay:5s">Effacer les messages</button></div></div>`;
   Voice.speak("odile", "« Fais ce qui est juste, Camille. Je ne te demanderai rien. »");
   for (const b of $ov.querySelectorAll("[data-c]")) b.addEventListener("click", () => { S.choice = b.dataset.c; S.over = false; $ov.hidden = true; endLoop(); });
