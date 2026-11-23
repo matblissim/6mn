@@ -102,17 +102,54 @@ const rame = new THREE.Group(); scene.add(rame); rame.position.set(11.1, 0, -30)
 const rainN = 500, rainG = new THREE.BufferGeometry(), rp = new Float32Array(rainN * 3); for (let i = 0; i < rainN; i++) { rp[i * 3] = -9 + Math.random() * 22; rp[i * 3 + 1] = Math.random() * 7; rp[i * 3 + 2] = 6.6 + Math.random() * 6; }
 rainG.setAttribute("position", new THREE.BufferAttribute(rp, 3)); scene.add(new THREE.Points(rainG, new THREE.PointsMaterial({ color: 0x9fc0cc, size: 0.05, transparent: true, opacity: 0.6 })));
 
-/* ---------- personnages : un même mannequin animé, habillé par ses couleurs ---------- */
-const chars = [];
-function makeChar(gltf, { body, joints, x, z, rot = 0, name }) {
-  const root = SkeletonUtils.clone(gltf.scene); root.position.set(x, 0, z); root.rotation.y = rot;
-  root.traverse(o => { if (o.isMesh) { o.castShadow = true; o.frustumCulled = false; o.material = new THREE.MeshStandardMaterial({ color: /Joints/.test(o.material.name) ? joints : body, roughness: 0.6, metalness: 0.05 }); } });
-  scene.add(root); const mixer = new THREE.AnimationMixer(root), acts = {};
-  for (const clip of gltf.animations) acts[clip.name] = mixer.clipAction(clip);
-  acts.idle.play(); acts.walk.play(); acts.walk.setEffectiveWeight(0);
-  const c = { root, mixer, acts, w: 0, path: [], speed: 0, name, yaw: rot }; chars.push(c); return c;
+/* ---------- personnages : un mannequin aux proportions réalistes, habillé et coiffé pour chaque rôle ---------- */
+const chars = []; let BASE = null, CLIPS = {}, HEAD = null, CHEST = null, SCALE = 1, WALK = 1.4;
+const flat = c => new THREE.MeshStandardMaterial({ color: c, roughness: 0.75, flatShading: true });
+function part(geo, color, x, y, z, parent, sx = 1, sy = 1, sz = 1) { const m = new THREE.Mesh(geo, flat(color)); m.position.set(x, y, z); m.scale.set(sx, sy, sz); m.castShadow = true; parent.add(m); return m; }
+const CAST = {
+  camille: { skin: 0xe8b99b, top: 0x262b33, sleeves: 0x262b33, legs: 0x1b1f25, shoes: 0x101214, hood: 0x1d2128, scarf: 0x48535f, satchel: 0x5a3a24 },
+  odile: { skin: 0xe6b596, top: 0x2c4a80, sleeves: 0x2c4a80, legs: 0x222a36, shoes: 0x14171b, hair: 0xbfc4c9, tousled: true, bands: 0xd5dde2, glasses: true },
+  gerald: { skin: 0xd9a37f, top: 0xe8d51c, sleeves: 0x1c2740, legs: 0x1a2233, shoes: 0x17130f, hair: 0x2a211c, beard: 0x2a211c, bands: 0xc9d1d6, pouch: 0x3a2c1e },
+  bastien: { skin: 0xe2ae8c, top: 0x556b3a, sleeves: 0x556b3a, legs: 0x2a2d31, shoes: 0xd8d8d2, hair: 0x2b2420, cap: 0x13161a, bag: 0x101214 },
+  delattre: { skin: 0xecc7ad, top: 0xcdb994, sleeves: 0xcdb994, legs: 0x2c2a2e, shoes: 0x1a1416, hair: 0xf0efea, bun: true, hat: 0x7a2233, coat: 0xcdb994, handbag: 0x6b3a22, pearls: true }
+};
+function makeChar(id, { x, z, rot = 0, name }) {
+  const L = CAST[id], root = SkeletonUtils.clone(BASE); root.scale.setScalar(SCALE);
+  const bones = {}; root.traverse(o => { if (o.isBone) bones[o.name] = o; });
+  // couleurs par sommet, selon l'os dominant : mains et tête couleur peau, pieds couleur chaussures
+  root.traverse(o => { if (!o.isSkinnedMesh) return; o.castShadow = true; o.frustumCulled = false;
+    const g = o.geometry = o.geometry.clone(), si = g.attributes.skinIndex, sw = g.attributes.skinWeight, n = g.attributes.position.count, col = new Float32Array(n * 3), c = new THREE.Color();
+    for (let i = 0; i < n; i++) { let bi = 0, bw = -1; for (let k = 0; k < 4; k++) { const w = sw.getComponent(i, k); if (w > bw) { bw = w; bi = si.getComponent(i, k); } }
+      const bn = o.skeleton.bones[bi].name; c.setHex(/Head|Neck/.test(bn) ? L.skin : /Hand/.test(bn) ? L.skin : /Foot|Toe/.test(bn) ? L.shoes : /UpLeg|Leg/.test(bn) ? L.legs : /Hips/.test(bn) ? (L.coat || L.legs) : /Arm|Shoulder/.test(bn) ? L.sleeves : L.top); col.set([c.r, c.g, c.b], i * 3); }
+    g.setAttribute("color", new THREE.BufferAttribute(col, 3)); o.material = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.72 }); });
+  // la tête : yeux, cheveux, coiffe. Tout est mesuré sur la tête du mannequin (centre HEAD.c, rayon HEAD.r).
+  root.updateMatrixWorld(true); const wp = bn => bn.getWorldPosition(new THREE.Vector3());
+  // point d'attache : un groupe accroché à un os, mais dont les axes et l'échelle sont ceux du monde (en mètres) au repos
+  const attach = (bone, at) => { const g = new THREE.Group(); bone.add(g); g.position.copy(bone.worldToLocal(at.clone())); g.quaternion.copy(bone.getWorldQuaternion(new THREE.Quaternion()).invert()); g.scale.setScalar(1 / bone.getWorldScale(new THREE.Vector3()).x); return g; };
+  const hp = wp(bones.mixamorigHead), tp = wp(bones.mixamorigHeadTop_End), r = hp.distanceTo(tp) * 0.7, h = attach(bones.mixamorigHead, hp.clone().lerp(tp, 0.6).add(new THREE.Vector3(0, 0, 0.012))), S = new THREE.SphereGeometry(1, 14, 10);
+  for (const sx of [-1, 1]) { part(S, 0x15110f, sx * r * 0.34, r * 0.1, r * 0.8, h, r * 0.1, r * 0.13, r * 0.08); part(new THREE.BoxGeometry(r * 0.3, r * 0.06, r * 0.06), L.hair || L.hood || 0x2a211c, sx * r * 0.34, r * 0.33, r * 0.8, h); }
+  if (L.glasses) for (const sx of [-1, 1]) { const t = part(new THREE.TorusGeometry(r * 0.2, r * 0.03, 6, 14), 0x22262a, sx * r * 0.36, r * 0.02, r * 0.95, h); t.material.metalness = 0.6; }
+  if (L.hair && !L.cap && !L.hat) { part(new THREE.SphereGeometry(1, 12, 8, 0, Math.PI * 2, 0, Math.PI * 0.42), L.hair, 0, r * 0.1, -r * 0.08, h, r * 1.05, r * 1.06, r * 1.08); if (L.tousled) for (const [a, b, c2] of [[-0.5, 0.75, 0.3], [0.45, 0.8, 0.1], [0, 0.9, -0.4], [-0.75, 0.4, -0.3], [0.8, 0.35, -0.2], [0.2, 0.75, 0.55], [-0.3, 0.7, 0.6]]) part(S, L.hair, a * r, b * r, c2 * r, h, r * 0.34, r * 0.3, r * 0.34); }
+  if (L.bun) { part(new THREE.SphereGeometry(1, 12, 8, 0, Math.PI * 2, 0, Math.PI * 0.6), L.hair, 0, r * 0.05, -r * 0.1, h, r * 1.08, r * 1.02, r * 1.1); part(S, L.hair, 0, r * 0.15, -r * 1.05, h, r * 0.38, r * 0.36, r * 0.34); }
+  if (L.hat) { part(new THREE.CylinderGeometry(r * 0.78, r * 0.86, r * 0.55, 14), L.hat, 0, r * 0.82, -r * 0.05, h); part(new THREE.CylinderGeometry(r * 1.3, r * 1.3, r * 0.08, 16), L.hat, 0, r * 0.58, -r * 0.05, h); part(S, 0xf0a8c8, r * 0.75, r * 0.78, r * 0.3, h, r * 0.2, r * 0.2, r * 0.2); }
+  if (L.cap) { part(new THREE.SphereGeometry(1, 12, 8, 0, Math.PI * 2, 0, Math.PI * 0.5), L.cap, 0, r * 0.2, 0, h, r * 1.1, r * 1.0, r * 1.12); part(new THREE.BoxGeometry(r * 1.3, r * 0.08, r * 0.8), L.cap, 0, r * 0.28, r * 1.25, h); part(new THREE.SphereGeometry(1, 10, 6, 0, Math.PI * 2, Math.PI * 0.5, Math.PI * 0.2), L.hair, 0, r * 0.2, -r * 0.05, h, r * 1.06, r * 1.0, r * 1.08); }
+  if (L.beard) part(new THREE.SphereGeometry(1, 12, 8, 0, Math.PI, Math.PI * 0.62, Math.PI * 0.38), L.beard, 0, -r * 0.02, r * 0.02, h, r * 0.98, r * 1.05, r * 0.98);
+  if (L.hood) { const m = part(new THREE.SphereGeometry(1, 14, 10, 0, Math.PI * 2, 0, Math.PI * 0.72), L.hood, 0, r * 0.02, -r * 0.14, h, r * 1.22, r * 1.2, r * 1.24); m.rotation.x = -0.5; part(new THREE.TorusGeometry(r * 0.62, r * 0.2, 8, 14), L.scarf, 0, -r * 0.98, r * 0.1, h).rotation.x = Math.PI / 2; }
+  if (L.pearls) part(new THREE.TorusGeometry(r * 0.56, r * 0.07, 6, 16), 0xf4f0e6, 0, -r * 0.95, r * 0.12, h).rotation.x = Math.PI / 2;
+  // le buste : bandes réfléchissantes, sac, sacoche, manteau long
+  const b = attach(bones.mixamorigSpine2, wp(bones.mixamorigSpine2).add(new THREE.Vector3(0, 0.02 * SCALE, 0.01))), w = 0.34 * SCALE, d = 0.25 * SCALE, ht = 0.18 * SCALE;
+  if (L.bands) { for (const y of [0.1, -0.5]) part(new THREE.BoxGeometry(w * 0.9, ht * 0.2, d * 0.96), L.bands, 0, ht * y, 0, b).material.emissive = new THREE.Color(L.bands).multiplyScalar(0.25); if (id === "gerald") for (const sx of [-1, 1]) part(new THREE.BoxGeometry(w * 0.12, ht * 1.3, d * 0.98), L.bands, sx * w * 0.22, ht * 0.15, 0, b); }
+  if (L.bag) { const m = part(new THREE.BoxGeometry(w * 1.25, ht * 0.5, d * 0.85), L.bag, w * 0.05, -ht * 0.2, -d * 0.95, b); m.rotation.z = 0.25; part(new THREE.BoxGeometry(w * 0.09, ht * 1.2, d * 1.2), L.bag, 0, ht * 0.1, 0, b).rotation.z = 0.7; }
+  if (L.satchel) { part(new THREE.BoxGeometry(w * 0.45, ht * 0.42, d * 0.5), L.satchel, -w * 0.62, -ht * 0.75, d * 0.1, b); part(new THREE.BoxGeometry(w * 0.07, ht * 1.3, d * 1.2), L.satchel, 0, -ht * 0.05, 0, b).rotation.z = -0.75; }
+  if (L.pouch) part(new THREE.BoxGeometry(w * 0.4, ht * 0.4, d * 0.5), L.pouch, w * 0.6, -ht * 0.95, 0, b);
+  if (L.coat) { const hip = attach(bones.mixamorigHips, wp(bones.mixamorigHips)); part(new THREE.CylinderGeometry(w * 0.52, w * 0.78, ht * 3.4, 14, 1, true), L.coat, 0, -ht * 1.45, 0, hip).material.side = THREE.DoubleSide; part(new THREE.CylinderGeometry(w * 0.54, w * 0.54, ht * 0.22, 14), 0xb09a72, 0, ht * 0.3, 0, hip); }
+  if (L.handbag) { const hb = attach(bones.mixamorigLeftHand, wp(bones.mixamorigLeftHand)); part(new THREE.BoxGeometry(ht * 1.1, w * 0.6, d * 0.4), L.handbag, ht * 0.75, 0, 0, hb); }
+  root.position.set(x, 0, z); root.rotation.y = rot; scene.add(root); const mixer = new THREE.AnimationMixer(root), acts = {};
+  const act = (key, clip) => { acts[key] = mixer.clipAction(CLIPS[clip]); return acts[key]; };
+  act("idle", "idle").play(); act("walk", "walk").play().setEffectiveWeight(0); act("wave", "agree"); act("no", "headShake"); act("sad", "sad_pose"); act("sneak", "sneak_pose");
+  const c = { id, root, mixer, acts, w: 0, path: [], speed: 0, name, yaw: rot, pose: null }; chars.push(c); return c;
 }
-const WALK = 1.45; // mètres par seconde, calé sur l'animation pour que les pieds ne glissent pas
+function setPose(c, k) { if (c.pose === k) return; if (c.pose) c.acts[c.pose].fadeOut(0.3); c.pose = k; if (k) c.acts[k].reset().fadeIn(0.3).play(); }
 function stepChar(c, dt) {
   let moving = false;
   if (c.path.length) { const t = c.path[0], dx = t.x - c.root.position.x, dz = t.z - c.root.position.z, d = Math.hypot(dx, dz);
@@ -121,7 +158,7 @@ function stepChar(c, dt) {
       if (free(nx, nz)) c.root.position.set(nx, 0, nz); else if (free(nx, c.root.position.z)) c.root.position.x = nx; else if (free(c.root.position.x, nz)) c.root.position.z = nz; else c.path = []; } }
   if (!moving) c.speed += (0 - c.speed) * Math.min(1, dt * 8);
   c.root.rotation.y = c.yaw; c.w += ((moving ? 1 : 0) - c.w) * Math.min(1, dt * 7);
-  c.acts.walk.setEffectiveWeight(c.w); c.acts.idle.setEffectiveWeight(1 - c.w); c.acts.walk.timeScale = Math.max(0.5, c.speed / WALK); c.mixer.update(dt);
+  c.acts.walk.setEffectiveWeight(c.w); c.acts.idle.setEffectiveWeight(c.pose ? 0 : 1 - c.w); c.acts.walk.timeScale = Math.max(0.5, c.speed / WALK); c.mixer.update(dt);
 }
 const R = 0.32, free = (x, z) => x > -7.7 && x < 8.5 && z > -5.7 && z < 5.7 && !colliders.some(([x0, z0, x1, z1]) => x > x0 - R && x < x1 + R && z > z0 - R && z < z1 + R);
 
@@ -140,29 +177,39 @@ cv.addEventListener("pointerdown", e => {
 const $dlg = document.getElementById("dlg"), $txt = document.getElementById("dTxt"), $opts = document.getElementById("dOpts"), $img = document.getElementById("dImg"); let voice = null;
 function say(text, img, mp3, opts) { $dlg.hidden = false; document.getElementById("help").hidden = true; $txt.textContent = text; $img.src = img; $opts.innerHTML = ""; if (voice) voice.pause(); if (mp3) { voice = new Audio(mp3); voice.play().catch(() => {}); }
   for (const [l, fx] of opts) { const b = document.createElement("button"); b.type = "button"; b.textContent = l; b.addEventListener("click", fx); $opts.appendChild(b); } $opts.querySelector("button").focus(); }
-function endTalk() { talking = false; $dlg.hidden = true; if (voice) voice.pause(); odile.acts.agree.stop(); }
+function endTalk() { talking = false; $dlg.hidden = true; if (voice) voice.pause(); setPose(odile, null); }
 function talkOdile() { talking = true; player.yaw = Math.atan2(odile.root.position.x - player.root.position.x, odile.root.position.z - player.root.position.z);
   say("Votre mère lève les yeux de ses écrans. Elle sourit, mais le sourire s'arrête avant les yeux.", "p_odile_0.webp", null, [
-    ["« Salut, Maman. »", () => { odile.acts.agree.reset().setLoop(THREE.LoopOnce).play(); say("« Camille. Tu es là. Vingt-sept ans de service, et c'est toi que je voulais voir ce soir. Monte dans la rame, je te rejoins en haut. »", "p_odile_0.webp", "o_salut.mp3", [["« Ça va aller, demain ? »", () => say("« Demain, je rends mes clés et je dors jusqu'à midi. » Elle rit trop vite. « Ne t'inquiète pas pour moi. »", "p_odile_1.webp", "o_demain.mp3", [["Partir", endTalk]])], ["Partir", endTalk]]); }],
+    ["« Salut, Maman. »", () => { setPose(odile, "wave"); setTimeout(() => setPose(odile, null), 2600); say("« Camille. Tu es là. Vingt-sept ans de service, et c'est toi que je voulais voir ce soir. Monte dans la rame, je te rejoins en haut. »", "p_odile_0.webp", "o_salut.mp3", [["« Ça va aller, demain ? »", () => say("« Demain, je rends mes clés et je dors jusqu'à midi. » Elle rit trop vite. « Ne t'inquiète pas pour moi. »", "p_odile_1.webp", "o_demain.mp3", [["Partir", endTalk]])], ["Partir", endTalk]]); }],
     ["Partir", endTalk]]); }
 
 /* ---------- boucle ---------- */
-// le modèle est embarqué dans un script (les pages hébergées ne servent pas les fichiers .glb)
-import("./xbot.js").then(m => { const bin = atob(m.default), buf = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i); new GLTFLoader().parse(buf.buffer, "", onModel, fail); }).catch(fail);
-function fail(e) { document.getElementById("load").textContent = "Le personnage n'a pas pu être chargé."; console.error(e); }
-function onModel(gltf) {
-  player = makeChar(gltf, { body: 0x2b2f36, joints: 0x14161a, x: -5.5, z: 4.6, rot: Math.PI, name: "Camille" });
-  odile = makeChar(gltf, { body: 0x2f4f86, joints: 0xb8c4cc, x: -5.6, z: -3.6, rot: 0, name: "Odile" });
-  gerald = makeChar(gltf, { body: 0xd8c020, joints: 0x1c2740, x: 6.6, z: -4, rot: 0, name: "Gérald" });
-  makeChar(gltf, { body: 0x5a6b3a, joints: 0x1a1c18, x: -6.6, z: 1.9, rot: 0.4, name: "Bastien" });
-  makeChar(gltf, { body: 0xcbb99a, joints: 0x7a2a3a, x: -6.3, z: 3.9, rot: 1.2, name: "Mme Delattre" });
-  document.getElementById("load").hidden = true; window.__p3 = { player, odile, gerald, chars, camera, free, get t() { return T; } };
-}
-const clock = new THREE.Clock(); let T = 0, gPhase = 0;
+// modèles embarqués dans un script (les pages hébergées ne servent pas les fichiers .glb)
+function fail(e) { document.getElementById("load").textContent = "Les personnages n'ont pas pu être chargés."; console.error(e); }
+const toBuf = b64 => { const bin = atob(b64), u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return u.buffer; };
+const parse = b64 => new Promise((ok, ko) => new GLTFLoader().parse(toBuf(b64), "", ok, ko));
+import("./xbot.js").then(async m => {
+  const man = await parse(m.default); BASE = man.scene; for (const clip of man.animations) CLIPS[clip.name] = clip;
+  // mesures sur le mannequin au repos : taille, tête, buste (servent à poser cheveux, chapeaux, sacs…)
+  BASE.updateMatrixWorld(true); const box = new THREE.Box3().setFromObject(BASE); SCALE = 1.72 / (box.max.y - box.min.y);
+  const v = new THREE.Vector3();
+  // vitesse de marche déduite de l'animation : amplitude du pied × 2 par cycle, pour que les pieds ne glissent pas
+  { const tmp = SkeletonUtils.clone(BASE), mx = new THREE.AnimationMixer(tmp), cl = CLIPS.walk; mx.clipAction(cl).play(); let f; tmp.traverse(o => { if (o.isBone && o.name === "mixamorigLeftFoot") f = o; }); let lo = 9, hi = -9;
+    for (let i = 0; i <= 24; i++) { mx.setTime((cl.duration * i) / 24); tmp.updateMatrixWorld(true); f.getWorldPosition(v); lo = Math.min(lo, v.z); hi = Math.max(hi, v.z); } WALK = Math.max(0.8, Math.min(2.2, ((hi - lo) * 2 * SCALE) / cl.duration)); }
+  player = makeChar("camille", { x: -5.5, z: 4.6, rot: Math.PI, name: "Camille" });
+  odile = makeChar("odile", { x: -5.6, z: -3.9, rot: 0, name: "Odile" });
+  gerald = makeChar("gerald", { x: 6.6, z: -4, rot: 0, name: "Gérald" });
+  makeChar("bastien", { x: -6.4, z: 2.0, rot: 0.5, name: "Bastien" });
+  makeChar("delattre", { x: -6.3, z: 3.9, rot: 1.2, name: "Mme Delattre" });
+  if (location.hash === "#cast") { CASTING = true; chars.forEach((c, i) => { setPose(c, null); c.root.position.set(-4.6 + i * 1.15, 0, 0.5); c.yaw = 0.25 - i * 0.12; c.path = []; }); }
+  document.getElementById("load").hidden = true; window.__p3 = { player, odile, gerald, chars, camera, free, WALK, SCALE, get t() { return T; } };
+}).catch(fail);
+const clock = new THREE.Clock(); let T = 0, gPhase = 0; let CASTING = false;
 function frame() {
   const dt = Math.min(0.1, clock.getDelta()); T += dt;
   if (player) {
     // Gérald fait les cent pas sur le quai
+    if (CASTING) { for (const c of chars) stepChar(c, dt); camera.position.set(-2.3, 1.35, 4.6); camera.lookAt(-2.3, 0.95, 0.5); renderer.render(scene, camera); requestAnimationFrame(frame); return; }
     if (!gerald.path.length) { gPhase++; gerald.path = [new THREE.Vector3(6.4 + (gPhase % 2) * 1.4, 0, gPhase % 2 ? 3.4 : -4.2)]; }
     for (const c of chars) stepChar(c, talking && c === player ? 0 : dt), talking && c === player && c.mixer.update(dt);
     if (player.goal === "odile" && !player.path.length && !talking) { player.goal = null; talkOdile(); }
