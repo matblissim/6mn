@@ -1,0 +1,181 @@
+<title>La Dernière Rame — prototype 3D</title>
+<style>
+/* Layout: scène 3D plein cadre (station basse du POMA), horloge en haut à gauche, aide en bas, panneau de dialogue en bas quand on parle à Odile. */
+:root { --ink: #06090b; --bone: #e8e4da; --muted: #8fa0a6; --amber: #f2b45a; --teal: #6fd3c8; color-scheme: dark; }
+html, body { height: 100%; margin: 0; }
+body { background: var(--ink); color: var(--bone); font-family: Inter, system-ui, sans-serif; overflow: hidden; }
+[hidden] { display: none !important; }
+#app { position: relative; height: 100%; }
+#cv { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+#hud { position: absolute; top: 12px; left: max(16px, env(safe-area-inset-left, 0px)); pointer-events: none; }
+.clock { display: inline-block; font-family: ui-monospace, "IBM Plex Mono", monospace; font-size: clamp(22px, 5.4vw, 32px); letter-spacing: .08em; color: #f4e9c8; line-height: 1; padding: 7px 10px 6px; border-radius: 4px; background: linear-gradient(#0c0f11 0 49%, #000 49% 52%, #111518 52%); border: 1px solid #2a3338; }
+.tag { margin-top: 6px; font-size: 12px; letter-spacing: .2em; text-transform: uppercase; color: var(--muted); }
+#help { position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%); width: max-content; max-width: calc(100% - 32px); background: rgba(8,12,14,.8); border-radius: 16px; padding: 8px 14px; font-size: 13px; text-align: center; pointer-events: none; }
+#load { position: absolute; inset: 0; display: grid; place-items: center; background: var(--ink); font-size: 14px; color: var(--muted); letter-spacing: .1em; }
+#dlg { position: absolute; left: 0; right: 0; bottom: 0; display: flex; gap: 14px; align-items: flex-end; padding: 16px max(16px, env(safe-area-inset-right, 0px)) 20px max(16px, env(safe-area-inset-left, 0px)); background: linear-gradient(rgba(8,11,13,0), rgba(8,11,13,.96) 26%); }
+#dlg img { width: clamp(96px, 26vw, 190px); flex: none; margin-bottom: -20px; filter: drop-shadow(0 6px 18px rgba(0,0,0,.7)); }
+#dlg h2 { margin: 0 0 4px; font-size: 20px; letter-spacing: .08em; text-transform: uppercase; color: var(--teal); }
+#dlg p { margin: 0 0 12px; font-size: 16px; line-height: 1.5; max-width: 60ch; }
+#dlg button { display: block; width: 100%; max-width: 520px; text-align: left; font: inherit; font-size: 15px; color: var(--bone); background: rgba(17,26,31,.9); border: 1px solid #24323a; border-radius: 10px; padding: 10px 14px; margin-top: 6px; cursor: pointer; }
+#dlg button:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+</style>
+
+<div id="app">
+  <canvas id="cv" aria-label="Station du POMA en 3D. Touchez le sol pour marcher, touchez Odile pour lui parler."></canvas>
+  <div id="hud"><div class="clock" id="clock">21:54:00</div><div class="tag">Prototype 3D</div></div>
+  <div id="help">Touchez le sol pour marcher · touchez Odile, derrière sa vitre, pour lui parler</div>
+  <div id="dlg" hidden><img id="dImg" alt="" src="p_odile_0.webp"><div><h2>Odile</h2><p id="dTxt"></p><div id="dOpts"></div></div></div>
+  <div id="load">Chargement de la station…</div>
+</div>
+
+<script type="module">
+import * as THREE from "./lib/three.module.js";
+import { GLTFLoader } from "./lib/addons/loaders/GLTFLoader.js";
+import * as SkeletonUtils from "./lib/addons/utils/SkeletonUtils.js";
+
+const cv = document.getElementById("cv");
+const renderer = new THREE.WebGLRenderer({ canvas: cv, antialias: true, powerPreference: "high-performance" });
+renderer.setPixelRatio(Math.min(2, devicePixelRatio || 1));
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.3; renderer.outputColorSpace = THREE.SRGBColorSpace;
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0x05080a); scene.fog = new THREE.FogExp2(0x070c10, 0.016);
+const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 120);
+
+/* ---------- matériaux ---------- */
+function tiles(base, line, n) { // carrelage dessiné : dalles légèrement inégales, joints sombres
+  const c = document.createElement("canvas"); c.width = c.height = 512; const g = c.getContext("2d"), s = 512 / n;
+  for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) { const v = 0.82 + Math.random() * 0.3; g.fillStyle = `rgb(${base.map(b => Math.round(b * v)).join(",")})`; g.fillRect(x * s, y * s, s, s); }
+  g.strokeStyle = line; g.lineWidth = 3; for (let i = 0; i <= n; i++) { g.beginPath(); g.moveTo(i * s, 0); g.lineTo(i * s, 512); g.moveTo(0, i * s); g.lineTo(512, i * s); g.stroke(); }
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t;
+}
+const M = {
+  floor: new THREE.MeshStandardMaterial({ map: (() => { const t = tiles([70, 92, 96], "#1b2528", 4); t.repeat.set(5, 4); return t; })(), roughness: 0.28, metalness: 0.15 }),
+  plat: new THREE.MeshStandardMaterial({ map: (() => { const t = tiles([150, 132, 100], "#4a4030", 4); t.repeat.set(1.5, 5); return t; })(), roughness: 0.45 }),
+  wall: new THREE.MeshStandardMaterial({ color: 0x6d8e94, roughness: 0.85 }), dark: new THREE.MeshStandardMaterial({ color: 0x141a1d, roughness: 0.8 }),
+  metal: new THREE.MeshStandardMaterial({ color: 0x2a3438, roughness: 0.45, metalness: 0.7 }), wood: new THREE.MeshStandardMaterial({ color: 0x6b4a2c, roughness: 0.7 }),
+  glass: new THREE.MeshPhysicalMaterial({ color: 0x9fe6dc, roughness: 0.05, transmission: 0.9, transparent: true, opacity: 0.28, thickness: 0.1 }),
+  yellow: new THREE.MeshStandardMaterial({ color: 0xe0b020, roughness: 0.6 }), white: new THREE.MeshStandardMaterial({ color: 0xe9e6de, roughness: 0.5 }), red: new THREE.MeshStandardMaterial({ color: 0xb8322a, roughness: 0.5 }),
+  neon: new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xbff5ee, emissiveIntensity: 2.2 }), warm: new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xffc070, emissiveIntensity: 2 }),
+  screen: new THREE.MeshStandardMaterial({ color: 0x0c3a2c, emissive: 0x38e09a, emissiveIntensity: 1.3 })
+};
+const colliders = []; // obstacles au sol : rectangles [x0, z0, x1, z1]
+function box(w, h, d, x, y, z, mat, opt = {}) { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat); m.position.set(x, y, z); m.castShadow = opt.cast !== false; m.receiveShadow = true; scene.add(m); if (opt.solid) colliders.push([x - w / 2, z - d / 2, x + w / 2, z + d / 2]); return m; }
+
+/* ---------- la station : hall (x −8…5), quai (x 5…9), voie (x 9…13) ---------- */
+const fl = new THREE.Mesh(new THREE.PlaneGeometry(13, 12), M.floor); fl.rotation.x = -Math.PI / 2; fl.position.set(-1.5, 0, 0); fl.receiveShadow = true; scene.add(fl);
+const pl = new THREE.Mesh(new THREE.PlaneGeometry(4, 16), M.plat); pl.rotation.x = -Math.PI / 2; pl.position.set(7, 0.01, -2); pl.receiveShadow = true; scene.add(pl);
+box(0.25, 0.02, 16, 8.85, 0.02, -2, M.yellow, { cast: false });               // ligne jaune
+box(4.4, 0.6, 30, 11.2, -0.45, -6, M.dark, { cast: false });                  // fosse de la voie
+for (const x of [10.3, 11.9]) box(0.12, 0.12, 30, x, -0.1, -6, M.metal);     // rails
+for (let z = -20; z < 8; z += 1.4) box(2.4, 0.08, 0.3, 11.1, -0.13, z, M.wood, { cast: false });
+box(13.4, 4, 0.3, -1.5, 2, -6.15, M.wall, { solid: true });                   // mur du fond
+box(0.3, 4, 12, -8.15, 2, 0, M.wall, { solid: true });                        // mur gauche
+box(13.4, 1, 0.2, -1.5, 0.5, 6.1, M.metal, { solid: true });                  // rambarde devant
+box(0.9, 4, 0.9, 4.9, 2, -1.2, M.wall, { solid: true });                      // pilier
+box(0.25, 0.35, 0.12, 4.4, 1.3, -1.2, M.yellow); box(0.12, 0.12, 0.05, 4.33, 1.3, -1.2, new THREE.MeshStandardMaterial({ color: 0xff2a1a, emissive: 0xff2a1a, emissiveIntensity: 2 }));
+// le local vitré d'Odile (x −7.6…−3.6, z −5.9…−2.6), porte à droite
+box(4.2, 0.9, 0.12, -5.6, 0.45, -2.6, M.metal, { solid: true }); box(4.2, 1.7, 0.06, -5.6, 1.75, -2.6, M.glass, { cast: false });
+box(0.12, 2.6, 3.3, -3.5, 1.3, -4.25, M.glass, { cast: false, solid: true }); box(4.4, 0.12, 3.5, -5.6, 2.66, -4.3, M.metal);
+for (const [x, z] of [[-7.7, -2.6], [-3.5, -2.6]]) box(0.14, 2.7, 0.14, x, 1.35, z, M.metal);
+box(1.6, 0.8, 0.7, -6.4, 0.4, -3.5, M.wood); for (const x of [-6.8, -6.0]) { box(0.6, 0.45, 0.06, x, 1.1, -3.4, M.dark); box(0.52, 0.37, 0.02, x, 1.1, -3.36, M.screen, { cast: false }); }
+for (let i = 0; i < 3; i++) { box(0.85, 1.9, 0.5, -6.9 + i * 0.95, 0.95, -5.6, M.metal); box(0.5, 0.25, 0.02, -6.9 + i * 0.95, 1.4, -5.34, M.screen, { cast: false }); }
+// banc, distributeurs, poubelle
+box(2.6, 0.12, 0.6, -7.2, 0.5, 1.2, M.wood, { solid: true }); box(2.6, 0.7, 0.1, -7.2, 0.95, 0.95, M.wood); for (const x of [-8.3, -6.1]) box(0.1, 0.5, 0.6, x, 0.25, 1.2, M.metal);
+box(1.1, 2, 0.9, -7.4, 1, 3.6, M.metal, { solid: true }); box(0.6, 0.5, 0.03, -7.4, 1.35, 4.07, new THREE.MeshStandardMaterial({ color: 0x222, emissive: 0xcfe8ff, emissiveIntensity: 1 }), { cast: false });
+box(1.5, 2.2, 1, 0.6, 1.1, 3.4, M.dark, { solid: true }); box(1.1, 1.5, 0.04, 0.45, 1.25, 3.92, new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xffc860, emissiveIntensity: 1.6 }), { cast: false });
+for (let r = 0; r < 4; r++) for (let c = 0; c < 5; c++) box(0.14, 0.2, 0.05, 0.05 + c * 0.2, 0.75 + r * 0.33, 3.95, new THREE.MeshStandardMaterial({ color: [0xd84a3a, 0x3aa0d8, 0xe0b020, 0x5ad86a][(r + c) % 4] }), { cast: false });
+box(0.5, 0.9, 0.5, 3.9, 0.45, -0.2, M.metal, { solid: true });
+// néons (les tubes, et leur lumière)
+function neon(x, z, len, mat, color, power, shadow) { const t = box(len, 0.08, 0.14, x, 3.6, z, mat, { cast: false }); const l = new THREE.SpotLight(color, power, 16, 1.05, 0.7, 1.3); l.position.set(x, 3.5, z); l.target.position.set(x, 0, z); if (shadow) { l.castShadow = true; l.shadow.mapSize.set(1024, 1024); l.shadow.bias = -0.0015; l.shadow.radius = 4; } scene.add(l, l.target); return l; }
+const nA = neon(-5.6, -4.2, 2.6, M.neon, 0x9ff0e2, 90, false), nB = neon(-1, 0, 3, M.neon, 0xa8f2e8, 170, true), nC = neon(-5.5, 3.2, 2.4, M.neon, 0x9fe8e8, 110, false), nD = neon(7, -1, 0.6, M.warm, 0xffb060, 150, false);
+scene.add(new THREE.HemisphereLight(0x7fa6b4, 0x1a2226, 1.25)); scene.add(new THREE.AmbientLight(0x2a4048, 0.9));
+// lumière d'appoint douce venant de la caméra, pour lire les visages et les volumes
+const fill = new THREE.DirectionalLight(0xbfe0ea, 0.55); fill.position.set(3, 8, 10); scene.add(fill);
+// la rame à quai
+const rame = new THREE.Group(); scene.add(rame); rame.position.set(11.1, 0, -30);
+{ const b = new THREE.Mesh(new THREE.BoxGeometry(2.3, 2.1, 6.4), M.white); b.position.y = 1.35; b.castShadow = true; rame.add(b);
+  const s = new THREE.Mesh(new THREE.BoxGeometry(2.34, 0.3, 6.44), M.red); s.position.y = 0.95; rame.add(s);
+  const w = new THREE.Mesh(new THREE.BoxGeometry(2.36, 0.75, 5.6), new THREE.MeshStandardMaterial({ color: 0x1a1a1a, emissive: 0xffc878, emissiveIntensity: 1.4 })); w.position.y = 1.75; rame.add(w);
+  const r = new THREE.Mesh(new THREE.BoxGeometry(2.1, 0.2, 6), M.dark); r.position.y = 2.5; rame.add(r);
+  const hl = new THREE.PointLight(0xfff0c8, 40, 14); hl.position.set(0, 1.2, 3.6); rame.add(hl); }
+// pluie derrière la rambarde
+const rainN = 500, rainG = new THREE.BufferGeometry(), rp = new Float32Array(rainN * 3); for (let i = 0; i < rainN; i++) { rp[i * 3] = -9 + Math.random() * 22; rp[i * 3 + 1] = Math.random() * 7; rp[i * 3 + 2] = 6.6 + Math.random() * 6; }
+rainG.setAttribute("position", new THREE.BufferAttribute(rp, 3)); scene.add(new THREE.Points(rainG, new THREE.PointsMaterial({ color: 0x9fc0cc, size: 0.05, transparent: true, opacity: 0.6 })));
+
+/* ---------- personnages : un même mannequin animé, habillé par ses couleurs ---------- */
+const chars = [];
+function makeChar(gltf, { body, joints, x, z, rot = 0, name }) {
+  const root = SkeletonUtils.clone(gltf.scene); root.position.set(x, 0, z); root.rotation.y = rot;
+  root.traverse(o => { if (o.isMesh) { o.castShadow = true; o.frustumCulled = false; o.material = new THREE.MeshStandardMaterial({ color: /Joints/.test(o.material.name) ? joints : body, roughness: 0.6, metalness: 0.05 }); } });
+  scene.add(root); const mixer = new THREE.AnimationMixer(root), acts = {};
+  for (const clip of gltf.animations) acts[clip.name] = mixer.clipAction(clip);
+  acts.idle.play(); acts.walk.play(); acts.walk.setEffectiveWeight(0);
+  const c = { root, mixer, acts, w: 0, path: [], speed: 0, name, yaw: rot }; chars.push(c); return c;
+}
+const WALK = 1.45; // mètres par seconde, calé sur l'animation pour que les pieds ne glissent pas
+function stepChar(c, dt) {
+  let moving = false;
+  if (c.path.length) { const t = c.path[0], dx = t.x - c.root.position.x, dz = t.z - c.root.position.z, d = Math.hypot(dx, dz);
+    if (d < 0.08) c.path.shift(); else { moving = true; const want = Math.atan2(dx, dz); let dy = want - c.yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); c.yaw += dy * Math.min(1, dt * 8);
+      c.speed += ((Math.min(1, d / 0.6 + 0.35) * WALK) - c.speed) * Math.min(1, dt * 6); const st = c.speed * dt * Math.max(0.2, Math.cos(dy)), nx = c.root.position.x + Math.sin(c.yaw) * st, nz = c.root.position.z + Math.cos(c.yaw) * st;
+      if (free(nx, nz)) c.root.position.set(nx, 0, nz); else if (free(nx, c.root.position.z)) c.root.position.x = nx; else if (free(c.root.position.x, nz)) c.root.position.z = nz; else c.path = []; } }
+  if (!moving) c.speed += (0 - c.speed) * Math.min(1, dt * 8);
+  c.root.rotation.y = c.yaw; c.w += ((moving ? 1 : 0) - c.w) * Math.min(1, dt * 7);
+  c.acts.walk.setEffectiveWeight(c.w); c.acts.idle.setEffectiveWeight(1 - c.w); c.acts.walk.timeScale = Math.max(0.5, c.speed / WALK); c.mixer.update(dt);
+}
+const R = 0.32, free = (x, z) => x > -7.7 && x < 8.5 && z > -5.7 && z < 5.7 && !colliders.some(([x0, z0, x1, z1]) => x > x0 - R && x < x1 + R && z > z0 - R && z < z1 + R);
+
+/* ---------- caméra, clics, dialogue ---------- */
+let player, odile, gerald, talking = false, camPos = new THREE.Vector3(0, 9, 12), camLook = new THREE.Vector3();
+const ray = new THREE.Raycaster(), ground = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), marker = new THREE.Mesh(new THREE.RingGeometry(0.22, 0.3, 32), new THREE.MeshBasicMaterial({ color: 0xf2b45a, transparent: true, opacity: 0 })); marker.rotation.x = -Math.PI / 2; marker.position.y = 0.03; scene.add(marker);
+function resize() { const w = innerWidth, h = innerHeight; renderer.setSize(w, h, false); camera.aspect = w / h; camera.fov = w < h ? 52 : 38; camera.updateProjectionMatrix(); }
+addEventListener("resize", resize); resize();
+cv.addEventListener("pointerdown", e => {
+  if (talking || !player) return; const r = cv.getBoundingClientRect(); ray.setFromCamera(new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1), camera);
+  const hitO = ray.intersectObject(odile.root, true).length || ray.ray.distanceToPoint(odile.root.position.clone().setY(1)) < 0.7;
+  if (hitO) { player.path = [new THREE.Vector3(-5.2, 0, -1.9)]; player.goal = "odile"; marker.material.opacity = 0; return; }
+  const p = new THREE.Vector3(); if (!ray.ray.intersectPlane(ground, p)) return; p.x = Math.max(-7.6, Math.min(8.4, p.x)); p.z = Math.max(-5.6, Math.min(5.6, p.z));
+  player.path = [p]; player.goal = null; marker.position.set(p.x, 0.03, p.z); marker.material.opacity = 0.9;
+});
+const $dlg = document.getElementById("dlg"), $txt = document.getElementById("dTxt"), $opts = document.getElementById("dOpts"), $img = document.getElementById("dImg"); let voice = null;
+function say(text, img, mp3, opts) { $dlg.hidden = false; document.getElementById("help").hidden = true; $txt.textContent = text; $img.src = img; $opts.innerHTML = ""; if (voice) voice.pause(); if (mp3) { voice = new Audio(mp3); voice.play().catch(() => {}); }
+  for (const [l, fx] of opts) { const b = document.createElement("button"); b.type = "button"; b.textContent = l; b.addEventListener("click", fx); $opts.appendChild(b); } $opts.querySelector("button").focus(); }
+function endTalk() { talking = false; $dlg.hidden = true; if (voice) voice.pause(); odile.acts.agree.stop(); }
+function talkOdile() { talking = true; player.yaw = Math.atan2(odile.root.position.x - player.root.position.x, odile.root.position.z - player.root.position.z);
+  say("Votre mère lève les yeux de ses écrans. Elle sourit, mais le sourire s'arrête avant les yeux.", "p_odile_0.webp", null, [
+    ["« Salut, Maman. »", () => { odile.acts.agree.reset().setLoop(THREE.LoopOnce).play(); say("« Camille. Tu es là. Vingt-sept ans de service, et c'est toi que je voulais voir ce soir. Monte dans la rame, je te rejoins en haut. »", "p_odile_0.webp", "o_salut.mp3", [["« Ça va aller, demain ? »", () => say("« Demain, je rends mes clés et je dors jusqu'à midi. » Elle rit trop vite. « Ne t'inquiète pas pour moi. »", "p_odile_1.webp", "o_demain.mp3", [["Partir", endTalk]])], ["Partir", endTalk]]); }],
+    ["Partir", endTalk]]); }
+
+/* ---------- boucle ---------- */
+new GLTFLoader().load("Xbot.glb", gltf => {
+  player = makeChar(gltf, { body: 0x2b2f36, joints: 0x14161a, x: -5.5, z: 4.6, rot: Math.PI, name: "Camille" });
+  odile = makeChar(gltf, { body: 0x2f4f86, joints: 0xb8c4cc, x: -5.6, z: -3.6, rot: 0, name: "Odile" });
+  gerald = makeChar(gltf, { body: 0xd8c020, joints: 0x1c2740, x: 6.6, z: -4, rot: 0, name: "Gérald" });
+  makeChar(gltf, { body: 0x5a6b3a, joints: 0x1a1c18, x: -6.6, z: 1.9, rot: 0.4, name: "Bastien" });
+  makeChar(gltf, { body: 0xcbb99a, joints: 0x7a2a3a, x: -6.3, z: 3.9, rot: 1.2, name: "Mme Delattre" });
+  document.getElementById("load").hidden = true; window.__p3 = { player, odile, gerald, chars, camera, free, get t() { return T; } };
+}, undefined, e => { document.getElementById("load").textContent = "Le personnage n'a pas pu être chargé."; console.error(e); });
+const clock = new THREE.Clock(); let T = 0, gPhase = 0;
+function frame() {
+  const dt = Math.min(0.1, clock.getDelta()); T += dt;
+  if (player) {
+    // Gérald fait les cent pas sur le quai
+    if (!gerald.path.length) { gPhase++; gerald.path = [new THREE.Vector3(6.4 + (gPhase % 2) * 1.4, 0, gPhase % 2 ? 3.4 : -4.2)]; }
+    for (const c of chars) stepChar(c, talking && c === player ? 0 : dt), talking && c === player && c.mixer.update(dt);
+    if (player.goal === "odile" && !player.path.length && !talking) { player.goal = null; talkOdile(); }
+    if (!player.path.length) marker.material.opacity *= 0.9; marker.scale.setScalar(1 + Math.sin(T * 6) * 0.08);
+    // caméra : suit le joueur de haut ; se rapproche par-dessus son épaule pendant un dialogue
+    const pp = player.root.position, portrait = innerWidth < innerHeight;
+    const want = talking ? new THREE.Vector3(pp.x + 2.2, 2.6, pp.z + 3.6) : new THREE.Vector3(pp.x * 0.8 + 0.4, portrait ? 9.5 : 6.2, pp.z * 0.8 + (portrait ? 9.5 : 7.6));
+    const look = talking ? new THREE.Vector3(odile.root.position.x, 1.5, odile.root.position.z) : new THREE.Vector3(pp.x * 0.9, 1.1, pp.z * 0.85 - 0.6);
+    camPos.lerp(want, Math.min(1, dt * 2.2)); camLook.lerp(look, Math.min(1, dt * 3)); camera.position.copy(camPos); camera.lookAt(camLook);
+  }
+  // le néon du hall qui faiblit par à-coups ; la rame qui entre en gare puis repart
+  nB.intensity = Math.sin(T * 37) * Math.sin(T * 13.7) * Math.sin(T * 5.3) > 0.3 ? 70 : 170;
+  const k = (T % 40) / 40; rame.position.z = k < 0.2 ? -30 + (k / 0.2) * 28 : k < 0.8 ? -2 : -2 - ((k - 0.8) / 0.2) * 30;
+  const a = rainG.attributes.position; for (let i = 0; i < rainN; i++) { a.array[i * 3 + 1] -= dt * 9; if (a.array[i * 3 + 1] < 0) a.array[i * 3 + 1] = 7; } a.needsUpdate = true;
+  const s = 21 * 3600 + 54 * 60 + Math.floor(T); document.getElementById("clock").textContent = `${Math.floor(s / 3600)}:${String(Math.floor((s % 3600) / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
+  renderer.render(scene, camera); requestAnimationFrame(frame);
+}
+frame();
+</script>
