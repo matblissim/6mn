@@ -147,14 +147,17 @@ function talkOdile() { talking = true; player.yaw = Math.atan2(odile.root.positi
     ["Partir", endTalk]]); }
 
 /* ---------- boucle ---------- */
-new GLTFLoader().load("Xbot.glb", gltf => {
+// le modèle est embarqué dans un script (les pages hébergées ne servent pas les fichiers .glb)
+import("./xbot.js").then(m => { const bin = atob(m.default), buf = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i); new GLTFLoader().parse(buf.buffer, "", onModel, fail); }).catch(fail);
+function fail(e) { document.getElementById("load").textContent = "Le personnage n'a pas pu être chargé."; console.error(e); }
+function onModel(gltf) {
   player = makeChar(gltf, { body: 0x2b2f36, joints: 0x14161a, x: -5.5, z: 4.6, rot: Math.PI, name: "Camille" });
   odile = makeChar(gltf, { body: 0x2f4f86, joints: 0xb8c4cc, x: -5.6, z: -3.6, rot: 0, name: "Odile" });
   gerald = makeChar(gltf, { body: 0xd8c020, joints: 0x1c2740, x: 6.6, z: -4, rot: 0, name: "Gérald" });
   makeChar(gltf, { body: 0x5a6b3a, joints: 0x1a1c18, x: -6.6, z: 1.9, rot: 0.4, name: "Bastien" });
   makeChar(gltf, { body: 0xcbb99a, joints: 0x7a2a3a, x: -6.3, z: 3.9, rot: 1.2, name: "Mme Delattre" });
   document.getElementById("load").hidden = true; window.__p3 = { player, odile, gerald, chars, camera, free, get t() { return T; } };
-}, undefined, e => { document.getElementById("load").textContent = "Le personnage n'a pas pu être chargé."; console.error(e); });
+}
 const clock = new THREE.Clock(); let T = 0, gPhase = 0;
 function frame() {
   const dt = Math.min(0.1, clock.getDelta()); T += dt;
