@@ -113,7 +113,36 @@ const CAST = {
   bastien: { skin: 0xe2ae8c, top: 0x556b3a, sleeves: 0x556b3a, legs: 0x2a2d31, shoes: 0xd8d8d2, hair: 0x2b2420, cap: 0x13161a, bag: 0x101214 },
   delattre: { skin: 0xecc7ad, top: 0xcdb994, sleeves: 0xcdb994, legs: 0x2c2a2e, shoes: 0x1a1416, hair: 0xf0efea, bun: true, hat: 0x7a2233, coat: 0xcdb994, handbag: 0x6b3a22, pearls: true }
 };
+const MODELS = {}, RET = {}, OWN = {};
+// adapte les animations au squelette du personnage : même noms d'os à un préfixe près ; on ne garde que les rotations
+// (et la position du bassin), sinon un corps aux proportions différentes se déforme
+// pose de repos (T) de chaque os, en rotation monde relative à la racine du personnage
+function bindOf(root, nameOf) { root.updateWorldMatrix(true, true);
+  const inv = root.getWorldQuaternion(new THREE.Quaternion()).invert(), W = new Map(), m = new THREE.Matrix4(), P = new THREE.Vector3(), S = new THREE.Vector3(), out = {};
+  root.traverse(o => { if (!o.isSkinnedMesh) return; o.skeleton.bones.forEach((bn, i) => { if (W.has(bn)) return; const q = new THREE.Quaternion(); m.copy(o.skeleton.boneInverses[i]).invert().premultiply(o.bindMatrix).decompose(P, q, S); W.set(bn, q); }); });
+  const wq = o => W.get(o) || inv.clone().multiply(o.getWorldQuaternion(new THREE.Quaternion()));
+  for (const bn of W.keys()) { const k = nameOf(bn.name); if (k == null) continue; out[k] = { name: bn.name, q: wq(bn), p: wq(bn.parent), len: bn.position.length() }; }
+  return out; }
+let XBIND = null;
+// les animations viennent du mannequin : on les recalcule pour le squelette de chaque personnage (repères d'os différents)
+function clipsFor(id, root) { const own = OWN[id]; if (!own) return CLIPS;
+  if (!RET[id]) { const real = {}; for (const t of own.tracks) { const n = t.name.slice(0, t.name.lastIndexOf(".")); real[n] = n.replace(/^mixamorig\d*/, "").replace(/_\d+$/, ""); }
+    XBIND = XBIND || bindOf(BASE, n => n.replace(/^mixamorig\d*/, "")); const TB = bindOf(root, n => real[n]);
+    const q = new THREE.Quaternion(), v = new THREE.Vector3(); RET[id] = {};
+    for (const [n, c] of Object.entries(CLIPS)) { const tracks = [];
+      for (const t of c.tracks) { const i = t.name.lastIndexOf("."), key = t.name.slice(0, i).replace(/^mixamorig\d*/, ""), prop = t.name.slice(i), X = XBIND[key], Tg = TB[key]; if (!X || !Tg) continue;
+        const A = Tg.p.clone().invert().multiply(X.p), C = X.q.clone().invert().multiply(Tg.q), val = Float32Array.from(t.values);
+        if (prop === ".quaternion") { for (let j = 0; j < val.length; j += 4) { q.fromArray(val, j); q.premultiply(A).multiply(C).normalize().toArray(val, j); } tracks.push(new THREE.QuaternionKeyframeTrack(Tg.name + prop, t.times, val)); }
+        else if (prop === ".position" && key === "Hips") { const r = Tg.len / X.len; for (let j = 0; j < val.length; j += 3) { v.fromArray(val, j).applyQuaternion(A).multiplyScalar(r).toArray(val, j); } tracks.push(new THREE.VectorKeyframeTrack(Tg.name + prop, t.times, val)); } }
+      RET[id][n] = new THREE.AnimationClip(n, c.duration, tracks); } }
+  return RET[id]; }
+function rig(id, root, name, rot) { const mixer = new THREE.AnimationMixer(root), acts = {}, CL = clipsFor(id, root); const act = (key, clip) => { acts[key] = mixer.clipAction(CL[clip]); return acts[key]; };
+  act("idle", "idle").play(); act("walk", "walk").play().setEffectiveWeight(0); act("wave", "agree"); act("no", "headShake"); act("sad", "sad_pose"); act("sneak", "sneak_pose");
+  const c = { id, root, mixer, acts, w: 0, path: [], speed: 0, name, yaw: rot, pose: null }; chars.push(c); return c; }
 function makeChar(id, { x, z, rot = 0, name }) {
+  // un vrai personnage modélisé, quand on en a un pour ce rôle ; sinon le mannequin habillé
+  if (MODELS[id]) { const src = MODELS[id], root = src; if (!src.userData.k) { src.updateMatrixWorld(true); const b = new THREE.Box3().setFromObject(src); src.userData.k = 1.74 / (b.max.y - b.min.y); }
+    root.scale.multiplyScalar(src.userData.k); root.traverse(o => { if (o.isMesh) { o.castShadow = true; o.frustumCulled = false; if (o.material) o.material.envMapIntensity = 0.4; } }); root.position.set(x, 0, z); root.rotation.y = rot; scene.add(root); return rig(id, root, name, rot); }
   const L = CAST[id], root = SkeletonUtils.clone(BASE); root.scale.setScalar(SCALE);
   const bones = {}; root.traverse(o => { if (o.isBone) bones[o.name] = o; });
   // couleurs par sommet, selon l'os dominant : mains et tête couleur peau, pieds couleur chaussures
@@ -196,6 +225,7 @@ import("./xbot.js").then(async m => {
   // vitesse de marche déduite de l'animation : amplitude du pied × 2 par cycle, pour que les pieds ne glissent pas
   { const tmp = SkeletonUtils.clone(BASE), mx = new THREE.AnimationMixer(tmp), cl = CLIPS.walk; mx.clipAction(cl).play(); let f; tmp.traverse(o => { if (o.isBone && o.name === "mixamorigLeftFoot") f = o; }); let lo = 9, hi = -9;
     for (let i = 0; i <= 24; i++) { mx.setTime((cl.duration * i) / 24); tmp.updateMatrixWorld(true); f.getWorldPosition(v); lo = Math.min(lo, v.z); hi = Math.max(hi, v.z); } WALK = Math.max(0.8, Math.min(2.2, ((hi - lo) * 2 * SCALE) / cl.duration)); }
+  const P = (await import("./persos.js")).default; for (const [k, b64] of Object.entries(P)) { const g = await parse(b64); MODELS[k] = g.scene; OWN[k] = g.animations[0]; }
   player = makeChar("camille", { x: -5.5, z: 4.6, rot: Math.PI, name: "Camille" });
   odile = makeChar("odile", { x: -5.6, z: -3.9, rot: 0, name: "Odile" });
   gerald = makeChar("gerald", { x: 6.6, z: -4, rot: 0, name: "Gérald" });
