@@ -210,6 +210,7 @@ const CLUES = {
   deux: "Une seule pièce ne suffit pas à faire parler votre mère. Avec deux, elle cédera.",
   ordre: "Si votre mère voit la preuve du sabotage avant d'avoir avoué, elle court au frein et se tait. L'aveu d'abord.",
   filature: "En filant le gilet jaune, vous l'avez vu fixer le local et compter à mi-voix : « Deux minutes. Quarante secondes pour l'armoire. »",
+  fusible: "Après la micro-coupure de 21 h 56, un fusible du coffret du hall pend à moitié, la vis desserrée. Quelqu'un prépare quelque chose avec ce coffret.",
   mefiance: "Si on parle du local au gilet jaune avant 21 h 57, il se méfie, renonce… et s'en va libre.",
   incomplet: "Sauver la rame ne suffit pas : tant que la vérité entière n'est pas faite, la boucle recommence.",
   journal: "Dans la poubelle près du pilier, le journal du jour : « Fermeture du POMA — le promoteur Vasseur rachète le dépôt ».",
@@ -267,7 +268,7 @@ function hint() {
 const rondeDone = () => !!(S && S.ronde && S.ronde.quai && S.ronde.ext && S.ronde.porte);
 function goal() {
   if (S && S.rondeOn && !S.rondeReported && S.t < 200 && !revealed()) return rondeDone() ? "La ronde est faite : allez le dire à votre mère, à sa vitre." : "Ronde pour votre mère : " + [["quai", "bord du quai"], ["ext", "extincteur près du pilier"], ["porte", "porte du local"]].map(([k, l]) => (S.ronde[k] ? "✓ " : "☐ ") + l).join(" · ");
-  if (!revealed() && !knows("chute")) return "Votre mère fait partir la dernière rame à 22 h 00. Allez la saluer, puis montez à bord.";
+  if (!revealed() && !knows("chute")) return S && S.said && S.said.oHi ? "Votre mère fait partir la dernière rame à 22 h 00. Montez à bord avant le départ." : "Votre mère fait partir la dernière rame à 22 h 00. Allez la saluer, puis montez à bord.";
   if (!knows("chute") && !knows("local") && !knows("frein")) {
     if (knows("aveux") || knows("appel") || knows("guichet") || knows("sms")) return "Vous en savez déjà beaucoup. Mais qu'est-ce qui devait arriver à 22 h 00 ? Une fois, laissez votre mère partir au café, et regardez qui s'approche du local.";
     if (M.loops >= 3) return "Plusieurs soirées, et pas de catastrophe. Et si c'était vous qui empêchiez quelque chose ? Laissez la soirée se dérouler, et regardez.";
@@ -604,7 +605,7 @@ function updateAgents(dt) {
       else if (Math.hypot(me.x - g.x, (me.y - g.y) * 0.56) < 0.035) { take("enveloppe"); S.hunt = false; say(g, "Donne-moi ça !"); toast("Il vous a arraché l'enveloppe"); logEv("Le gilet jaune vous reprend l'enveloppe"); shake = 0.4; }
     }
     else if (t >= 48 && t < 82) { want(g, P.gerCall); if (t >= 50) logEv("Le gilet jaune entre dans la station"); if (t >= 56 && !S.said.call) { S.said.call = 1; say(g, "Oui, monsieur Vasseur. Ce soir, c'est la dernière. Personne ne verra rien."); if (Math.hypot(me.x - P.gerCall.x, (me.y - P.gerCall.y) * 0.56) < 0.14) { learn("appel"); logEv("Il appelle « monsieur Vasseur »"); } } }
-    else if (S.planB && !S.cut && t >= 204 && t < 262) { want(g, FUSE_AT); if (near(g, FUSE_AT, 0.03) && !g.path.length) { S.cut = true; S.cutT = t; Snd.zap(); Snd.ring(); logEv("Le coffret du hall disjoncte"); toast("Une sonnerie de défaut retentit. Le tableau des départs s'éteint."); if (Math.hypot(me.x - g.x, (me.y - g.y) * 0.56) < 0.12) { learn("planB"); toast("Vous l'avez vu : c'est le gilet jaune qui a arraché un fusible."); } } }
+    else if (S.planB && !S.cut && t >= 204 && t < 262) { want(g, FUSE_AT); if (near(g, FUSE_AT, 0.03) && !g.path.length) { S.cut = true; S.cutT = t; Snd.zap(); Snd.ring(); logEv("Le coffret du hall disjoncte"); toast("Une sonnerie de défaut retentit. Le hall passe en veilleuse, le tableau des départs s'éteint."); if (Math.hypot(me.x - g.x, (me.y - g.y) * 0.56) < 0.12) { learn("planB"); toast("Vous l'avez vu : c'est le gilet jaune qui a arraché un fusible."); } } }
     else if (S.pagedUntil && t < S.pagedUntil) { want(g, { x: 0.2, y: 0.7 }); if (!S.said.paged) { S.said.paged = 1; say(g, "Moi ? Qui me demande ?"); } }
     else if (S.delDistract && S.distractLeft > 0 && t >= 200 && t < 275 && near(d, g, 0.07)) {
       g.path = []; S.distractLeft -= dt; if (!S.said.dis1) { S.said.dis1 = 1; say(d, "Jeune homme ! Vous êtes de la maintenance ? J'ai une question sur les cabines…"); logEv("Mme Delattre retient le gilet jaune"); }
@@ -813,6 +814,7 @@ function render(now, real) {
     ctx.fillStyle = "#14191c"; ctx.textAlign = "center"; lines.forEach((l, i) => ctx.fillText(l, x, y - bh + 7 + fs + i * (fs + 4) - 2)); ctx.globalAlpha = 1; }
   ctx.restore();
   // panne de lumière : noir presque total, sauf un halo autour de vous
+  if (S.planB && S.cut && !S.planBFoiled && S.t < S.cutT + 55 && !S.dark) { const fl = Math.random() < 0.06 ? 0.12 : 0; ctx.fillStyle = `rgba(0,0,8,${0.38 + fl})`; ctx.fillRect(0, 0, VW, VH); }
   if (S.dark > 0) { const k = Math.min(1, S.dark * 2), p = toScr(A.player), g = ctx.createRadialGradient(p.x, p.y - 30, 30, p.x, p.y - 30, 230); g.addColorStop(0, `rgba(0,0,4,${0.35 * k})`); g.addColorStop(1, `rgba(0,0,4,${0.93 * k})`); ctx.fillStyle = g; ctx.fillRect(0, 0, VW, VH); }
   // flèches vers les personnages hors champ
   const usedA = [];
@@ -872,6 +874,7 @@ function drawBody(c, im, w, h, a, ps) {
 const TAGN = { odile: "Odile", gerald: "Gilet jaune", bastien: "Bastien", delattre: "Mme Delattre" };
 const TAGC = { odile: "#6fd3c8", gerald: "#f2d43a", bastien: "#9db8ff", delattre: "#f0a8c8", vasseur: "#e0533d" };
 function drawTag(a, t) {
+  if (BLOCKS.some(b => a.x > b.x0 && a.x < b.x1 && a.y > b.y0 && a.y < b.y1 + 0.03)) return;
   if (bubbles.some(b => b.a === a)) return;
   // le nom n'apparaît que lorsqu'on s'approche : pas d'étiquette flottante en permanence
   const me = A.player, dist = Math.hypot(me.x - a.x, (me.y - a.y) * 0.56), k = Math.max(0, Math.min(1, (0.2 - dist) / 0.06)); if (k <= 0) return;
@@ -1004,9 +1007,9 @@ function tailTick(dt) {
   S.tailT = (S.tailT || 0) + dt;
   if (S.glance > 0) { S.glance -= dt; if (S.glance <= 0) { const seen = !S.feint || d < 0.06; S.feint = false; S.turnIn = 5 + Math.random() * 4;
       if (seen) { S.tail = (S.tail || 0) + 1; if (S.tail >= 2) { S.follow = null; say(g, "Vous me suivez, là ?"); if (S.t < 200) S.gerWary = true; return; } say(g, "…"); toast("Il vous a regardé un peu trop longtemps. Une fois de plus, et il comprendra."); }
-      else toast("Il ne vous remarque pas."); } }
+      else { S.dodged = (S.dodged || 0) + 1; toast("Il ne vous remarque pas."); } } }
   else { S.turnIn = (S.turnIn == null ? 4 : S.turnIn) - dt; if (S.turnIn <= 0) { S.glance = 1.2; S.feint = false; Snd.tick(); } }
-  if (S.said.peek && !S.tailWon && S.t < 125 && (S.tail || 0) < 2 && S.tailT > 6) { S.tailWon = true; learn("filature"); learn("local", true); award("filature"); }
+  if (S.said.peek && !S.tailWon && S.t < 125 && (S.tail || 0) < 2 && S.tailT > 15 && S.dodged >= 1) { S.tailWon = true; learn("filature"); learn("local", true); award("filature"); }
 }
 const $tail = document.getElementById("tailBar"); let tailKey = "";
 function updateTailBar() {
@@ -1156,8 +1159,8 @@ function closeSheet() { if (mgStop) { mgStop(); mgStop = null; } $sheet.hidden =
 function talk(id) {
   if (id === "odile") {
     const away = roomOf(A.odile) !== "ctrl", opts = [];
-    if (!S.said.oHi) opts.push({ l: "« Salut, Maman. »", fx: () => { S.said.oHi = 1; S.odileMood++; sheet("Odile", "« Camille. Tu es là. » Un temps. « Vingt-sept ans de service, et c'est toi que je voulais voir ce soir. Monte dans la rame, je te rejoins en haut. »", odileOpts()); } });
-    sheet("Odile", away ? "Votre mère attend que le gobelet se remplisse. Elle ne vous a pas entendu approcher." : S.odileConfess ? "Votre mère ne regarde plus ses écrans. Elle vous regarde, vous." : "Votre mère lève les yeux de ses écrans. Elle sourit, mais le sourire s'arrête avant les yeux.", opts.concat(odileOpts()), S.odileConfess ? 2 : 0);
+    if (!S.said.oHi) opts.push({ l: "« Salut, Maman. »", fx: () => { S.said.oHi = 1; S.odileMood++; updateGoal(); sheet("Odile", "« Camille. Tu es là. » Un temps. « Vingt-sept ans de service, et c'est toi que je voulais voir ce soir. Monte dans la rame, je te rejoins en haut. »", odileOpts()); } });
+    sheet("Odile", away && S.planB && S.cut && !S.planBFoiled && near(A.odile, FUSE_AT, 0.05) ? "Votre mère tripote les disjoncteurs du coffret, la lampe de poche entre les dents. Elle ne vous a pas entendu approcher." : away && S.t >= 200 && S.t < 290 ? "Votre mère attend que le gobelet se remplisse. Elle ne vous a pas entendu approcher." : away ? "Votre mère vous regarde approcher, un peu surprise de vous voir là." : S.odileConfess ? "Votre mère ne regarde plus ses écrans. Elle vous regarde, vous." : "Votre mère lève les yeux de ses écrans. Elle sourit, mais le sourire s'arrête avant les yeux.", opts.concat(odileOpts()), S.odileConfess ? 2 : 0);
     return;
   }
   if (id === "gerald") {
@@ -1168,7 +1171,7 @@ function talk(id) {
     if (knows("appel")) o.push({ l: "« Il paie bien, Vasseur ? »", fx: () => sheet("L'homme au gilet jaune", "« Connais pas. » Il a répondu trop vite.", [], 1) });
     if (knowsDed("paye") && !S.said.gcrack) o.push({ l: "« Cinq mille euros pour faire tomber une cabine ? »", fx: () => { S.said.gcrack = 1; closeUp(A.gerald); learn("complot", true); sheet("L'homme au gilet jaune", "« Tomber ? » Il recule d'un pas. « Non. Une panne en gare. C'est ce qu'il a dit. » Il déglutit. « Je lui dois trois mois de chantier. Il a dit que la vieille partirait à 57, et que… » Il se tait d'un coup.", [], 1); } });
     o.push({ l: "« Vous attendez quoi ? »", fx: () => sheet("L'homme au gilet jaune", S.t < 200 ? "« Que vous me lâchiez. » Il regarde encore sa montre." : S.sab > 0 || S.t >= 275 ? "« Le départ. Comme tout le monde. » Il ne regarde plus sa montre." : "« Mon heure. » Il ne sourit pas.", []) });
-    o.push({ l: "Le suivre discrètement", fx: () => { S.follow = "gerald"; S.turnIn = 4; S.glance = 0; S.tailT = 0; closeSheet(); toast("Vous le suivez. S'il se retourne, regardez ailleurs."); } });
+    o.push({ l: "Le suivre discrètement", fx: () => { S.follow = "gerald"; S.turnIn = 2.5 + Math.random() * 1.5; S.glance = 0; S.tailT = 0; closeSheet(); toast("Vous le suivez. S'il se retourne, regardez ailleurs."); } });
     if (!has("badge") && !S.badgeTried) o.push({ l: "Lui subtiliser son badge", give: true, fx: () => {
       if (S.dark > 0) { S.badgeTried = true; return badgeWon("Dans le noir, vous décrochez le badge de son gilet. Il ne sent rien."); }
       if (S.t >= 56 && S.t < 82) return badgeGame();
@@ -1198,6 +1201,7 @@ function talk(id) {
   if (id === "delattre") {
     if (S.vexed.delattre) return sheet("Mme Delattre", "Elle serre son sac contre elle et regarde ailleurs. « Je ne parle pas aux malappris. »", [], 2);
     const kq = [];
+    if (S.said.key && S.t < 162 && !S.said.dHelp) kq.push({ l: "L'aider à tourner la clé", give: true, fx: () => { S.said.dHelp = 1; S.delFriend = true; learn("cle", true); learn("henri"); learn("goupille"); sheet("Mme Delattre", "Vous forcez ensemble. La clé ne tourne pas d'un millimètre. Elle rit, un peu honteuse. « Celle d'Henri. Ils ont changé la serrure en 2003, je le sais bien. » Elle range la clé. « Il disait toujours : la goupille rouge, c'est le cœur du frein. Ils l'ont changée en août, et l'ancienne a roulé quelque part dans le hall. Personne ne l'a jamais ramassée. »", [], 1); } });
     if (knows("cle") && !knows("henri") && S.said.key) {
       kq.push({ l: "« Que faisiez-vous à la porte du local ? »", fx: () => { learn("henri"); sheet("Mme Delattre", "Elle rougit. « Vous m'avez vue. » Elle ouvre la main : une petite clé usée. « Celle d'Henri. Il a travaillé ici douze ans. Je voulais revoir son bureau, une dernière fois. Elle ne tourne plus. »", [], 0); } });
       kq.push({ l: "« Vous vouliez trafiquer l'armoire, avouez. »", fx: () => { S.vexed.delattre = true; S.delDistract = false; learn("henri"); if (S.delKeeps) { S.delKeeps = false; give("enveloppe"); } sheet("Mme Delattre", "« Trafiquer ? Moi ? » Elle tremble de colère. « C'est la clé de mon mari. Trente ans que je la garde. »" + (has("enveloppe") ? " Elle vous fourre l'enveloppe dans les mains. « Et reprenez vos affaires. »" : "") + " Elle vous tourne le dos.", [], 2); } });
@@ -1227,7 +1231,7 @@ const PROOFS = () => [
   ["sms", knows("sms") && S.t >= 195, "« Qui t'écrit, signé V. ? »", "📱 Les messages signés « V. »", "Elle se fige. « Tu as lu mon téléphone. »", 1]
 ].filter(p => p[1] && !(S.proofs || []).includes(p[0]));
 const AVEU = " « Le prêt pour ton école. Dix-huit mille euros. Vasseur a dit : deux minutes d'absence, une panne en gare, personne ne risque rien. » Elle vous regarde enfin. « C'était pour toi. » Puis, plus bas : « Je ne bouge plus d'ici. »";
-const DENI = " Puis elle se reprend. « Et alors ? Ça ne prouve rien. Tu m'espionnes, maintenant ? » <i>Une seule pièce ne la fera pas parler. Il en faudrait une deuxième.</i>";
+const DENI = " Puis elle se reprend. « Et alors ? Ça ne prouve rien. Tu m'espionnes, maintenant ? Tu n'as rien, Camille. Un papier. »";
 function addProof(key, w) { S.proofs = S.proofs || []; if (key && !S.proofs.includes(key)) { S.proofs.push(key); S.proofW = (S.proofW || 0) + (w || 1); } return (S.proofW || 0) >= 2; }
 function doConfess() { S.odileConfess = true; learn("aveux"); logEv("Votre mère avoue"); closeUp(); Snd.tone(110, 2.5, { vol: 0.05 }); }
 function confess(text, key, w) {
@@ -1263,7 +1267,7 @@ function odileOpts() {
   if (knows("rec") && !S.recOn && inCtrl && S.t < 200) o.push({ l: "« Maman, ta caméra du local est coupée. »", fx: () => { S.recOn = true; sheet("Odile", "Elle tapote son clavier. « Depuis 21 h 31 ? Ce n'est pas moi, ça. » Un clic. « Voilà. Ça tourne. »", odileOpts()); } });
   if (S.recOn && !S.recShown && inCtrl && S.t >= 278 && S.sab > 8) o.push({ l: "« Repasse la caméra du local. Maintenant. »", fx: () => { S.recShown = true; give("bande"); if (!S.fixed) S.odileKnows = true; sheet("Odile", "Elle rembobine. À l'écran, l'homme arrache la goupille rouge. Sa main monte à sa bouche. « Le frein. Il a touché au frein. » Elle se lève d'un bond.", [], 1); } });
   if (has("badge") && !S.said.badge) o.push({ l: "Lui montrer le badge « TechniRail »", give: true, fx: () => { S.said.badge = 1; learn("faux"); if (S.t < 200 && !S.odileConfess) S.odileStays = true; sheet("Odile", "« TechniRail. Ça n'existe pas. » Elle décroche son téléphone, le regarde, le repose. " + (S.t < 200 ? "« Je ne bouge pas d'ici tant qu'il traîne. »" : "« On verra ça après le départ. »"), odileOpts(), 1); } });
-  if (knows("guichet") && S.said.ring && !S.odileConfess) o.push({ l: "« C'était qui, au téléphone ? »", fx: () => sheet("Odile", "« Personne. Un collègue. » Elle ne vous regarde pas.", odileOpts(), 1) });
+  if (knows("guichet") && S.said.ring && !S.odileConfess && !S.said.qTel) o.push({ l: "« C'était qui, au téléphone ? »", fx: () => (S.said.qTel = 1, sheet("Odile", "« Personne. Un collègue. » Elle ne vous regarde pas.", odileOpts(), 1)) });
   if (knows("dette") && !knows("vasseur") && !S.odileConfess) o.push({ l: "« Dix-huit mille euros, Maman ? »", fx: () => sheet("Odile", "« Range ça. » Sa voix tremble. « Ce ne sont pas tes affaires. » Il vous manque un nom.", odileOpts(), 1) });
   if (knows("cafe") && inCtrl && S.t < 200 && !S.odileStays && !S.odileConfess) o.push({ l: "« Tu vas quitter ton poste ? »", fx: () => sheet("Odile", "« Deux minutes, à 57. Un café. J'ai le droit, non ? »", odileOpts()) });
   if (knows("chute") && !S.fixed) o.push({ l: "« La rame va tomber, Maman. »", fx: () => { S.odileMood--; sheet("Odile", "« Arrête. Il y a le frein de secours. Il ne peut rien arriver. »", odileOpts()); } });
@@ -1271,7 +1275,7 @@ function odileOpts() {
   if (knows("intrus") && gSeen()) o.push({ l: "« Le gilet jaune n'est pas de chez vous. »", fx: () => { learn("preuve"); S.odileMood--; sheet("Odile", "« Un sous-traitant. C'est ce qu'on m'a dit. » Elle a buté sur le « on ».", odileOpts(), 1); } });
   if (has("enveloppe") && !S.envShown && !cf) o.push({ l: "Lui montrer l'enveloppe de « V. »", give: true, fx: () => { S.envShown = true; closeUp(); if (S.odileConfess) { take("enveloppe"); return sheet("Odile", "Elle lit le mot deux fois. « Il m'a menti. Il voulait qu'elle tombe. » Elle garde l'enveloppe contre elle. « Ça, la police le verra. »", odileOpts(), 2); } if (S.odileClosed) return sheet("Odile", "Elle lit le mot et pâlit. « Plus tard, Camille. »", odileOpts(), 1); confess("Elle lit le mot et pâlit. « D'où tu sors ça ? »", "env", 1); } });
   if (S.planB && S.cut && !S.planBFoiled && roomOf(A.odile) !== "ctrl" && S.t < S.cutT + 55) {
-    if (knows("planB") || knows("local") || knows("frein")) o.push({ l: "« Retourne à ton poste. C'est lui qui a fait sauter le coffret. »", give: true, fx: () => { S.planBFoiled = true; award("parade"); logEv("Votre mère retourne à son poste"); sheet("Odile", "Elle se fige, le tournevis à la main. Elle regarde le quai, puis la porte de son local. « … Tu as raison. » Elle repart d'un pas vif. Le tableau peut rester éteint.", [], 1); } });
+    if (knows("planB") || knows("fusible") || knows("local") || knows("frein")) o.push({ l: "« Retourne à ton poste. C'est lui qui a fait sauter le coffret. »", give: true, fx: () => { S.planBFoiled = true; award("parade"); logEv("Votre mère retourne à son poste"); sheet("Odile", "Elle se fige, le tournevis à la main. Elle regarde le quai, puis la porte de son local. « … Tu as raison. » Elle repart d'un pas vif. Le tableau peut rester éteint.", [], 1); } });
     else o.push({ l: "« Laisse ça, reste à ton poste ! »", fx: () => sheet("Odile", "« Et laisser le tableau éteint pour le dernier départ ? Deux minutes, Camille. »", []) });
   }
   if (has("cafe") && !S.odileStays) o.push({ l: "« Je t'ai pris un café. »", give: true, fx: () => { take("cafe"); if (S.t < 200) { S.odileStays = true; S.odileMood += 2; sheet("Odile", "« Tu as pensé à moi. » Elle le prend à deux mains. « Bon. Je reste là, alors. »", []); } else sheet("Odile", "« J'en ai déjà un, mon cœur. »", []); } });
@@ -1301,7 +1305,8 @@ function examine(id) {
   }
   if (id === "fuse") {
     const o = []; if (S.fuseUses < 3) o.push({ l: `Couper la lumière quelques secondes (${3 - S.fuseUses} restant${3 - S.fuseUses > 1 ? "s" : ""})`, give: true, fx: () => { S.fuseUses++; S.dark = 10; if (S.fuseUses >= 3) award("electricien"); logEv("Vous coupez la lumière"); learn("noir", true); Snd.zap(); closeSheet(); say(A.odile, "Encore ces plombs !"); } });
-    return sheet("Coffret électrique", "Un vieux coffret gris : « ÉCLAIRAGE HALL ET LOCAL ». Le levier principal a du jeu." + (S.fuseUses >= 3 ? " Le disjoncteur chauffe : mieux vaut ne plus y toucher." : ""), o);
+    if (S.said.flick && !S.cut) learn("fusible");
+    return sheet("Coffret électrique", "Un vieux coffret gris : « ÉCLAIRAGE HALL ET LOCAL ». Le levier principal a du jeu." + (S.cut ? " Un fusible a été arraché : le hall ne tient plus que sur la veilleuse." : S.said.flick ? " Un fusible pend à moitié de son support, la vis desserrée. La micro-coupure de tout à l'heure n'était peut-être pas un hasard." : "") + (S.fuseUses >= 3 ? " Le disjoncteur chauffe : mieux vaut ne plus y toucher." : ""), o);
   }
   if (id === "phone") {
     const o = [];
@@ -1406,9 +1411,9 @@ const hotOn = h => !((h.id === "bag" && !S.bagOnBench) || (h.id === "toolbag" &&
 function pick(x, y) {
   const w = toWorld(x, y);
   const hot = HOT.filter(hotOn).map(h => ({ h, d: Math.hypot(w.x - h.x, (w.y - h.y) * 0.56) })).filter(o => o.d < o.h.r * touchK).sort((a, b) => a.d / a.h.r - b.d / b.h.r)[0];
-  const ag = Object.entries(A).filter(([k, a]) => k !== "player" && a.vis).find(([k, a]) => { const h = 0.15; return Math.abs(w.x - a.x) < 0.03 * touchK && w.y < a.y + 0.012 * touchK && w.y > a.y - h; });
+  const ag = Object.entries(A).filter(([k, a]) => k !== "player" && a.vis && Math.abs(w.x - a.x) < 0.03 * touchK && w.y < a.y + 0.012 * touchK && w.y > a.y - 0.15).sort((p, q) => Math.abs(w.x - p[1].x) - Math.abs(w.x - q[1].x))[0];
   // un objet visé de près passe avant la personne plantée devant
-  if (hot && (!ag || hot.d < hot.h.r * 0.8 * touchK)) return { kind: "hot", id: hot.h.id, name: hot.h.name, at: hot.h.at };
+  if (hot && (!ag || hot.d < Math.min(hot.h.r * 0.6, 0.018))) return { kind: "hot", id: hot.h.id, name: hot.h.name, at: hot.h.at };
   if (ag) return { kind: "agent", id: ag[0], name: ag[1].name };
   return { kind: "floor", w };
 }

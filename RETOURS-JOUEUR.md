@@ -1,3 +1,72 @@
+# Retours de playtest : version 11 (session courte)
+
+**Léo · 25 novembre 2026 · environ 20 minutes de test**
+
+Ce que j'ai fait : une soirée à l'aveugle en 1280×720 (vrais clics, temps avancé avec `#debug` dans les creux), puis des tests ciblés avec `#debug` (badge avant et pendant l'appel, filature, téléphone de service, plan B, fin de boucle), et un rapide passage sur iPhone 13. Aucune erreur JavaScript. Scripts, journaux et captures : `/tmp/claude-0/-workspace/00b10ced-f74c-50ab-a547-eda9febf00db/scratchpad/joueur2/`.
+
+**Non vérifié en jeu, faute de temps** : le cadrage avec Bastien, la confrontation à la vitre, la cabine (interphone, bandeau pendant la chute), l'image de l'écran de choix et les fins illustrées. Pour ces points, j'ai seulement lu le code. Je ne les compte ni comme corrigés ni comme cassés.
+
+## Verdict en 3 lignes
+
+Le jeu ne se désamorce plus tout seul. Une seule preuve ne fait plus avouer maman, et si elle reste à son poste, Vasseur passe au plan B : le coffret du hall saute à 21:57:29.
+Les nouveaux gestes (badge maintenu, filature) sont de vrais gestes. Mais la filature se gagne en 9 secondes sans rien faire, et le badge est généreux.
+La soirée à l'aveugle reste creuse entre 21:55:45 et 21:57:10, et on retrouve des personnages masqués par un point d'intérêt (sur mobile, cette fois).
+
+## Notes sur 10 (avant → maintenant)
+
+| Critère | Avant | V11 | Pourquoi |
+|---|---|---|---|
+| Quantité | 7 | **7,5** | Le plan B et la filature ajoutent du jeu au milieu. Le trou 21:55:45 → 21:57:10 existe encore à l'aveugle. |
+| Fun des actions | 5 | **6,5** | Le badge est devenu un geste de timing (maintenir, lâcher sur « ⚠️ Il bouge la tête… »). La filature et son bouton « 👀 Regarder ailleurs » sont une bonne idée, mais trop courtes. |
+| Tension | 5 | **6** | Le coffret qui saute, la sonnerie de défaut et maman qui quitte sa vitre : enfin une menace qui s'adapte à moi. |
+| Lisibilité | 6 | **6,5** | « Il faudrait qu'il soit occupé ailleurs » et « Une seule pièce ne la fera pas parler » guident bien. Mais l'objectif recule parfois (voir bug 3). |
+| Conséquences | 6 | **7,5** | Les aveux en deux temps et le plan B transforment mes bonnes actions en relances, au lieu de clore la soirée. |
+| Rejouabilité | 6 | **6** | Pas retesté (fins, « Continuer la nuit »). |
+| Finition / mobile | 7 | **6,5** | Le bouton du badge fait 259×39 px, c'est correct. Mais sur iPhone, toucher le gilet jaune ouvre « Sortie ». |
+
+## Frustrations du premier rapport : corrigées ou non
+
+| # | Frustration | État | Preuve |
+|---|---|---|---|
+| 1 | Aveux en 95 s avec le seul reçu | **Corrigé.** À 21:57:13 : « Je lui ai ouvert. Il devait juste regarder. » Puis : « Et alors ? Ça ne prouve rien. Tu m'espionnes, maintenant ? » La dernière phrase, « Une seule pièce ne la fera pas parler. Il en faudrait une deuxième. », est trop explicite : c'est le jeu qui parle, pas Odile. | `b3.log` |
+| 2 | Pas de plan B | **Corrigé.** À 21:57:16 : « Elle ne bouge pas de sa cabine. … Le coffret ? D'accord. » À 21:57:29 : « Une sonnerie de défaut retentit. Le tableau des départs s'éteint. » L'option « Retourne à ton poste. C'est lui qui a fait sauter le coffret. » est bien proposée. | `t2_04_pb206.png`, `t2_08_pb_odile.png` |
+| 3 | Piste figée | **Non vérifié en profondeur.** En début de boucle 2, sans avoir vu la chute : « Observez. Que se passe-t-il à 22 h 00 ? » (c'est normal à ce stade). | `e1_*_loop2.png` |
+| 4 | Badge puni avant la fenêtre | **Corrigé.** À 21:54:30 et à 21:54:53 : « Mais il vous fait face, les yeux sur vous : impossible. Il faudrait qu'il soit occupé ailleurs. » Aucune méfiance. Pendant l'appel (21:55:00), le geste est maintenu et réussi en relâchant sur l'alerte. | `t1_01_badge_t30.png`, `t2_01_badge_game.png`, `t2_02_badge_res.png` |
+| 5 | Trous dans la partie experte | **En partie corrigé** : il y a la filature (21:55:35) et le plan B (21:57:16 → 21:58:20). À l'aveugle, de 21:55:45 à 21:57:10, je n'ai rien vu de neuf à part « Oh ! Les lumières… » à 21:56:40. | `b3.log` |
+| 6 | Dénouement en fiche | Le code d'une confrontation « À la vitre », avec ses pièces et un compte à rebours, existe. **Je ne l'ai pas joué.** | — |
+| 7 | Micro dans la pièce du gilet jaune | **Corrigé.** Le téléphone de service propose « Composer le 9 (sonorisation) ». Sans connaître le nom du gilet jaune, la seule annonce est « Le dernier départ est retardé. » | `t1_07_phone9.png` |
+| 8 | Personnages qui masquent les points d'intérêt | **Pas entièrement corrigé.** (a) iPhone 13, 21:55:02 : je touche le gilet jaune et la fiche « SORTIE — Partir ? Non. » s'ouvre. (b) 1280×720, 21:55:01 : en visant Odile, j'ouvre Bastien. | `m1.js`, `b3.log` |
+
+## Nouveaux bugs et incohérences
+
+1. **Plan B, 21:57:55** : maman est au coffret du hall, mais sa fiche dit « Votre mère attend que le gobelet se remplisse. Elle ne vous a pas entendu approcher. » C'est le texte de la pause café, alors qu'elle n'est pas au distributeur. Capture : `t2_08_pb_odile.png`.
+2. **Filature trop facile** : je lance « Le suivre discrètement » à 21:55:35, et à 21:55:45 c'est gagné (« Nouvel indice noté dans le carnet », `tailWon: true`, 0 repérage), sans avoir eu à utiliser « Regarder ailleurs ». Dix secondes, aucune tension. Capture : `t1_05_follow_after.png`.
+3. **L'objectif recule.** À 21:57:20 (maman part au café), la ligne d'objectif « Ronde pour votre mère : ✓ bord du quai · ☐ extincteur · ✓ porte du local » redevient « Votre mère fait partir la dernière rame à 22 h 00. Allez la saluer, puis montez à bord. », alors que je l'ai saluée trois minutes plus tôt. Source : `b3.log`.
+4. **Option qui reste après réponse** : « C'était qui, au téléphone ? » reste proposée après « Personne. Un collègue. » (21:57:13). Source : `b3.log`.
+5. **La ronde démarre sans que je la propose** : à 21:54:19 (et à 21:54:30 sans avoir parlé à personne), l'objectif devient « Ronde pour votre mère… ». La bulle « Camille ! Tu fais la ronde pour moi ? » arrive ensuite, mais je n'ai rien accepté.
+6. **Étiquette orpheline** : à 21:59:59, l'étiquette « Bastien » flotte à côté du distributeur de boissons, sans personnage visible (il est caché derrière la machine). Capture : `b3_19_fin2.png`.
+7. **Bulle sur flèche hors champ** : à 21:55:00, la bulle « Ils vont tout raser, de toute façon. » recouvre la flèche « Odile ». Capture : `b3_02_gerald_after.png`.
+8. **Plan B, lumière** : le coffret du hall saute, mais à l'image le hall reste éclairé comme avant. Seul le toast le dit. Capture : `t2_07_pb232.png`.
+
+À noter (artefact de débogage, pas un bug) : si je saute directement à 21:59:52, la fin dit « Rien ne se passe… Empêcher le sabotage ne suffit pas », alors que je n'ai rien empêché. C'est dû au saut de temps, un joueur ne le verra pas.
+
+**Règle d'or** : respectée. Rien ne parle de boucle avant l'écran « 22:00:00 … Le monde se replie sur lui-même. »
+
+## 8 propositions, de la plus rentable à la plus chère
+
+| # | Quoi | Impact | Effort | ElevenLabs |
+|---|---|---|---|---|
+| 1 | Corriger la fiche d'Odile pendant le plan B, par exemple : « Votre mère tripote les disjoncteurs du coffret, lampe de poche entre les dents. » | moyen | petit | non |
+| 2 | Filature : exiger au moins un regard bien esquivé (ou 20 s de suivi) avant de la gagner. Aujourd'hui, elle est gagnée avant le premier regard. | fort | petit | non |
+| 3 | Plan B visible : assombrir le hall et faire clignoter le néon pendant la coupure. | fort | petit | non |
+| 4 | Ne plus faire reculer l'objectif : garder « Saluée ✓ » quand maman quitte sa cabine. Retirer « C'était qui, au téléphone ? » une fois la réponse donnée. | moyen | petit | non |
+| 5 | Remplacer « Une seule pièce ne la fera pas parler. Il en faudrait une deuxième. » par une réplique d'Odile (« Tu n'as rien, Camille. Rien. »), et laisser l'onglet Déductions faire l'indication. | moyen | petit | non (texte) ; **oui** s'il faut la voix |
+| 6 | Priorité au personnage sur la « Sortie » quand on touche l'écran (iPhone), ou petit menu « Gilet jaune / Sortie ». | fort (mobile) | petit | non |
+| 7 | Remplir 21:55:45 → 21:57:10 à l'aveugle : la scène de Mme Delattre et de la clé d'Henri (déjà proposée), ou faire de « Oh ! Les lumières… » (21:56:40) un vrai indice cliquable sur le coffret. | fort | moyen | non (texte) ; **oui** pour une voix de Mme Delattre |
+| 8 | Plan B : faire sonner le téléphone de service pour Odile (voix de Vasseur), à décrocher avant elle. | fort | moyen | **oui** (une réplique de Vasseur) |
+
+---
+
 # Retours de playtest : « La Dernière Rame » (2D, version 18)
 
 **Léo, 27 ans, joueur exigeant · 25 novembre 2026**
