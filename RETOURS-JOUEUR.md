@@ -1,3 +1,70 @@
+# Retours de playtest : Version 11 · tour fun
+
+**Léo · 25 novembre 2026 · environ 15 minutes · angle : le FUN**
+
+Ce que j'ai joué : 1280×720 et iPhone 13, son et voix activés, vrais clics sur les personnages et sur les boutons des fiches (0,7 s d'attente). `#debug` m'a servi uniquement à sauter dans le temps et à poser des objets (café, enveloppe, indices). Scénarios joués : la clé de Mme Delattre (21:56:15), le café offert puis le plan B au coffret (21:58:02), le barrage avec chacune des trois réponses (21:58:20, trois parties) et l'enveloppe montrée à la vitre (21:58:46). Aucune erreur JavaScript. Scripts, journaux et captures : `/tmp/claude-0/-workspace/00b10ced-f74c-50ab-a547-eda9febf00db/scratchpad/joueur7/` (`s.js`, `*.out`, `*.png`).
+
+## Verdict en 3 lignes
+
+Le barrage est maintenant **le meilleur moment de la soirée**. L'illustration (ses deux mains gantées tendues vers vous, la goupille rouge dans sa poche), la voix et trois réponses **sans « Partir »** donnent un vrai frisson, et chaque réponse a un effet visible dans les 5 secondes qui suivent.
+« Rien vu » suivi du vol de la goupille, c'est le coup de poker que j'attendais. On ment, il baisse sa garde, on le fait les poches. C'est drôle, c'est malin, et ça sert l'enquête.
+En revanche, les bandeaux restent **décoratifs** sur la clé et le coffret, et le jeu fait encore très peu rire. Le fun repose sur 2 ou 3 gestes. Tout le reste, c'est lire puis choisir.
+
+## Notes sur 10 (tour 5 → tour fun)
+
+| Critère | T5 | Fun | Pourquoi |
+|---|---|---|---|
+| Quantité | 8,5 | **8,5** | Rien de nouveau entre 21:58:30 et 21:59:40, sauf si on a répondu « Rien vu » (vol de la goupille) ou demandé « Qu'est-ce que vous faisiez » (il vous suit). |
+| Fun des actions | 8 | **8,5** | « Rien vu » puis « Lui prendre la goupille qui dépasse de sa poche » : mentir pour mieux voler est le premier geste vraiment *malicieux* du jeu. |
+| Tension | 8 | **8,5** | Le bandeau du barrage fait peur. « Je vous tiens à l'œil. » suivi d'une filature *inversée* (c'est lui qui vous suit) est une excellente idée. |
+| Lisibilité | 7,5 | **7,5** | Les conséquences se voient tout de suite, mais la goupille volée n'est annoncée que par du texte (« Avec elle, le levier du frein tiendra. »). On ne sait pas où l'utiliser. |
+| Conséquences | 8,5 | **9** | Les 3 réponses mènent à 3 suites distinctes : il se calme, il vous colle ou il fuit vers la sortie (vu à 21:58:30, `bump3_e.png`). C'est exactement ce que je demandais. |
+| Rejouabilité | 7,5 | **8** | J'ai *envie* de refaire le barrage pour voir les deux autres branches. C'est le premier choix du jeu qui pousse à relancer. |
+| Finition / mobile | 7,5 | **7,5** | Les bandeaux s'affichent bien sur iPhone (`m_bump2_b.png`), mais le texte de la fiche y devient minuscule. Le bandeau du coffret est coupé par l'annonce (bug 1). |
+
+## Ce que valent les bandeaux et les voix
+
+| Bandeau | Verdict |
+|---|---|
+| **Barrage** (`scene_barrage.jpg`) | **Excellent.** C'est l'image la plus forte du jeu : on voit les mains, la capuche de Camille au premier plan et la goupille rouge. Elle *montre* la menace au lieu de la décrire. Elle plante aussi l'indice visuellement avant « Regarder ses mains ». C'est bien vu. |
+| **Coffret** (`scene_coffret.jpg`) | Bon, et cohérent : on voit le gilet jaune dans le local en arrière-plan pendant qu'Odile fouille les fusibles. C'est le plan B raconté en une image. En revanche, le bandeau est **rogné en haut** par l'annonce (bug 1). |
+| **Clé** (`scene_cle.jpg`) | Joli et tendre, mais il arrive **après** le geste. Le bouton « L'aider à tourner la clé » ne fait rien jouer : on clique, on lit. C'est celui qui gagnerait le plus à devenir un geste (proposition 2). |
+| **Vitre** (`scene_vitre.jpg`) | **Non vu.** En montrant l'enveloppe par l'option de dialogue « Lui montrer l'enveloppe de « V. » », on obtient une fiche classique sans bandeau. Je n'ai pas réuni les conditions de `confrontation()`, donc je ne juge pas cette scène. |
+
+**Voix** : les fichiers attendus se chargent au bon moment : `g_barrage`, `g_bien`, `g_boulot` et `g_quoi` pour le barrage, `d_henri` pour la clé, `o_pense` pour le café, `o_tableau` et `o_file` pour le plan B, `o_rien` pour l'enveloppe. Ils sont tous présents dans `voix/` et différents les uns des autres. Mon navigateur sans écran ne me permet pas de juger le jeu des acteurs à l'oreille. Une remarque quand même : « Quoi ? » (`g_quoi`) est une réplique très courte pour un crédit. La voix sert surtout sur « Vous n'avez rien vu, hein ? », et là elle est indispensable.
+
+## Bugs précis
+
+1. **Coffret, 21:58:02 (ordinateur)** : l'annonce « ANNONCE ▸ « La dernière rame entrera en gare dans quelques instants. » » s'affiche par-dessus la fiche, et le bandeau du coffret est **coupé de moitié** (on ne voit que les mains et la lampe, `coffret1.png`). Il faudrait masquer l'annonce quand une fiche illustrée est ouverte, ou la décaler.
+2. **Barrage : la scène ne correspond pas à l'image de fond.** Le texte dit « tout près », mais le canevas derrière la fiche le montre encore dans l'encadrement de la porte du local, à 2 mètres de Camille (`bump1_b.png`). Il suffirait de figer la caméra sur les deux personnages, ou de flouter le fond.
+3. **Après « Rien vu »**, la fiche du gilet jaune propose toujours « « Je sais ce que vous avez fait dans le local. » ». C'est logique, mais rien ne signale que **ça trahit le mensonge**. Une réplique dédiée (« Tiens. Tout à l'heure, t'avais rien vu. ») transformerait l'incohérence en moment de jeu.
+4. **Vol de la goupille trop facile** : mon script a réussi du premier coup, en lâchant à la première alerte « regarde la rame ». Pour un « coup de poker », il manque un vrai risque : une seule fenêtre plus courte, ou une seconde tentative impossible.
+5. **« Regarder ses mains »** : à 21:58:30, il marche vers la sortie (`bump3_e.png`), mais aucun toast ne le dit. Un joueur qui regarde ailleurs ne saura pas qu'il a fait fuir le saboteur, alors que c'est une conséquence énorme. Il faudrait un toast « Il est parti. Le local est libre. »
+6. **Branche « Qu'est-ce que vous faisiez »** : la filature inversée est confirmée (il vient se placer à 0,09 de Camille, et « Je vous tiens à l'œil. » s'affiche). En revanche, mon script s'est bloqué avant d'avoir testé en jeu le refus de la porte et l'option « « Maman, cet homme me suit partout. » ». Je les ai **vérifiés uniquement en lisant le code** : à revalider.
+7. **iPhone 13** : avec le bandeau et le portrait, le texte de la fiche descend à environ 9 px et les options sont serrées (`m_bump2_b.png`). C'est jouable au doigt, mais à la limite.
+
+## 6 propositions de FUN (impact / effort)
+
+| # | Quoi, quand, quel geste | Pourquoi c'est fun | Coût | Crédits ElevenLabs |
+|---|---|---|---|---|
+| 1 | **Le gilet jaune remarque le mensonge** (après « Rien vu », si l'on choisit ensuite « Je sais ce que vous avez fait ») : « Tiens. Tout à l'heure, t'avais rien vu. » Il passe en mode « il vous suit ». | Le mensonge devient un pari qui peut se retourner. Ça crée un petit rire jaune et ça récompense l'attention. | Petit | Optionnel : 1 réplique (~60 crédits) |
+| 2 | **La clé devient un geste** (21:56:12–21:56:42) : maintenir le bouton pour forcer à deux, une jauge qui tremble, puis « crac », rien ne bouge. Elle rit. Réutiliser le mécanisme « maintenir » du vol de badge. | Le bandeau arriverait en *récompense* d'un effort raté. C'est un échec drôle et tendre, le seul moment de chaleur du hall. | Petit | Non |
+| 3 | **La goupille volée s'utilise vraiment** : à l'armoire du local, l'option « Remettre la goupille neuve » avec un petit geste de visée (l'aligner dans le trou pendant que la rame entre en gare). | Ça boucle « Rien vu → vol → réparation » en une chaîne de 3 gestes : le meilleur arc de la soirée, sans dialogue. | Moyen | Non |
+| 4 | **Toasts de conséquence immédiats** après le barrage : « Il quitte la station. » (mains), « Il ne vous lâche plus. » avec une silhouette visible derrière vous (question), « Il siffle en regardant le quai. » (rien vu). | Le choix se *voit* dans le hall et pas seulement dans la fiche. Ça ne coûte presque rien. | Petit | Non |
+| 5 | **Easter egg Bastien** : s'il a filmé avec le drone et que vous avez répondu « Rien vu », il passe vous voir à 21:59:10 : « Rien vu ? Moi j'ai tout vu, et c'est en 4K. » Il propose de vous montrer la vidéo. | C'est le premier vrai rire du jeu, et un renvoi entre deux personnages. Ça récompense ceux qui ont aidé Bastien. | Petit | 1 réplique (~70 crédits) |
+| 6 | **Odile chasse le gilet jaune en direct** (branche « il vous suit ») : au lieu d'une fiche, Odile sort de la cabine, se plante devant lui dans le hall et il recule, avec un petit tremblement d'écran et « Laissez mon enfant tranquille » doublé. | La mère protège l'enfant à l'écran. C'est un moment d'émotion et de jubilation, et c'est le payoff de la branche la plus risquée. | Moyen | 1 à 2 répliques (~150 crédits) |
+
+Budget voix si l'on fait 1, 5 et 6 : environ 300 crédits sur les 900 disponibles. Les propositions 2, 3 et 4 n'en demandent aucun.
+
+## Ce qu'il ne faut surtout pas toucher
+
+- Le **barrage sans « Partir »** et ses trois suites : c'est le meilleur choix du jeu.
+- L'**illustration du barrage** : elle montre la goupille avant qu'on la cherche.
+- « Il essuie ses mains noires de graisse sur son gilet, lentement, sans vous quitter des yeux. » : une phrase parfaite.
+- La **filature inversée** (« Je vous tiens à l'œil. ») : c'est une idée à creuser, pas à couper.
+
+---
+
 # Retours de playtest : Version 11 · tour 5
 
 **Léo · 25 novembre 2026 · environ 15 minutes · angle : fun et quantité**
