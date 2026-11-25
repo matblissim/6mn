@@ -1,3 +1,76 @@
+# Retours de playtest : Version 11 · tour 3
+
+**Léo · 25 novembre 2026 · environ 15 minutes**
+
+Ce que j'ai fait : deux soirées « expertes » complètes en 1280×720, l'une jusqu'à « La vérité », l'autre jusqu'à « Le silence ». J'ai suivi le chemin conseillé de RESOLUTION.html (sac, drone, cadrage, clé, fusible, enveloppe confiée, bureau, vidéo, vitre). J'ai ajouté un test de Bastien sans l'indice `local`, un passage à bord et deux tests sur iPhone 13 (gilet jaune, plan B). Avec `#debug`, je n'ai fait qu'avancer le temps et poser `chute`, `cafe` et `local` (l'équivalent d'une soirée précédente). Désormais, mes clics vérifient que la cible est à l'écran ; sinon, Camille marche d'abord vers elle. Aucune erreur JavaScript. Scripts, journaux et captures : `/tmp/claude-0/-workspace/00b10ced-f74c-50ab-a547-eda9febf00db/scratchpad/joueur4/`.
+
+**Erratum du tour 2** : le bug « la fiche de Mme Delattre se ferme toute seule » venait de mon outil, pas du jeu. Le clic Playwright par sélecteur échouait sur le bouton encore animé. Avec un vrai clic souris sur ses coordonnées, l'option fonctionne (voir plus bas). J'avais déjà retiré pour la même raison mes clics sur le bureau et la rame, tombés hors écran.
+
+## Verdict en 3 lignes
+
+Le jeu se termine enfin pour de vrai. À la vitre, les trois pièces s'enchaînent (refus, aveu, « Mon Dieu. Le frein. »), puis l'écran 21:59:48 pose un vrai dilemme. Les deux fins font mal, chacune à sa façon.
+Toutes les corrections que j'ai pu tester tiennent, y compris sur iPhone : gilet jaune, « Filmer quoi ? », fiche d'Odile au coffret et bureau d'Odile.
+Le reste est du détail : l'objectif « Ronde » qui s'impose, le compteur « 1 boucles » et un rang très généreux. Il faut maintenant soigner la densité de la première soirée à l'aveugle, plus la mécanique.
+
+## Notes sur 10 (tour 2 → tour 3)
+
+| Critère | T2 | T3 | Pourquoi |
+|---|---|---|---|
+| Quantité | 8 | **8** | Inchangée ; la route experte occupe chaque tranche de 21:56 à 21:59:02. |
+| Fun des actions | 7,5 | **7,5** | Toujours le cadrage et la vitre. La clé avec Mme Delattre reste une fiche à lire, pas un geste. |
+| Tension | 7 | **7,5** | Le compte à rebours de la vitre (« il reste 1 min 06 s » → « 0 min 58 s ») et les 4 s par pièce, puis le gyrophare à 21:59:48 : la fin monte bien. |
+| Lisibilité | 6,5 | **7** | « Filmer quoi ? » dit au joueur qu'il lui manque un lieu et une heure. Le bureau répond depuis le hall. |
+| Conséquences | 8 | **8,5** | Le choix final a un vrai coût dans les deux cas : « Vous irez la voir au parloir » contre « six mois plus tard, la station est rasée ». |
+| Rejouabilité | 7 | **7** | Les fins sont définitives, avec le seul bouton « Rejouer depuis le début ». C'est juste, mais rien n'incite à rejouer pour l'autre choix (pas d'indication « 1 fin sur 2 »). |
+| Finition / mobile | 6 | **7,5** | Le gilet jaune et la fiche d'Odile au coffret marchent au doigt. Aucune erreur JavaScript sur 6 sessions. |
+
+## Corrections annoncées : vérifiées ou non
+
+| Correction | État | Preuve |
+|---|---|---|
+| « L'aider à tourner la clé » (21:56:12–21:56:42) | **Vérifiée.** La bulle « Allez… tourne, ma vieille… » apparaît à 21:56:16. La fiche est ouverte à 21:56:18, l'option en tête, et elle reste ouverte. Un vrai clic donne « Vous forcez ensemble. La clé ne tourne pas d'un millimètre. … « Celle d'Henri. Ils ont changé la serrure en 2003… » … la goupille rouge, c'est le cœur du frein. » | `del.js`, `d01_avant_clic.png`, `d02_apres_clic.png` |
+| iPhone 13 : gilet jaune à 21:55:02 | **Vérifiée.** Le toucher ouvre « L'HOMME AU GILET JAUNE — Grand, mâchoire serrée… » avec « Le suivre discrètement » et « Lui subtiliser son badge ». La fiche « Sortie » ne s'ouvre plus. | `mob.js`, `m02_tap_gilet.png` |
+| Bastien : « Filmer quoi ? » sans l'indice `local` | **Vérifiée** à 21:56:06. Après « Je sais pour le drone », l'option « « Vous pourriez filmer quelque chose pour moi ? » » donne « « Filmer quoi ? » Il hausse les épaules. « Dites-moi où regarder et à quelle heure, et je verrai. D'ici là, je filme la rame. » » | `misc2.log`, `x01_filmer_quoi.png` |
+| Plus de petite phrase du gilet jaune à bord | **Vérifiée dans le code seulement** : les petites phrases ne se déclenchent plus quand Camille est à bord (`!S.aboard`). En jeu, mon saut de temps a envoyé directement à l'écran de 22:00:00, donc je n'ai rien observé. | `misc2.log` |
+| Fiche d'Odile au coffret (plan B, iPhone) | **Vérifiée** à 21:57:47 : « Votre mère tripote les disjoncteurs du coffret, la lampe de poche entre les dents. », avec l'option « Retourne à ton poste. C'est lui qui a fait sauter le coffret. ». Maman était hors écran ; il faut d'abord marcher vers elle. | `mob2.js`, `m04_odile_coffret.png` |
+| Bureau d'Odile depuis le hall (bug 3 du tour 2) | **Vérifié** à 21:58:25 : le SMS « 21h57. Deux minutes. Pas une de plus. — V. » s'affiche, avec « Ouvrir le tiroir » et « Prendre le micro d'annonce ». | `verite.log`, `verite_g06_bureau.png` |
+| « C'était qui, au téléphone ? » une seule fois | **Vérifié dans le code seulement** (`!S.said.qTel`). | — |
+| L'objectif ne recule plus | **En partie vérifié.** À 21:57:26, après avoir salué maman, l'objectif passe à « Qui s'approche du local technique… » et ne revient plus à « Allez la saluer ». | `misc.log` |
+| Filature, étiquette derrière le distributeur | **Pas retestées** dans ce tour (manque de temps). | — |
+
+## Les deux fins (chemin de la résolution, joué de bout en bout)
+
+- **À la vitre**, à 21:58:49, les cartes arrivent dans cet ordre :
+  1. 📱 « Les messages signés « V. » » donne « Tu as lu mon téléphone. … Tu n'as rien, Camille. Un papier. » (il reste 1 min 06 s).
+  2. ✉️ « L'enveloppe de « V. » » donne « Le prêt pour ton école. Dix-huit mille euros. … « C'était pour toi. » … « Je ne bouge plus d'ici. » ».
+  3. 🎥 « La vidéo de Bastien » donne « Mon Dieu. Le frein. … elle pose sa main contre la vitre, sur la vôtre. »
+  
+  C'est la meilleure minute du jeu. (`verite_g08_carte0..3.png`)
+- **21:59:48, écran de choix** : « Votre mère vous tend son téléphone… « Fais ce qui est juste, Camille. Je ne te demanderai rien. » », avec les boutons TOUT DONNER À LA POLICE et EFFACER LES MESSAGES. Le portrait d'Odile, la main sur la bouche, est très juste. (`verite_g09_choix.png`)
+- **La vérité** : « Vasseur est arrêté au matin. Votre mère est mise en examen pour complicité. Elle refuse l'avocat. … Vous irez la voir au parloir. Elle vous dira qu'elle dort bien, maintenant. »
+- **Le silence** : « La vidéo et l'enveloppe suffiront pour l'homme au gilet jaune. Pas pour Vasseur : six mois plus tard, la station est rasée. … Elle ne prend plus jamais de café à 21 h 57. Vous n'en parlez jamais. »
+- Les deux textes sont sobres et sans morale. La dernière phrase du « silence » est excellente.
+
+## Nouveaux bugs et incohérences
+
+1. **Écran de fin : « 1 boucles »** (accord), avec « DÉTECTIVE LÉGENDAIRE » et « 0/6 déductions ». Mes indices étaient posés par `#debug`, mais un joueur peut atteindre la fin en une boucle avec la caméra d'Odile. Le pluriel est faux dans ce cas, et le rang « légendaire » avec 0 déduction sonne creux. (`verite.log`)
+2. **L'objectif « Ronde pour votre mère : ☐ bord du quai · ☐ extincteur près du pilier · ☐ porte du local »** s'affiche dès 21:54:16, sans que j'aie accepté quoi que ce soit, et reste jusqu'à 21:57:26 sans jamais cocher une case. Le bug 5 du tour 1 n'est pas corrigé. (`misc.log`, `verite.log`)
+3. **Bureau vu de l'extérieur** : à 21:58:25, la fiche « Bureau d'Odile » s'ouvre alors que Camille est dans le hall. Elle lit pourtant le téléphone de maman, posé sur le bureau. Soit Camille entre (ce qui collerait à « Tu as lu mon téléphone. »), soit la fiche doit dire « Vous passez la tête par la porte… ». C'est mineur.
+4. **iPhone, plan B** : à 21:57:37, maman est au coffret, hors écran à droite (x = 1334 px). Seule une flèche le signale, et toucher la flèche ne fait rien. Le joueur doit deviner qu'il faut marcher. Je propose qu'un toucher sur la flèche d'un personnage hors champ amène Camille vers lui.
+
+## 6 propositions, classées impact / effort
+
+| # | Quoi | Impact | Effort | ElevenLabs |
+|---|---|---|---|---|
+| 1 | L'objectif « Ronde » n'apparaît qu'après « D'accord, je fais la ronde » et coche ses cases au fil des vérifications (bug 2). | fort | petit | non |
+| 2 | Toucher une flèche de personnage hors champ fait marcher Camille vers lui (mobile surtout, bug 4). | fort (mobile) | petit | non |
+| 3 | Écran de fin : « 1 boucle » au singulier, rang calculé aussi sur les déductions, et une ligne « Une autre fin vous attend : effacer / tout donner » pour pousser à rejouer le choix. | moyen | petit | non |
+| 4 | « L'aider à tourner la clé » en vrai geste : maintenir pour forcer avec elle, 2 s, la clé résiste, elle rit. Le moment le plus tendre du creux mérite un geste. | moyen | petit | non |
+| 5 | Fin « Le silence » : 3 s d'écran de téléphone où l'on glisse pour effacer les messages un par un, au lieu d'un bouton. Le choix deviendrait un geste. | fort | moyen | non |
+| 6 | Écran de choix : voix d'Odile pour « Fais ce qui est juste, Camille. Je ne te demanderai rien. » C'est la réplique la plus forte du jeu, elle mérite d'être entendue. | fort | petit | **oui** (une réplique) |
+
+---
+
 # Retours de playtest : Version 11 · tour 2
 
 **Léo · 25 novembre 2026 · environ 25 minutes (5 de plus que prévu)**

@@ -267,7 +267,7 @@ function hint() {
 }
 const rondeDone = () => !!(S && S.ronde && S.ronde.quai && S.ronde.ext && S.ronde.porte);
 function goal() {
-  if (S && S.rondeOn && !S.rondeReported && S.t < 200 && !revealed()) return rondeDone() ? "La ronde est faite : allez le dire à votre mère, à sa vitre." : "Ronde pour votre mère : " + [["quai", "bord du quai"], ["ext", "extincteur près du pilier"], ["porte", "porte du local"]].map(([k, l]) => (S.ronde[k] ? "✓ " : "☐ ") + l).join(" · ");
+  if (S && S.rondeOn && !S.rondeReported && S.t < 200 && !revealed()) return rondeDone() ? "La ronde est faite : allez le dire à votre mère, à sa vitre." : "Votre mère vous demande une ronde, si vous voulez : " + [["quai", "bord du quai"], ["ext", "extincteur près du pilier"], ["porte", "porte du local"]].map(([k, l]) => (S.ronde[k] ? "✓ " : "☐ ") + l).join(" · ");
   if (!revealed() && !knows("chute")) return S && S.said && S.said.oHi ? "Votre mère fait partir la dernière rame à 22 h 00. Montez à bord avant le départ." : "Votre mère fait partir la dernière rame à 22 h 00. Allez la saluer, puis montez à bord.";
   if (!knows("chute") && !knows("local") && !knows("frein")) {
     if (knows("aveux") || knows("appel") || knows("guichet") || knows("sms")) return "Vous en savez déjà beaucoup. Mais qu'est-ce qui devait arriver à 22 h 00 ? Une fois, laissez votre mère partir au café, et regardez qui s'approche du local.";
@@ -817,9 +817,9 @@ function render(now, real) {
   if (S.planB && S.cut && !S.planBFoiled && S.t < S.cutT + 55 && !S.dark) { const fl = Math.random() < 0.06 ? 0.12 : 0; ctx.fillStyle = `rgba(0,0,8,${0.38 + fl})`; ctx.fillRect(0, 0, VW, VH); }
   if (S.dark > 0) { const k = Math.min(1, S.dark * 2), p = toScr(A.player), g = ctx.createRadialGradient(p.x, p.y - 30, 30, p.x, p.y - 30, 230); g.addColorStop(0, `rgba(0,0,4,${0.35 * k})`); g.addColorStop(1, `rgba(0,0,4,${0.93 * k})`); ctx.fillStyle = g; ctx.fillRect(0, 0, VW, VH); }
   // flèches vers les personnages hors champ
-  const usedA = [];
+  const usedA = []; arrowHits.length = 0;
   for (const a of Object.values(A)) { if (a === A.player || !a.vis) continue; const p = toScr(a), h = 0.15 * IH * S2(), cy = p.y - h * 0.5; if (p.x > -10 && p.x < VW + 10 && cy > 40 && cy < VH + 10) continue;
-    const x = Math.max(28, Math.min(VW - 28, p.x)); let y = Math.max(96, Math.min(VH - 60, cy)); while (usedA.some(u => Math.abs(u.x - x) < 110 && Math.abs(u.y - y) < 22)) y += 24; usedA.push({ x, y }); const ang = Math.atan2(cy - y, p.x - x), col = TAGC[a.img] || "#e8e4da";
+    const x = Math.max(28, Math.min(VW - 28, p.x)); let y = Math.max(96, Math.min(VH - 60, cy)); while (usedA.some(u => Math.abs(u.x - x) < 110 && Math.abs(u.y - y) < 22)) y += 24; usedA.push({ x, y }); arrowHits.push({ x, y, id: Object.keys(A).find(k => A[k] === a) }); const ang = Math.atan2(cy - y, p.x - x), col = TAGC[a.img] || "#e8e4da";
     ctx.save(); ctx.translate(x, y); ctx.rotate(ang); ctx.fillStyle = col; ctx.beginPath(); ctx.moveTo(14, 0); ctx.lineTo(-6, -8); ctx.lineTo(-6, 8); ctx.closePath(); ctx.fill(); ctx.restore();
     ctx.font = "600 11px Inter, sans-serif"; ctx.textAlign = x > VW / 2 ? "right" : "left"; ctx.fillStyle = col; ctx.fillText(TAGN[a.img], x + (x > VW / 2 ? -18 : 18), y + 4); }
   // vignette, alerte de fin de boucle, alarme
@@ -1418,10 +1418,11 @@ function pick(x, y) {
   if (ag) return { kind: "agent", id: ag[0], name: ag[1].name };
   return { kind: "floor", w };
 }
+const arrowHits = [];
 cv.addEventListener("pointerdown", e => {
   touchK = e.pointerType === "mouse" ? 1 : 1.5;
   if (S.over || !$sheet.hidden || S.hidden || S.aboard) return;
-  const r = cv.getBoundingClientRect(), hit = pick(e.clientX - r.left, e.clientY - r.top);
+  const r = cv.getBoundingClientRect(), ax = e.clientX - r.left, ay = e.clientY - r.top, arr = arrowHits.find(h => Math.hypot(h.x - ax, h.y - ay) < 34), hit = arr ? { kind: "agent", id: arr.id } : pick(ax, ay);
   if (hit.kind !== "agent" || hit.id !== S.follow) S.follow = null;
   if (hit.kind === "floor") { tutStep(0); S.clicks.push(S.t); S.clicks = S.clicks.filter(c => c > S.t - 15); if (S.clicks.length >= 9 && !S.said.dizzy && roomOf(A.odile) === "ctrl") { S.said.dizzy = 1; say(A.odile, "Camille, pose-toi, tu me donnes le tournis."); } pending = null; goTo(A.player, hit.w); ripples.push({ x: hit.w.x, y: hit.w.y, k: 0 }); return; }
   if (hit.kind === "agent") { const a = A[hit.id]; pending = { kind: "agent", id: hit.id }; goTo(A.player, { x: a.x + (A.player.x < a.x ? -0.035 : 0.035), y: a.y + 0.01 }); if (hit.id === "odile" && roomOf(A.odile) === "ctrl") goTo(A.player, P.window); return; }
@@ -1440,7 +1441,8 @@ function updateTut() { const n = M.tut || 0, show = n < TUT.length && !revealed(
 function arrive() {
   if (!pending) return; const p = pending; pending = null;
   if (p.kind === "agent") { const a = A[p.id]; if (!a.vis) return; const atWin = p.id === "odile" && roomOf(a) === "ctrl" && roomOf(A.player) !== "ctrl" && near(A.player, P.window, 0.05); if (!atWin && Math.hypot(A.player.x - a.x, (A.player.y - a.y) * 0.56) > 0.09) { if (a.path.length || (p.id === "odile" && roomOf(a) === "ctrl" && roomOf(A.player) !== "ctrl")) { pending = p; return goTo(A.player, p.id === "odile" && (roomOf(a) === "ctrl" || near(a, DOOR_OUT, 0.08)) ? P.window : { x: a.x + (A.player.x < a.x ? -0.035 : 0.035), y: a.y + 0.01 }); } return toast(`${a.name} est trop loin`); } A.player.dir = a.x > A.player.x ? 1 : -1; a.dir = -A.player.dir; A.player.face = "s"; if (!(p.id === "odile" && roomOf(a) === "ctrl")) a.face = "s"; else A.player.face = "b"; focus = { x: (a.x + A.player.x) / 2, y: (a.y + A.player.y) / 2 - 0.04 }; zoomT = 1.35; tutStep(1); talk(p.id); }
-  else { const h = HOT.find(x => x.id === p.id); if (h) { A.player.face = h.face; A.player.dir = h.dir; } if ((M.tut || 0) >= 1) tutStep(2); examine(p.id); }
+  else { if (p.id === "desk" && roomOf(A.player) !== "ctrl") { if (!p.retry && roomOf(A.odile) !== "ctrl") { pending = { ...p, retry: 1 }; return goTo(A.player, { x: 0.305, y: 0.26 }); } return toast("Le bureau est dans le local : il faut y entrer pour lire quoi que ce soit."); }
+    const h = HOT.find(x => x.id === p.id); if (h) { A.player.face = h.face; A.player.dir = h.dir; } if ((M.tut || 0) >= 1) tutStep(2); examine(p.id); }
 }
 
 /* ================= Fins de boucle ================= */
@@ -1508,8 +1510,8 @@ function epilogue() {
   return `<div class="sum" style="animation-delay:${0.9 + 4 * 1.3}s">${L.join("<br>")}</div>`;
 }
 function finalStats() {
-  const mins = Math.round((M.playS || 0) / 60), rank = M.loops <= 3 ? "Détective légendaire" : M.loops <= 6 ? "Fin limier" : M.loops <= 10 ? "Enquêteur tenace" : "Témoin obstiné";
-  return `<div class="stats" style="animation-delay:${0.6 + 4 * 1.3}s"><div><b>${M.loops}</b>boucles</div><div><b>${mins} min</b>de jeu</div><div><b>${M.endings.length}/${ENDINGS.length}</b>fins</div><div><b>${(M.ach || []).length}/${ACHS.length}</b>succès</div><div style="grid-column:1/-1"><b style="font-size:18px;font-family:var(--f-title);letter-spacing:.08em;text-transform:uppercase">${rank}</b>votre rang</div><div style="grid-column:1/-1;text-align:left">Votre choix : <b style="display:inline;font-size:14px;font-family:inherit">${S.choice === "silence" ? "vous avez protégé votre mère" : "vous avez dit toute la vérité"}</b> · ${(M.ded || []).length}/${DEDS.length} déductions · ${M.clues.length} indices${M.endings.includes("erreur") ? " · un innocent accusé à tort" : ""}</div></div>${epilogue()}${CREDITS}`;
+  const mins = Math.round((M.playS || 0) / 60), nd = (M.ded || []).length, rank = M.loops <= 3 && nd >= 3 ? "Détective légendaire" : M.loops <= 3 ? "Fin limier" : M.loops <= 6 ? "Fin limier" : M.loops <= 10 ? "Enquêteur tenace" : "Témoin obstiné";
+  return `<div class="stats" style="animation-delay:${0.6 + 4 * 1.3}s"><div><b>${M.loops}</b>${M.loops > 1 ? "boucles" : "boucle"}</div><div><b>${mins} min</b>de jeu</div><div><b>${M.endings.length}/${ENDINGS.length}</b>fins</div><div><b>${(M.ach || []).length}/${ACHS.length}</b>succès</div><div style="grid-column:1/-1"><b style="font-size:18px;font-family:var(--f-title);letter-spacing:.08em;text-transform:uppercase">${rank}</b>votre rang</div><div style="grid-column:1/-1;text-align:left">Votre choix : <b style="display:inline;font-size:14px;font-family:inherit">${S.choice === "silence" ? "vous avez protégé votre mère" : "vous avez dit toute la vérité"}</b> · ${(M.ded || []).length}/${DEDS.length} déductions · ${M.clues.length} indices${M.endings.includes("erreur") ? " · un innocent accusé à tort" : ""}</div></div>${epilogue()}${CREDITS}`;
 }
 function showOverlay(title, lines, btn, kind) {
   $ov.hidden = false;
@@ -1659,7 +1661,7 @@ function frame(now) {
 }
 
 resize(); newLoop();
-if (location.hash === "#debug") window.__toScr = p => toScr(p); window.__dbg = { get S() { return S; }, A, M, P, award, openJournal, rewindNow, DEDS, talk, examine, goTo, learn, give, has, endLoop, walkable, clampWalk, route, HOT, NODES };
+if (location.hash === "#debug") window.__toScr = p => toScr(p); window.__dbg = { get S() { return S; }, arrowHits, A, M, P, award, openJournal, rewindNow, DEDS, talk, examine, goTo, learn, give, has, endLoop, walkable, clampWalk, route, HOT, NODES };
 function introText() {
   $ov.className = "scene"; $ov.style.backgroundImage = "url(img/title.jpg)";
   $ov.innerHTML = `<div><div class="lines"><p style="animation-delay:.3s">Laon, samedi 27 août 2016. Station basse du POMA.</p><p style="animation-delay:1.7s">Votre mère, Odile, pilote cette ligne depuis vingt-sept ans. Ce soir, à 22 h 00, elle fait partir la toute dernière rame.</p><p style="animation-delay:3.3s">Vous lui avez promis d'être là. Six minutes à attendre, rien de plus.</p></div><button class="go" type="button" style="animation-delay:4.6s">Entrer dans la station</button><p class="small">Touchez le sol pour marcher, un objet ou une personne pour interagir. « Attendre » fait passer le temps. Fiction inspirée d'un lieu réel.</p></div>`;
