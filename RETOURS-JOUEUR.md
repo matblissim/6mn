@@ -1,3 +1,65 @@
+# Retours de playtest : Version 11 · tour 4
+
+**Léo · 25 novembre 2026 · environ 15 minutes · angle : fun et quantité**
+
+Ce que j'ai fait : une soirée de nouveau joueur (sauvegarde vide, 1280×720, vrais clics, et j'attends 0,5 s avant de cliquer un bouton de fiche), dont une filature en temps réel de 21:55:37 à 21:56:11. Ensuite, une soirée de joueur qui sait sur iPhone 13 (boucle 3, indices `chute`, `cafe`, `local` et `drone` posés, son et voix activés). `#debug` ne m'a servi qu'à avancer le temps. Aucune erreur JavaScript. Scripts, journaux et captures : `/tmp/claude-0/-workspace/00b10ced-f74c-50ab-a547-eda9febf00db/scratchpad/joueur5/` (`s1.js`/`s1.log`, `s2.js`/`s2.log`).
+
+## Verdict en 3 lignes
+
+La filature est la bonne surprise de ce tour : un vrai geste, avec du rythme (« Il ralentit et tourne la tête… · repéré 0/2 », puis « 👀 Regarder ailleurs »), qui rapporte un indice et un succès. Il en faudrait trois comme elle.
+La première soirée à l'aveugle reste en deux temps : la première moitié est dense (de 21:54 à 21:56:30), la seconde est creuse (de 21:57:40 à 21:59:40 : les fiches sont à lire et le quai ne sert à rien).
+Après la vraie fin, rien ne pousse à rejouer. Il n'y a aucun contenu « après la fin », et les souvenirs (« 1/5 ») et les succès ne sont pas mis en avant.
+
+## Notes sur 10 (tour 3 → tour 4)
+
+| Critère | T3 | T4 | Pourquoi |
+|---|---|---|---|
+| Quantité | 8 | **8** | La première moitié est riche (Bastien, drone, ticket inaugural, filature), mais je compte encore 2 min creuses en fin de première soirée. |
+| Fun des actions | 7,5 | **8** | La filature (4 regards esquivés en 34 s) a un vrai rythme. Avec le cadrage et la vitre, cela fait trois vrais gestes. |
+| Tension | 7,5 | **7,5** | Inchangée. Le tic sonore de la filature et le compteur « repéré 0/2 » marchent bien. |
+| Lisibilité | 7 | **7** | En boucle 3, l'objectif oriente bien : « Qu'a fait le gilet jaune dans l'armoire ? Allez voir après son passage. Méfiez-vous : il n'est pas le seul à avoir l'air louche. » La bulle d'aide masque encore le statut de filature (bug 1). |
+| Conséquences | 8,5 | **8,5** | Inchangées. La filature débloque « « Je sais qui va saboter la rame. » » chez maman dès la première soirée (21:56:47) : bonne réaction en chaîne. |
+| Rejouabilité | 7 | **6,5** | Le compteur de souvenirs (« Souvenirs du POMA : 1/5 ») est une super idée, mais il est invisible à l'écran de fin. Rien n'appelle l'autre fin ni les succès manqués. |
+| Finition / mobile | 7,5 | **7,5** | Rien de cassé sur iPhone. Je relève deux défauts d'affichage sur ordinateur (bugs 1 et 2). |
+
+## Corrections du tour 3 : vérifiées ou non
+
+| Correction | État | Preuve |
+|---|---|---|
+| Filature (≥ 15 s, au moins un regard esquivé) | **Vérifiée en jeu.** J'ai cliqué « Le suivre discrètement » à 21:55:37 (toast « Vous le suivez. S'il se retourne, regardez ailleurs. »), puis cliqué « 👀 Regarder ailleurs » à 21:55:40, 21:55:48, 21:55:57 et 21:56:04. Résultat : 4 esquives, 0 repérage, succès `filature` et indice « En filant le gilet jaune, vous l'avez vu fixer le local et compter à mi-voix… ». | `a05_regard.png`, `s1.log` |
+| Étiquette / souvenir derrière le distributeur | **Vérifiée en jeu, à préciser.** Le distributeur de **boissons** n'a rien à fouiller (« Café : 2 €. Le moteur ronronne dans la pénombre. », seulement « Partir », à 21:55:05). Au distributeur de **billets**, « Fouiller le bac à monnaie » donne « SOUVENIR — LE TICKET INAUGURAL … « POMA 2000 — voyage inaugural — 4 février 1989 » … (Souvenirs du POMA : 1/5…) ». Si une étiquette est censée se cacher derrière le distributeur de boissons, je ne l'ai pas trouvée : pouvez-vous me dire ce qui était prévu ? | `a03_souv.png` |
+| Ronde présentée comme une demande | **En partie.** Le texte est bon : « Votre mère vous demande une ronde, si vous voulez : ☐ bord du quai · … ». Mais il s'affiche toujours tout seul à 21:54:30, sans accord du joueur. Il disparaît à 21:57:40 (limite `S.t < 200`), alors que le quai, vérifié à 21:59:13, affiche encore « Ronde : le quai, c'est fait. » pour une ronde qui n'existe plus à l'écran. En boucle 3, il ne s'impose plus. | `s1.log`, `s2.log` |
+| « 1 boucle » au singulier, rang | **Dans le code seulement** : `M.loops > 1 ? "boucles" : "boucle"` et « Détective légendaire » exige maintenant 3 déductions. Je n'ai pas eu le temps de rejouer jusqu'à l'écran de fin. | `index.html` l. 1513-1514 |
+| Bureau lu seulement dans le local | **Dans le code seulement** (toast « Le bureau est dans le local : il faut y entrer pour lire quoi que ce soit. », sinon Camille y marche). En jeu, mon saut de temps à 21:57:06 a laissé maman à son poste. Le point « Bureau » était donc masqué et mon toucher a ouvert la fiche d'Odile, ce qui est un comportement normal. | `m03_bureau.png` |
+| Flèches touchables sur iPhone | **Non vérifiée en jeu** : à 21:54:02 et 21:57:06, aucun personnage n'était hors champ. Le code accepte un toucher à moins de 34 px d'une flèche. | `index.html` l. 1425 |
+
+## Bugs précis
+
+1. **21:55:40, filature (ordinateur)** : la bulle « 👆 Touchez le sol pour vous déplacer. » est posée **sur** le statut « ⚠️ Il ralentit et tourne la tête… · repéré 0/2 ». On lit mal l'information la plus importante du mini-jeu. Par ailleurs, l'aide dit « Touchez » sur un écran à la souris. (`a05_regard.png`)
+2. **21:55:40, même capture** : une étiquette « L'homme au gilet jaune » reste affichée à gauche, sur Mme Delattre, alors que le gilet jaune est à droite (marqué « Gilet jaune »). C'est sans doute le survol resté à la dernière position de la souris pendant que la caméra défile.
+3. **21:59:13, bord du quai** : « Ronde : le quai, c'est fait. » s'affiche alors que l'objectif de ronde a disparu depuis 21:57:40. Le joueur ne sait pas à qui la rapporter.
+4. **Écran de fin de la première soirée** : « Il recommencera. Vous le savez. Le monde se replie sur lui-même. » La boucle n'est pas nommée et la règle d'or est respectée. « Vous le savez » est juste à la limite ; je le laisserais tel quel.
+
+## Où je m'ennuie encore (soirée 1, à l'aveugle)
+
+- **21:54:00–21:56:30 : densité 3.** Maman, Bastien et son sac, le drone qui tombe (« Quelque chose est tombé de la poche de Bastien. »), le ticket inaugural, l'appel du gilet jaune, la filature. C'est très bien.
+- **21:56:30–21:57:40 : densité 2.** On apprend des choses, mais en lisant des fiches.
+- **21:57:40–21:59:40 : densité 1, temps mort.** Le gilet jaune « fixe le quai ». Maman est au café. Le quai et la rame ne donnent que du texte. Le nouveau joueur ne sait pas que c'est **là** que tout se joue. Il attend le départ.
+- **Après la vraie fin** : je n'ai aucune envie de relancer « Rejouer depuis le début ». Je n'ai ni la liste de ce que j'ai raté, ni l'autre fin à découvrir, ni de défi.
+
+## 6 propositions, classées impact / effort
+
+| # | Quoi | Impact | Effort | ElevenLabs |
+|---|---|---|---|---|
+| 1 | **Écran de fin, version « rejouer »** : afficher « Fins 1/2 · Souvenirs 1/5 · Succès x/y » avec, pour chaque élément manqué, une piste d'une ligne (« Un ticket de 1989 dort quelque part au fond d'une machine… »). Le joueur qui sait repart chasser. | fort | petit | non |
+| 2 | **Fin de première soirée, de 21:57:40 à 21:59:40** : un événement qui force un choix, par exemple le gilet jaune qui demande à Camille de « surveiller la porte deux minutes ». Accepter, refuser ou mentir, avec un effet visible sur le sabotage. Le creux devient une tension. | fort | moyen | non |
+| 3 | **Corriger l'affichage de la filature** (bugs 1 et 2) : masquer l'aide « Touchez le sol » pendant la filature, dire « Cliquez » à la souris, effacer le survol quand la caméra bouge. | moyen | petit | non |
+| 4 | **Ronde acceptée, pas imposée** : l'objectif n'apparaît qu'après une réponse à « Tu fais la ronde pour moi ? ». Si le joueur la termine, maman offre une réplique ou un objet (la pièce de 2 €, par exemple). La ronde doit récompenser, sinon c'est une liste de courses. | moyen | petit | non |
+| 5 | **Mode « Dernière rame » après la vraie fin** : soirée chronométrée en partant des indices acquis, avec un objectif « vérité avant 21:58:30 » et un succès. Cela donne une raison de rejouer pour la vitesse, comme dans Obra Dinn ou Outer Wilds en speedrun. | moyen | moyen | non |
+| 6 | **Deux autres souvenirs racontés à voix haute** (Mme Delattre sur Henri devant l'extincteur de 1997, maman sur le voyage inaugural de 1989) : 2 répliques de 10 s qui donnent du poids à la chasse aux souvenirs. | moyen | petit | **oui** (2 répliques) |
+
+---
+
 # Retours de playtest : Version 11 · tour 3
 
 **Léo · 25 novembre 2026 · environ 15 minutes**
