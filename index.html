@@ -211,7 +211,7 @@ const CLUES = {
   ordre: "Si votre mère voit la preuve du sabotage avant d'avoir avoué, elle court au frein et se tait. L'aveu d'abord.",
   filature: "En filant le gilet jaune, vous l'avez vu fixer le local et compter à mi-voix : « Deux minutes. Quarante secondes pour l'armoire. »",
   fusible: "Après la micro-coupure de 21 h 56, un fusible du coffret du hall pend à moitié, la vis desserrée. Quelqu'un prépare quelque chose avec ce coffret.",
-  graisse: "Vers 21 h 58, le gilet jaune sort du local les mains noires de graisse, une goupille rouge dépassant de sa poche.",
+  graisse: "Vers 21 h 58, le gilet jaune sort du local les mains noires de graisse, une goupille rouge toute neuve dépassant de sa poche : celle du frein.",
   mefiance: "Si on parle du local au gilet jaune avant 21 h 57, il se méfie, renonce… et s'en va libre.",
   incomplet: "Sauver la rame ne suffit pas : tant que la vérité entière n'est pas faite, la boucle recommence.",
   journal: "Dans la poubelle près du pilier, le journal du jour : « Fermeture du POMA — le promoteur Vasseur rachète le dépôt ».",
@@ -571,7 +571,7 @@ function updateAgents(dt) {
     pending = null; goTo(me, { x: 0.37, y: 0.48 });
   }
   // événements : annonces, téléphone du guichet, micro-coupure
-  if (t >= 5 && !S.said.wave && !S.said.oHi) { S.said.wave = 1; say(o, "Camille ! Par ici !"); }
+  if (t >= 5 && !S.said.wave && !S.said.oHi) { S.said.wave = 1; say(o, M.afterEnd ? "Camille… Toi aussi, tu as l'impression qu'on a déjà fini cette nuit ?" : "Camille ! Par ici !"); }
   if (t >= 62 && !S.propDown) { S.propDown = true; if (Math.hypot(me.x - 0.33, (me.y - 0.54) * 0.56) < 0.3) toast("Quelque chose est tombé de la poche de Bastien."); }
   // 21:54:12 : votre mère vous confie la ronde
   if (t >= 12 && !S.said.ronde && !S.odileConfess) { S.said.ronde = 1; S.rondeAsked = true; S.ronde = {}; say(o, "Camille ! Tu fais la ronde pour moi ?"); toast("Votre mère vous fait signe depuis sa vitre : elle a un service à vous demander."); }
@@ -788,7 +788,7 @@ function render(now, real) {
     ctx.save(); ctx.translate(p.x, p.y - lift); ctx.rotate(Math.sin(t * 1.3) * 0.04); ctx.drawImage(IMG.drone, -w / 2, -h / 2, w, h); ctx.restore(); }
   if (S.droneTest && IMG.drone) { const b = A.bastien, gp = { x: b.x + 0.03 + Math.sin(t * 1.4) * 0.015, y: b.y - 0.01 }, p = toScr(gp), u = S2(), w = 70 * u, h = (w * IMG.drone.height) / IMG.drone.width, k = Math.min(1, (S.t - 84) / 1.5) * Math.min(1, (96 - S.t) / 1.5), lift = (30 + 60 * k + Math.sin(t * 2.1) * 5) * u;
     ctx.fillStyle = "rgba(0,0,0,.28)"; ctx.beginPath(); ctx.ellipse(p.x, p.y, w * 0.3, w * 0.09, 0, 0, Math.PI * 2); ctx.fill(); ctx.save(); ctx.translate(p.x, p.y - lift); ctx.rotate(Math.sin(t * 1.7) * 0.06); ctx.drawImage(IMG.drone, -w / 2, -h / 2, w, h); ctx.restore(); }
-  for (const a of list) if (a !== A.player) drawTag(a, t);
+  tagRects.length = 0; for (const a of list) if (a !== A.player) drawTag(a, t);
   // repères sur les objets à portée : un point qui pulse, et le nom du plus proche
   if (!S.hidden && !S.aboard && $sheet.hidden) { let best = null, bd = 9;
     for (const h of HOT) { if (!hotOn(h)) continue; const d = Math.hypot(me.x - h.at.x, (me.y - h.at.y) * 0.56); if (d > 0.2) continue; const p = toScr(h), k = 0.5 + 0.5 * Math.sin(t * 3 + h.x * 20);
@@ -880,6 +880,7 @@ function drawBody(c, im, w, h, a, ps) {
 // étiquettes : un nom et une couleur par personnage, pour ne jamais les perdre de vue
 const TAGN = { odile: "Odile", gerald: "Gilet jaune", bastien: "Bastien", delattre: "Mme Delattre" };
 const TAGC = { odile: "#6fd3c8", gerald: "#f2d43a", bastien: "#9db8ff", delattre: "#f0a8c8", vasseur: "#e0533d" };
+const tagRects = [];
 function drawTag(a, t) {
   if (BLOCKS.some(b => a.x > b.x0 && a.x < b.x1 && a.y > b.y0 && a.y < b.y1 + 0.03)) return;
   if (bubbles.some(b => b.a === a)) return;
@@ -887,7 +888,7 @@ function drawTag(a, t) {
   const me = A.player, dist = Math.hypot(me.x - a.x, (me.y - a.y) * 0.56), k = Math.max(0, Math.min(1, (0.2 - dist) / 0.06)); if (k <= 0) return;
   const p = toScr(a), h = 0.15 * IH * S2(), col = TAGC[a.img];
   ctx.globalAlpha = k * 0.92; ctx.font = `600 ${Math.max(10, Math.round(11 * Math.min(1.3, S2() * 1.4)))}px Inter, sans-serif`; ctx.textAlign = "center";
-  ctx.shadowColor = "rgba(0,0,0,.9)"; ctx.shadowBlur = 6; ctx.fillStyle = col; ctx.fillText(TAGN[a.img], p.x, p.y - h - 8); ctx.shadowBlur = 0; ctx.globalAlpha = 1;
+  ctx.shadowColor = "rgba(0,0,0,.9)"; ctx.shadowBlur = 6; ctx.fillStyle = col; let ty = p.y - h - 8; const tw = ctx.measureText(TAGN[a.img]).width; while (tagRects.some(r => Math.abs(r.x - p.x) < (r.w + tw) / 2 + 4 && Math.abs(r.y - ty) < 14)) ty -= 15; tagRects.push({ x: p.x, y: ty, w: tw }); ctx.fillText(TAGN[a.img], p.x, ty); ctx.shadowBlur = 0; ctx.globalAlpha = 1;
 }
 // lumière ambiante à l'endroit du personnage : distance au néon le plus proche, couleur de la zone, néon défaillant
 function lightAt(a, t) {
@@ -1012,11 +1013,12 @@ function souv(k) { M.souv = M.souv || []; if (M.souv.includes(k)) return; M.souv
 function bumpScene() {
   closeUp(A.gerald); Snd.tension(0.5); logEv("Le gilet jaune vous barre le passage");
   const end = txt => { learn("graisse"); sheet("L'homme au gilet jaune", txt, [], 1); };
+  S.noLeave = true;
   sheet("L'homme au gilet jaune", "Il vous barre le passage, tout près. Il sent la graisse et la pluie. « Vous n'avez rien vu, hein ? »", [
     { l: "« Rien vu. »", fx: () => end("« Bien. » Il essuie ses mains noires de graisse sur son gilet, lentement, sans vous quitter des yeux. Puis il s'éloigne vers le quai.") },
     { l: "« Qu'est-ce que vous faisiez dans le local ? »", fx: () => { learn("local", true); end("Il sourit, mais pas avec les yeux. « Mon boulot. » Il se penche. « Montez dans votre rame, et profitez du voyage. » Ses mains sont noires de graisse jusqu'aux poignets."); } },
-    { l: "Regarder ses mains", fx: () => end("Noires de graisse, jusqu'aux poignets. Une petite goupille rouge dépasse de sa poche de poitrine. Il suit votre regard et referme sa veste. « Quoi ? »") }
-  ], 1);
+    { l: "Regarder ses mains", fx: () => end("Noires de graisse, jusqu'aux poignets. Une goupille rouge, toute neuve, dépasse de sa poche de poitrine : celle du frein. Il suit votre regard et referme sa veste. « Quoi ? »") }
+  ], 1); S.noLeave = false;
 }
 // filature : il se retourne de temps en temps ; il faut regarder ailleurs à ce moment-là, et ne pas lui coller aux talons
 function tailTick(dt) {
@@ -1156,7 +1158,7 @@ function sheet(title, text, opts, mood) {
   $sheet.innerHTML = `${who ? `<img class="por" alt="" src="img/p_${who}_${mood || 0}.webp">` : ""}<div class="body"><h2 style="${who ? `color:${TAGC[who] || "var(--amber)"}` : ""}">${nm}</h2><p class="say">${text}</p><div class="opts"></div></div>`;
   Voice.speak(WHO[title] || "narr", text); typeOut($sheet.querySelector(".say"));
   const box = $sheet.querySelector(".opts");
-  for (const o of opts.concat([{ l: "Partir", close: true }])) { const b = document.createElement("button"); b.type = "button"; b.className = "opt" + (o.give ? " give" : "") + (o.close ? " close" : ""); b.textContent = o.l; b.addEventListener("click", () => { if (o.close) return closeSheet(); o.fx(); }); box.appendChild(b); }
+  for (const o of opts.concat(S.noLeave ? [] : [{ l: "Partir", close: true }])) { const b = document.createElement("button"); b.type = "button"; b.className = "opt" + (o.give ? " give" : "") + (o.close ? " close" : ""); b.textContent = o.l; b.addEventListener("click", () => { if (o.close) return closeSheet(); o.fx(); }); box.appendChild(b); }
   box.querySelector("button").focus();
 }
 // le texte s'écrit lettre par lettre ; un appui l'affiche d'un coup
@@ -1530,7 +1532,7 @@ function epilogue() {
 function restHtml() {
   const miss = ENDINGS.filter(e => !M.endings.includes(e) && e !== "verite" && e !== "silence"), ns = (M.souv || []).length;
   if (!miss.length && ns >= SOUV.length) return "";
-  return `<div class="sum" style="animation-delay:${0.9 + 4 * 1.3}s"><b>Il reste des nuits à vivre :</b><br>${miss.slice(0, 5).map(e => "· ??? — <i>" + END_HINT[e] + "</i>").join("<br>")}${miss.length > 5 ? `<br>· et ${miss.length - 5} autre${miss.length - 5 > 1 ? "s" : ""}…` : ""}${ns < SOUV.length ? `<br><b>Souvenirs du POMA :</b> ${ns}/${SOUV.length}` : ""}</div>`;
+  return `<div class="sum" style="animation-delay:${0.5 + 4 * 1.3}s"><b>Il reste des nuits à vivre :</b><br>${miss.slice(0, 5).map(e => "· ??? — <i>" + END_HINT[e] + "</i>").join("<br>")}${miss.length > 5 ? `<br>· et ${miss.length - 5} autre${miss.length - 5 > 1 ? "s" : ""}…` : ""}${ns < SOUV.length ? `<br><b>Souvenirs du POMA :</b> ${ns}/${SOUV.length}` : ""}</div>`;
 }
 function finalStats() {
   const mins = Math.round((M.playS || 0) / 60), nd = (M.ded || []).length, rank = M.loops <= 3 && nd >= 3 ? "Détective légendaire" : M.loops <= 3 ? "Fin limier" : M.loops <= 6 ? "Fin limier" : M.loops <= 10 ? "Enquêteur tenace" : "Témoin obstiné";
@@ -1542,13 +1544,13 @@ function showOverlay(title, lines, btn, kind) {
   // chaque fin a son illustration plein écran ; la chute vécue à bord garde la vue depuis la cabine
   const art = kind === "chute" && S.aboard ? "img/cabine.jpg" : END_ART.includes(kind) ? `img/fin_${kind}.jpg` : !btn ? "img/title.jpg" : "";
   $ov.className = art ? "scene" : ""; $ov.style.backgroundImage = art ? `url(${art})` : "";
-  $ov.innerHTML = `<div><p class="t">${title}</p><div class="lines">${lines.map((l, i) => `<p style="animation-delay:${0.4 + i * 1.3}s">${l}</p>`).join("")}</div>${btn ? loopSummary() : finalStats()}${btn ? `<button class="go" type="button" style="animation-delay:${0.6 + lines.length * 1.3}s">${btn}</button>` : `${restHtml()}<div class="two"><button class="go" type="button" id="goOn" style="animation-delay:${0.6 + lines.length * 1.3}s">Continuer la nuit</button><button class="go" type="button" style="animation-delay:${0.6 + lines.length * 1.3}s">Rejouer depuis le début</button></div><p class="small">Fins découvertes : ${M.endings.length}/${ENDINGS.length}. Fiction : le POMA 2000 a réellement relié la gare à la ville haute de Laon de 1989 à 2016 ; personnages et événements sont inventés.</p>`}</div>`;
-    const gon = $ov.querySelector("#goOn"); if (gon) gon.addEventListener("click", e => { e.stopPropagation(); Voice.stop(); M.loops++; saveM(); Snd.rewind(); $ov.hidden = true; newLoop(); rewindT = 1.6; zoom = 1.25; zoomT = 1; paused = false; toast("21 h 54. La nuit continue. Le carnet garde tout."); });
+  $ov.innerHTML = `<div><p class="t">${title}</p><div class="lines">${lines.map((l, i) => `<p style="animation-delay:${0.4 + i * 1.3}s">${l}</p>`).join("")}</div>${btn ? loopSummary() + `<button class="go" type="button" style="animation-delay:${0.6 + lines.length * 1.3}s">${btn}</button>` : `${restHtml()}<div class="two"><button class="go" type="button" id="goOn" style="animation-delay:${0.6 + lines.length * 1.3}s">Continuer la nuit</button><button class="go" type="button" style="animation-delay:${0.6 + lines.length * 1.3}s">Rejouer depuis le début</button></div>${finalStats()}`}</div>`;
+    const gon = $ov.querySelector("#goOn"); if (gon) gon.addEventListener("click", e => { e.stopPropagation(); Voice.stop(); M.loops++; M.afterEnd = 1; saveM(); Snd.rewind(); $ov.hidden = true; newLoop(); rewindT = 1.6; zoom = 1.25; zoomT = 1; paused = false; toast("21 h 54. Encore. Vous aviez pourtant tout dit… La nuit n'en a pas fini avec vous."); });
     $ov.querySelector(".go:not(#goOn)").addEventListener("click", () => {
     Voice.stop();
     if (btn && !revealed()) { M.loops++; saveM(); Snd.rewind(); newLoop(); award("premiere"); revealOverlay(); }
     else if (btn) { M.loops++; saveM(); Snd.rewind(); $ov.hidden = true; newLoop(); rewindT = 1.6; zoom = 1.25; zoomT = 1; paused = false; toast("21 h 54. Encore. Le carnet garde ce que vous avez appris."); }
-    else { M.clues = []; M.ded = []; M.loops = 1; M.playS = 0; saveM(); $ov.hidden = true; newLoop(); paused = false; }
+    else { M.clues = []; M.ded = []; M.loops = 1; M.playS = 0; M.afterEnd = 0; saveM(); $ov.hidden = true; newLoop(); paused = false; }
   });
 }
 

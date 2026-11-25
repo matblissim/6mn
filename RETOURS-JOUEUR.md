@@ -1,3 +1,59 @@
+# Retours de playtest : Version 11 · tour 5
+
+**Léo · 25 novembre 2026 · environ 15 minutes · angle : fun et quantité**
+
+Ce que j'ai fait : une soirée de nouveau joueur (sauvegarde vide, 1280×720, son et voix activés, vrais clics avec 0,5 s d'attente sur les boutons). J'ai joué en temps réel de 21:54:00 à 21:54:35 (ronde), de 21:55:16 à 21:55:48 (filature) et de 21:57:20 à 21:58:23 (sabotage puis barrage). `#debug` m'a servi pour les sauts de temps. Ensuite, une vraie fin forcée (`fixed`, `odileConfess`, `envShown`, 3 boucles) suivie de « Continuer la nuit », sur ordinateur puis sur iPhone 13. Aucune erreur JavaScript. Scripts, journaux et captures : `/tmp/claude-0/-workspace/00b10ced-f74c-50ab-a547-eda9febf00db/scratchpad/joueur6/` (`s2.js`/`s2.log` pour la soirée, `s3.js`/`s3.log`/`s3m.log` pour la fin).
+
+## Verdict en 3 lignes
+
+La première minute est désormais pleine. Le signe de maman, l'accord pour la ronde, trois vérifications et le compte rendu (« Rien à signaler ? » avec deux réponses, dont une qui fait mentir maman) font cinq gestes en 35 s, avec un indice et un succès à la clé.
+Le barrage de 21:58 comble enfin le trou de fin de soirée. Il tombe 4 s après le sabotage, met de la peur et rapporte un indice (« Une petite goupille rouge dépasse de sa poche de poitrine »).
+L'écran final donne enfin envie de rejouer (« Il reste des nuits à vivre : · ??? — Deux pièces, et une mère qui ne bouge plus. »). Mais cette liste est cachée sous le générique, et « Continuer la nuit » repart comme une soirée banale.
+
+## Notes sur 10 (tour 4 → tour 5)
+
+| Critère | T4 | T5 | Pourquoi |
+|---|---|---|---|
+| Quantité | 8 | **8,5** | La ronde occupe 21:54:12–21:54:35 et le barrage occupe 21:58:19–21:58:30. Il reste un creux de 21:58:30 à 21:59:40. |
+| Fun des actions | 8 | **8** | Le barrage est un vrai choix sous pression. La ronde reste une liste de cases, mais son compte rendu est savoureux (« Elle détourne les yeux une seconde de trop. »). |
+| Tension | 7,5 | **8** | « Il vous barre le passage, tout près. Il sent la graisse et la pluie. » : premier vrai face-à-face menaçant d'une première soirée. |
+| Lisibilité | 7 | **7,5** | La ronde ne s'impose plus et la filature se lit bien (`b05_regard.png`). L'objectif « La ronde est faite : allez le dire à votre mère, à sa vitre. » guide sans rien dévoiler. |
+| Conséquences | 8,5 | **8,5** | Le compte rendu de ronde donne un indice (« La porte du local n'était pas verrouillée »). Je n'ai pas testé l'effet des trois réponses du barrage sur la suite. |
+| Rejouabilité | 6,5 | **7,5** | Les pistes des fins manquantes sont excellentes, et le choix entre « Continuer la nuit » et « Rejouer depuis le début » est le bon. Il faut faire défiler l'écran pour les voir (bug 1). |
+| Finition / mobile | 7,5 | **7,5** | Rien de cassé sur iPhone : le dilemme et l'écran final se touchent bien. Je relève quelques détails (bugs 2 à 5). |
+
+## Corrections vérifiées ou non
+
+| Correction | État | Preuve |
+|---|---|---|
+| La ronde se propose (21:54:12) | **Vérifiée.** À 21:54:14, le toast dit « Votre mère vous fait signe depuis sa vitre : elle a un service à vous demander. » et l'objectif reste « Allez la saluer ». La ronde n'apparaît qu'après « « D'accord pour la ronde. » ». Le succès `ronde` tombe à 21:54:34 après « « La ronde est faite. » ». | `s2.log`, `b01_rapport.png` |
+| Barrage du gilet jaune après le sabotage | **Vérifiée.** Le sabotage finit à 21:58:19 et Camille est dans le hall. À 21:58:23, la fiche « Vous n'avez rien vu, hein ? » s'ouvre avec 3 réponses + « Partir ». « Regarder ses mains » donne l'indice de la goupille. | `b07_barre.png`, `b08.png` |
+| Écran final : fins manquantes et « Continuer la nuit » | **Vérifiée, avec réserves** (bug 1). On y lit 5 pistes, puis « et 4 autres… » et « Souvenirs du POMA : 0/5 ». « Continuer la nuit » relance à 21:54 avec le toast « 21 h 54. La nuit continue. Le carnet garde tout. » et la boucle passe à 4. | `c03_fin_bas.png`, `c04_continue.png` |
+| Filature : plus de bulle de tutoriel ni d'étiquette figée | **Vérifiée.** Le statut « ⚠️ Il ralentit et tourne la tête… · repéré 0/2 » est lisible et aucune aide « Touchez » ne s'affiche. Le succès est obtenu à 21:55:48. | `b05_regard.png` |
+| Plus de nom flottant sans personnage | **Vérifiée sur mes captures** : aucun nom isolé près du distributeur de boissons à 21:55:20, 21:56:30 ou 21:58:23. Voir quand même le bug 4. | `b05_regard.png`, `b_150.png` |
+
+## Bugs précis
+
+1. **Écran final (ordinateur et iPhone) : la liste « Il reste des nuits à vivre » est sous le pli.** Elle vient **après** l'épilogue et le générique. À 1280×720, il faut faire défiler l'écran pour la voir, ainsi que « Continuer la nuit » (`c02_fin.png` comparé à `c03_fin_bas.png`). La mention « Fiction : le POMA 2000… » apparaît aussi **deux fois** : une fois dans le générique, une fois dans la ligne « Fins découvertes ». Je propose de remonter la liste juste sous les statistiques.
+2. **« Continuer la nuit » ne marque pas la différence.** Après la vraie fin, maman repropose « « D'accord pour la ronde. » » comme si de rien n'était. Mon état était forcé (0 indice), donc l'objectif affiché ne prouve rien. En revanche, aucune ligne ne reconnaît que la boucle a été « brisée » puis rouverte.
+3. **Barrage : l'option « Partir » affaiblit la scène.** Il « vous barre le passage », mais on peut partir sans répondre. Je propose de la retirer, ou de la remplacer par « Le contourner sans un mot ».
+4. **21:55:20, étiquettes superposées** : « Odile » s'affiche juste sous « Bastien », alors qu'Odile est derrière sa vitre, hors du hall (`b05_regard.png`). Ce n'est pas le bug du distributeur, mais c'est la même famille.
+5. **Épilogue variable pour un état identique** : avec le même état forcé, Gérald « a disparu dans la nuit… sur un chantier à Reims » sur ordinateur, mais « a été arrêté sur le quai. Il a parlé dès le premier soir. » sur iPhone. C'est peut-être voulu (aléatoire, ou lié à `gerCaught`). Pouvez-vous me dire si c'est le cas ?
+6. **À vérifier** : à 21:58:23, une goupille rouge traîne par terre dans le hall (`b07_barre.png`), au moment où le texte la montre « dans sa poche de poitrine ». S'agit-il de deux goupilles différentes ? Si oui, la deuxième mériterait une phrase.
+
+## 6 propositions, classées impact / effort
+
+| # | Quoi | Impact | Effort | ElevenLabs |
+|---|---|---|---|---|
+| 1 | **Remonter le bloc « Il reste des nuits à vivre » et les deux boutons** juste sous les statistiques, avant l'épilogue et le générique. Supprimer la mention « Fiction » en double. | fort | petit | non |
+| 2 | **Combler 21:58:30–21:59:40** : après le barrage, faire réagir quelqu'un selon la réponse choisie. Par exemple, Mme Delattre demande « Il vous a fait peur, ce monsieur ? » si l'on a répondu « Rien vu. », et le gilet jaune revient surveiller Camille au quai si l'on a posé la question sur le local. | fort | moyen | non |
+| 3 | **« Continuer la nuit » qui se sent** : une réplique spéciale de maman la première fois (« Tu me regardes comme si tu m'avais déjà dit adieu. ») et un objectif tiré de la première piste manquante. | moyen | petit | non |
+| 4 | **Barrage sans « Partir »**, avec un compte à rebours de 5 s comme dans la cabine. Ne pas répondre vaudrait « Rien vu. ». | moyen | petit | non |
+| 5 | **Ronde à double fond** : à la deuxième soirée, la case « porte du local » révèle autre chose si on la coche **après** 21:57:30 (par exemple la sacoche posée devant la porte). Le même geste raconte la soirée sous un autre angle. | moyen | moyen | non |
+| 6 | **Voix pour le barrage** : la réplique « Vous n'avez rien vu, hein ? » plus une réponse (« Mon boulot. »), soit 2 répliques de quelques secondes. C'est le moment le plus menaçant du jeu, et il est muet. | moyen | petit | **oui** (2 répliques) |
+
+---
+
 # Retours de playtest : Version 11 · tour 4
 
 **Léo · 25 novembre 2026 · environ 15 minutes · angle : fun et quantité**
