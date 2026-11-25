@@ -1,3 +1,73 @@
+# Retours de playtest : Version 11 · tour 2
+
+**Léo · 25 novembre 2026 · environ 25 minutes (5 de plus que prévu)**
+
+J'ai joué la soirée « experte » en 1280×720 avec de vrais clics : sac, drone, cadrage, clé de Mme Delattre, fusible, enveloppe, vidéo et vitre. J'ai aussi testé la cabine en laissant faire le sabotage, puis l'iPhone 13 (gilet jaune, plan B). `#debug` m'a servi à avancer le temps et à poser les indices d'une soirée précédente (`chute`, `cafe`, `local`). Aucune erreur JavaScript. Scripts, journaux et captures : `/tmp/claude-0/-workspace/00b10ced-f74c-50ab-a547-eda9febf00db/scratchpad/joueur3/`.
+
+**Pas atteint** : l'écran de choix et les fins « La vérité » / « Le silence ». Je n'ai eu qu'une pièce d'aveu (l'enveloppe), parce que le bureau d'Odile n'a pas réagi à mon clic à 21:58:32 (voir bug 3). La confrontation s'est donc terminée sur « Le dernier voyage », comme le prévoient les règles.
+
+## Verdict en 3 lignes
+
+Le dernier tiers tient ses promesses. Le cadrage est un vrai geste, la vitre avec son compte à rebours met la pression, l'ordre des pièces compte, et la cabine est une excellente scène de 30 secondes.
+Le nouveau contenu du milieu fonctionne : le fusible desserré se voit à 21:56:34. Mais la fiche de Mme Delattre se ferme toute seule au moment où je veux « L'aider à tourner la clé ».
+Sur mobile, toucher le gilet jaune ouvre toujours « Sortie ». La priorité aux personnages n'est pas corrigée dans ce cas.
+
+## Notes sur 10 (tour 1 → tour 2)
+
+| Critère | T1 | T2 | Pourquoi |
+|---|---|---|---|
+| Quantité | 7,5 | **8** | Clé, fusible, cadrage, enveloppe, vidéo et vitre : il se passe quelque chose toutes les 10 à 20 s entre 21:56 et 21:59. |
+| Fun des actions | 6,5 | **7,5** | Le cadrage (viseur qui tangue, « 🎯 Bloquer l'angle ») et la cabine (vitre en 2 coups, poignée en 2 tirages) sont de vrais gestes. |
+| Tension | 6 | **7** | « Départ à 22:00:00 — il reste 1 min 10 s » et chaque pièce qui coûte 4 s : la vitre fonctionne. |
+| Lisibilité | 6,5 | **6,5** | L'option « Filmez… » n'apparaît que si l'on connaît déjà « le local » (soirée précédente), rien ne le signale. Le bureau d'Odile ne répond pas au clic. |
+| Conséquences | 7,5 | **8** | Montrer la vidéo trop tôt fait courir maman au frein, et elle se tait : « ce soir, elle ne dira rien d'autre ». On sent que l'erreur vient de moi. |
+| Rejouabilité | 6 | **7** | « Le dernier voyage » relance bien : « Mais le gilet jaune ne dira rien. Quelqu'un l'a payé. » |
+| Finition / mobile | 6,5 | **6** | Gilet jaune → « Sortie » sur iPhone, fiche de Mme Delattre qui se ferme, clic sur la rame sans effet. |
+
+## Corrections annoncées : vérifiées ou non
+
+| Correction | État | Preuve |
+|---|---|---|
+| Réplique d'Odile au lieu de « Une seule pièce… » | **Vérifiée.** À 21:58:53, à la vitre : « Et alors ? Ça ne prouve rien. Tu m'espionnes, maintenant ? Tu n'as rien, Camille. Un papier. » | `final2_verite.log`, `g08_carte0.png` |
+| Hall assombri pendant le plan B | **Vérifiée** (iPhone, 21:57:35) : le hall passe nettement en veilleuse. | `m03_planB.png` |
+| Fusible desserré après 21:56:30 | **Vérifié.** À 21:56:34 : « Un fusible pend à moitié de son support, la vis desserrée. La micro-coupure de tout à l'heure n'était peut-être pas un hasard. » | `g04_fusible.png` |
+| « L'aider à tourner la clé » (21:56:12–21:56:42) | **Présente, mais injouable chez moi** : l'option apparaît à 21:56:17, puis la fiche se ferme avant le clic, deux fois de suite (voir bug 1). | `final2_verite.log`, `g01_delattre_cle.png` |
+| Priorité aux personnages au toucher (iPhone) | **Non corrigée.** À 21:55:02, toucher le gilet jaune (debout devant la porte d'entrée) ouvre « SORTIE — Partir ? Non. Pas tant que cette rame n'est pas partie. » | `m01_t62.png`, `m02_tap_gilet.png` |
+| Fiche d'Odile au coffret (plan B) | **Non vérifiée** : sur iPhone, maman était hors champ (il n'y avait qu'une flèche « Odile »). Mon toucher n'a rien ouvert. | `m03_planB.png` |
+| Filature (15 s et un regard esquivé), objectif qui ne recule plus, « C'était qui, au téléphone ? » posée une fois, étiquette derrière le distributeur | **Pas retestées** dans ce tour. | — |
+
+## Ce qui marche (vérifié en jouant)
+
+- **Cadrage** : à 21:56:04, « Je sais pour le drone » donne « Il pâlit. « Vous allez me dénoncer ? Je veux juste filmer le dernier voyage. C'est tout ce qui me reste de lui. » ». J'ai bloqué l'angle avec un décalage de 10,9 px, ce qui donne « Pile sur la porte, et à hauteur de visage. Joli. » À 21:58:42, la vidéo : « on voit son visage, net, quand il arrache quelque chose dans l'armoire ». (`f02_cadrage.png`, `f03_cadre_ok.png`)
+- **Enveloppe** : la sacoche est posée à 21:57:38, l'enveloppe prise à 21:57:40 et confiée à Mme Delattre (« Personne ne fouille le sac d'une vieille dame. »), puis rendue à 21:58:44 (« Tenez. Faites-en bon usage. »).
+- **Vitre** : ouverte à 21:58:49, avec « il reste 1 min 10 s ». La vidéo montrée sans aveux donne « Le frein ! … ce soir, elle ne dira rien d'autre », puis la fin « Le dernier voyage ». C'est conforme à la résolution.
+- **Cabine** : je laisse faire le sabotage, je monte à bord à 21:59:10 et le bandeau « ANNONCE ▸ « Prenez place. Départ imminent. » » s'affiche. Ensuite, 30 s : l'interphone coûte 5 s (« Le frein ne répond plus d'ici ! La poignée rouge, Camille ! »), puis rassurer, 2 coups, 2 tirages. Fin « À LA MAIN ». La voix de maman dans l'interphone fonctionne très bien en émotion. (`c01_abord.png`, `cab.log`)
+- **Règle d'or** respectée : aucune mention de boucle avant la première fin.
+
+## Nouveaux bugs et incohérences
+
+1. **La fiche de Mme Delattre se ferme toute seule** à 21:56:17. Sa fiche s'ouvre avec « L'aider à tourner la clé » en tête de liste. Moins d'une seconde après, le canvas reprend les clics : la fiche s'est fermée. J'ai rouvert la fiche et le résultat a été le même. Je soupçonne la bulle « Allez… tourne, ma vieille… » ou son déplacement vers la porte. Conséquence : le nouveau contenu du creux est inaccessible si l'on ne clique pas en moins d'une seconde. (`final2_verite.log`, `g01_delattre_cle.png`)
+2. **iPhone : gilet jaune → « Sortie »** à 21:55:02, alors qu'il se tient devant la porte d'entrée. Le personnage devrait passer avant la sortie. (`m02_tap_gilet.png`)
+3. **Bureau d'Odile sans réaction** à 21:58:32. Le sabotage est fini, maman n'est pas revenue, je clique sur le bureau à travers la vitre, et rien ne s'ouvre. Le point d'intérêt n'est actif que si l'on est déjà *dans* la cabine (`hotOn` : `desk`). Résultat : pas de « messages signés V. », donc pas de deuxième pièce, et pas de fin à choix. Un joueur ne comprend pas pourquoi le bureau ne répond pas. Il faudrait au minimum une fiche « Il faut entrer dans la cabine pour fouiller le bureau ».
+4. **Clic sur la rame sans effet** à 21:59:10 en 1280×720, depuis le hall : aucune fiche ne s'ouvre, j'ai dû passer par `examine('rame')`. Peut-être un point d'intérêt hors de l'écran ou masqué ; c'est à vérifier.
+5. **Ce qui débloque « Filmez la porte… » n'est expliqué nulle part** : sans l'indice `local` (soirée précédente), Bastien ne propose que « Partir » après « Je sais pour le drone ». Rien ne dit au joueur qu'il lui manque quelque chose. Je propose une réplique de Bastien : « Filmer quoi ? Je ne sais même pas ce que je cherche. »
+6. **À bord, à 21:59:55**, la caméra reste sur le hall, où le gilet jaune lance « Toujours pas parti, vous ? ». Comme Camille est déjà assise dans la rame, on croit qu'il s'adresse à elle. (`c01_abord.png`)
+
+## 8 propositions, classées impact / effort
+
+| # | Quoi | Impact | Effort | ElevenLabs |
+|---|---|---|---|---|
+| 1 | Empêcher une bulle ou un déplacement de PNJ de fermer une fiche ouverte (bug 1). | fort | petit | non |
+| 2 | Bureau vu de l'extérieur : fiche « Entrez dans la cabine pour fouiller » au lieu d'un clic muet (bug 3). | fort | petit | non |
+| 3 | iPhone : le personnage avant « Sortie », ou un mini-menu « Gilet jaune / Sortie » (bug 2). | fort | petit | non |
+| 4 | Réplique de Bastien quand le joueur ne connaît pas encore « le local » : « Filmer quoi ? » (bug 5). | moyen | petit | non (texte) ; **oui** pour la voix |
+| 5 | À la vitre, si le joueur n'a qu'une pièce, afficher une carte grisée « Il te manque quelque chose… » plutôt que de laisser jouer la vidéo et de tout perdre. | moyen | petit | non |
+| 6 | À bord, cadrer la rame (ou afficher une vignette « Vous êtes assise ») pour que « Toujours pas parti, vous ? » ne vise plus Camille. | moyen | moyen | non |
+| 7 | Cabine : 1 s de bruit de vitre et un flash rouge à chaque action, pour que les 30 s se jouent au réflexe plutôt qu'en lisant. | moyen | moyen | non |
+| 8 | Fin « Le dernier voyage » : une réplique d'Odile au frein (« Pardon, ma chérie ») enregistrée, pour l'émotion. | moyen | moyen | **oui** (une réplique) |
+
+---
+
 # Retours de playtest : version 11 (session courte)
 
 **Léo · 25 novembre 2026 · environ 20 minutes de test**

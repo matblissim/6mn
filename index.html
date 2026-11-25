@@ -686,7 +686,7 @@ function updateAgents(dt) {
   if (Math.floor(t) > (S.recT || -1)) { S.recT = Math.floor(t); S.rec.push([Math.floor(t)].concat(["player", "odile", "gerald", "bastien", "delattre"].flatMap(k => (A[k].vis ? [Math.round(A[k].x * 1000), Math.round(A[k].y * 1000)] : [-1, -1])))); }
   // petites phrases quand on passe près des gens
   S.barkT -= dt;
-  if (S.barkT <= 0 && $sheet.hidden) {
+  if (S.barkT <= 0 && $sheet.hidden && !S.aboard && !S.hidden) {
     S.barkT = 9 + Math.random() * 7;
     const cand = Object.keys(BARKS).filter(k => A[k].vis && Math.hypot(me.x - A[k].x, (me.y - A[k].y) * 0.56) < 0.2);
     if (cand.length) { const k = cand[Math.floor(Math.random() * cand.length)], lines = BARKS[k].concat(M.loops >= 3 ? DEJAVU[k] || [] : []).filter(l => !S.barked[l]); if (lines.length) { const l = lines[Math.floor(Math.random() * lines.length)]; S.barked[l] = 1; say(A[k], l); } }
@@ -1201,7 +1201,7 @@ function talk(id) {
   if (id === "delattre") {
     if (S.vexed.delattre) return sheet("Mme Delattre", "Elle serre son sac contre elle et regarde ailleurs. « Je ne parle pas aux malappris. »", [], 2);
     const kq = [];
-    if (S.said.key && S.t < 162 && !S.said.dHelp) kq.push({ l: "L'aider à tourner la clé", give: true, fx: () => { S.said.dHelp = 1; S.delFriend = true; learn("cle", true); learn("henri"); learn("goupille"); sheet("Mme Delattre", "Vous forcez ensemble. La clé ne tourne pas d'un millimètre. Elle rit, un peu honteuse. « Celle d'Henri. Ils ont changé la serrure en 2003, je le sais bien. » Elle range la clé. « Il disait toujours : la goupille rouge, c'est le cœur du frein. Ils l'ont changée en août, et l'ancienne a roulé quelque part dans le hall. Personne ne l'a jamais ramassée. »", [], 1); } });
+    if (S.t >= 132 && S.t < 162 && Math.hypot(A.delattre.x - 0.4, (A.delattre.y - 0.46) * 0.56) < 0.08 && !S.said.dHelp) kq.push({ l: "L'aider à tourner la clé", give: true, fx: () => { S.said.dHelp = 1; S.delFriend = true; learn("cle", true); learn("henri"); learn("goupille"); sheet("Mme Delattre", "Vous forcez ensemble. La clé ne tourne pas d'un millimètre. Elle rit, un peu honteuse. « Celle d'Henri. Ils ont changé la serrure en 2003, je le sais bien. » Elle range la clé. « Il disait toujours : la goupille rouge, c'est le cœur du frein. Ils l'ont changée en août, et l'ancienne a roulé quelque part dans le hall. Personne ne l'a jamais ramassée. »", [], 1); } });
     if (knows("cle") && !knows("henri") && S.said.key) {
       kq.push({ l: "« Que faisiez-vous à la porte du local ? »", fx: () => { learn("henri"); sheet("Mme Delattre", "Elle rougit. « Vous m'avez vue. » Elle ouvre la main : une petite clé usée. « Celle d'Henri. Il a travaillé ici douze ans. Je voulais revoir son bureau, une dernière fois. Elle ne tourne plus. »", [], 0); } });
       kq.push({ l: "« Vous vouliez trafiquer l'armoire, avouez. »", fx: () => { S.vexed.delattre = true; S.delDistract = false; learn("henri"); if (S.delKeeps) { S.delKeeps = false; give("enveloppe"); } sheet("Mme Delattre", "« Trafiquer ? Moi ? » Elle tremble de colère. « C'est la clé de mon mari. Trente ans que je la garde. »" + (has("enveloppe") ? " Elle vous fourre l'enveloppe dans les mains. « Et reprenez vos affaires. »" : "") + " Elle vous tourne le dos.", [], 2); } });
@@ -1289,6 +1289,7 @@ function odileOpts() {
 }
 function bastienOpts() {
   const o = []; if (S.vexed.bastien || S.wrongArrest) return o;
+  if (S.bastTrust && !S.bastFilm && !knows("local") && S.t < 205 && !S.said.bWhat) o.push({ l: "« Vous pourriez filmer quelque chose pour moi ? »", fx: () => { S.said.bWhat = 1; sheet("Bastien", "« Filmer quoi ? » Il hausse les épaules. « Dites-moi où regarder et à quelle heure, et je verrai. D'ici là, je filme la rame. »", []); } });
   if (S.bastTrust && !S.bastFilm && knows("local") && S.t < 205) o.push({ l: "« Filmez la porte du local technique à 21 h 57. »", fx: frameGame });
   if (S.bastTrust && !S.bastFilm && knows("local") && S.t >= 205) o.push({ l: "« Filmez la porte du local technique. »", fx: () => sheet("Bastien", "« Trop tard, le drone est rangé. Il fallait le dire avant. »", []) });
   if (S.bastFilm && !S.photoGiven && S.t >= 280) o.push({ l: "« Alors, vous avez filmé ? »", fx: () => { S.photoGiven = true; S.photo = S.filmed > 5 && S.frame !== "rien" ? "proof" : "empty"; give("photo"); sheet("Bastien", S.photo === "proof" ? (S.frame === "visage" ? "« Vous aviez raison. Regardez : on voit son visage, net, quand il arrache quelque chose dans l'armoire. Prenez la vidéo. »" : "« Vous aviez raison. Regardez : sa main, dans l'armoire, qui arrache quelque chose. Prenez la vidéo. »") : S.filmed > 5 ? "« J'ai filmé… le mur. On entend des bruits de métal, c'est tout. Il fallait mieux viser. »" : "« Rien. Une porte. Tenez, si ça vous amuse. »", [], S.photo === "proof" ? 1 : 0); } });
@@ -1413,7 +1414,7 @@ function pick(x, y) {
   const hot = HOT.filter(hotOn).map(h => ({ h, d: Math.hypot(w.x - h.x, (w.y - h.y) * 0.56) })).filter(o => o.d < o.h.r * touchK).sort((a, b) => a.d / a.h.r - b.d / b.h.r)[0];
   const ag = Object.entries(A).filter(([k, a]) => k !== "player" && a.vis && Math.abs(w.x - a.x) < 0.03 * touchK && w.y < a.y + 0.012 * touchK && w.y > a.y - 0.15).sort((p, q) => Math.abs(w.x - p[1].x) - Math.abs(w.x - q[1].x))[0];
   // un objet visé de près passe avant la personne plantée devant
-  if (hot && (!ag || hot.d < Math.min(hot.h.r * 0.6, 0.018))) return { kind: "hot", id: hot.h.id, name: hot.h.name, at: hot.h.at };
+  if (hot && (!ag || (hot.h.r <= 0.03 && hot.d < Math.min(hot.h.r * 0.6, 0.018)))) return { kind: "hot", id: hot.h.id, name: hot.h.name, at: hot.h.at };
   if (ag) return { kind: "agent", id: ag[0], name: ag[1].name };
   return { kind: "floor", w };
 }
