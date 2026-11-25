@@ -80,6 +80,7 @@ button:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
 .chip { background: rgba(10,14,16,.78); border-color: rgba(242,180,90,.55); backdrop-filter: blur(6px); }
 .chip { display: inline-flex; align-items: center; gap: 6px; padding-left: 5px; } .chip img { width: 26px; height: 26px; border-radius: 50%; object-fit: cover; flex: none; box-shadow: 0 0 0 1px rgba(242,180,90,.35); }
 #sheet.mg { max-height: 82%; }
+#sheet .art { display: block; width: 100%; max-width: 640px; height: clamp(90px, 22vh, 220px); object-fit: cover; border-radius: 8px; margin: 0 0 10px; box-shadow: 0 6px 24px rgba(0,0,0,.55); animation: fadeIn .5s ease-out; }
 .cf { display: flex; gap: 14px; align-items: flex-end; } .cfp { flex: none; width: clamp(80px, 20vw, 160px); margin-bottom: -6px; filter: drop-shadow(0 6px 18px rgba(0,0,0,.7)); }
 .cards { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; } .cards .opt { width: auto; }
 @media (max-height: 780px) { #sheet .vf { width: min(100%, 250px); } }
@@ -424,7 +425,10 @@ addEventListener("pointerdown", () => Snd.init(), { capture: true });
 /* ================= Voix (synthèse vocale du navigateur, gratuite) ================= */
 const Voice = {
   voices: [], audio: null,
-  rec: [["Camille. Tu es là.", "o_salut"], ["Demain, je rends mes clés", "o_demain"], ["Le prêt pour ton école.", "o_aveux"], ["Deux minutes, à 57.", "o_cafe57"], ["Arrête. Il y a le frein", "o_arrete"], ["Par qui ?", "o_preuve"], ["Mon Dieu. Le frein.", "o_frein"], ["Il m'a menti.", "o_menti"], ["Fais ce qui est juste", "o_juste"], ["Je file me chercher un café", "o_file"],
+  rec: [["Vous n'avez rien vu, hein", "g_barrage"], ["Bien.", "g_bien"], ["Mon boulot.", "g_boulot"], ["Quoi ?", "g_quoi"], ["Elle ne bouge pas de sa cabine", "g_coffret"], ["Pardon, madame", "g_pardon"],
+    ["Le tableau ! Pas ce soir", "o_tableau"], ["Et alors ? Ça ne prouve rien", "o_rien"], ["Le frein ne répond plus d'ici", "o_interphone"], ["Camille… Toi aussi", "o_dejafini"], ["… Tu as raison.", "o_raison"], ["Merci, mon cœur. Le bord du quai", "o_ronde"], ["Dehors. Tout de suite.", "o_dehors"],
+    ["Celle d'Henri. Ils ont changé", "d_henri"], ["Filmer quoi ?", "b_quoi"], ["Montrez-moi où viser", "b_cadre"],
+    ["Camille. Tu es là.", "o_salut"], ["Demain, je rends mes clés", "o_demain"], ["Le prêt pour ton école.", "o_aveux"], ["Deux minutes, à 57.", "o_cafe57"], ["Arrête. Il y a le frein", "o_arrete"], ["Par qui ?", "o_preuve"], ["Mon Dieu. Le frein.", "o_frein"], ["Il m'a menti.", "o_menti"], ["Fais ce qui est juste", "o_juste"], ["Je file me chercher un café", "o_file"],
     ["Sous-traitance.", "gerald_soustraitance"], ["Oui, monsieur Vasseur.", "g_appel"], ["Tomber ?", "g_tomber"], ["Dégagez de là", "g_degagez"], ["Où est passée l'enveloppe", "g_enveloppe"],
     ["Mm. J'attends la dernière", "bastien_bonsoir"], ["Mon grand-père a posé", "b_grandpere"], ["Vous aviez raison.", "b_raison"],
     ["Bonsoir ! Vous êtes l'enfant", "d_bonsoir"], ["Le petit Vasseur ?", "d_vasseur"], ["Pourquoi tu m'appelles", "v_imbecile"], ["Vous ne savez rien du tout.", "v_rien"],
@@ -611,6 +615,8 @@ function updateAgents(dt) {
     else if (S.sabDone && !S.fixed && !S.said.bump && !S.envTaken && !S.hidden && !S.aboard && t < 300 && roomOf(g) !== "ctrl" && Math.hypot(me.x - g.x, (me.y - g.y) * 0.56) < 0.25) {
       want(g, { x: me.x + (g.x > me.x ? 0.04 : -0.04), y: me.y });
       if (Math.hypot(me.x - g.x, (me.y - g.y) * 0.56) < 0.07 && $sheet.hidden) { S.said.bump = 1; g.path = []; bumpScene(); } }
+    else if (S.bumpRush && t < 345) { want(g, P.outside); if (!g.path.length && near(g, P.outside, 0.03)) { g.vis = false; S.gerGone = true; logEv("Le gilet jaune quitte la station en hâte"); } }
+    else if (S.bumpWatch && t < 340) { want(g, { x: me.x + (g.x > me.x ? 0.09 : -0.09), y: me.y + 0.01 }); if (!S.said.watch1) { S.said.watch1 = 1; say(g, "Je vous tiens à l'œil."); } }
     else if (t >= 48 && t < 82) { want(g, P.gerCall); if (t >= 50) logEv("Le gilet jaune entre dans la station"); if (t >= 56 && !S.said.call) { S.said.call = 1; say(g, "Oui, monsieur Vasseur. Ce soir, c'est la dernière. Personne ne verra rien."); if (Math.hypot(me.x - P.gerCall.x, (me.y - P.gerCall.y) * 0.56) < 0.14) { learn("appel"); logEv("Il appelle « monsieur Vasseur »"); } } }
     else if (S.planB && !S.cut && t >= 204 && t < 262) { want(g, FUSE_AT); if (near(g, FUSE_AT, 0.03) && !g.path.length) { S.cut = true; S.cutT = t; Snd.zap(); Snd.ring(); logEv("Le coffret du hall disjoncte"); toast("Une sonnerie de défaut retentit. Le hall passe en veilleuse, le tableau des départs s'éteint."); if (Math.hypot(me.x - g.x, (me.y - g.y) * 0.56) < 0.12) { learn("planB"); toast("Vous l'avez vu : c'est le gilet jaune qui a arraché un fusible."); } } }
     else if (S.pagedUntil && t < S.pagedUntil) { want(g, { x: 0.2, y: 0.7 }); if (!S.said.paged) { S.said.paged = 1; say(g, "Moi ? Qui me demande ?"); } }
@@ -631,7 +637,7 @@ function updateAgents(dt) {
           g.face = (S.sab % 10) < 7 ? "b" : "f";
         } }
       else if (roomOf(g) === "ctrl" && meIn) { S.gerInterrupted = true; say(g, "Dégagez de là !"); want(g, P.gerEnd); }
-      else if (roomOf(g) === "ctrl" && oIn) { S.gerInterrupted = true; say(g, "Pardon, madame… Je vérifiais l'armoire."); say(o, "Dehors. Tout de suite."); want(g, P.gerEnd); }
+      else if (roomOf(g) === "ctrl" && oIn) { S.gerInterrupted = true; say(g, "Pardon, madame… Je vérifiais l'armoire."); setTimeout(() => say(A.odile, "Dehors. Tout de suite."), 2600); want(g, P.gerEnd); }
       else want(g, P.gerDoor);
     }
     else if (t >= 82 && t < 210) { want(g, t >= 100 && t < 118 ? { x: 0.44, y: 0.47 } : S.gerSpot ? { x: 0.665, y: 0.46 } : P.gerWait);
@@ -976,6 +982,7 @@ function updateHideBar() {
   if (busy) btn("Le surprendre", () => { S.hidden = false; A.player.vis = true; S.gerInterrupted = true; S.gerFled = true; say(g, "Merde ! Qui êtes-vous ?!"); toast("Il s'enfuit en laissant tout en plan"); hideKey = ""; updateHideBar(); });
   btn("Sortir de la cachette", () => { S.hidden = false; A.player.vis = true; hideKey = ""; updateHideBar(); });
 }
+let sheetArt = null; // une illustration à afficher en tête de la prochaine fiche
 let toastT = 0; function toast(msg) { const pa = msg.startsWith("📢") || msg.startsWith("📻"); $toast.className = pa ? "pa" : ""; $toast.textContent = pa ? msg.replace(/^📢 |^📻 /, "") : msg; $toast.hidden = false; toastT = pa ? 5 : 3.2; if (pa) Snd.chime(); }
 const ITEMS = { registre: "Registre du poste", helice: "Hélice en plastique", pince: "Pince coupante de Bastien", goupille: "Vieille goupille rouge", piece: "Pièce de 2 €", cafe: "Café chaud", photo: "Vidéo de Bastien", enveloppe: "Enveloppe de « V. »", journal: "Journal plié", badge: "Badge « TechniRail »", cliche: "Photo du sabotage", bande: "Enregistrement du local", gant: "Gant de Mme Delattre" };
 const gSeen = () => !!S.gerSeen; // personne ne parle de l'homme au gilet jaune avant son arrivée (21:54:48)
@@ -1014,10 +1021,11 @@ function bumpScene() {
   closeUp(A.gerald); Snd.tension(0.5); logEv("Le gilet jaune vous barre le passage");
   const end = txt => { learn("graisse"); sheet("L'homme au gilet jaune", txt, [], 1); };
   S.noLeave = true;
+  sheetArt = "img/scene_barrage.jpg";
   sheet("L'homme au gilet jaune", "Il vous barre le passage, tout près. Il sent la graisse et la pluie. « Vous n'avez rien vu, hein ? »", [
-    { l: "« Rien vu. »", fx: () => end("« Bien. » Il essuie ses mains noires de graisse sur son gilet, lentement, sans vous quitter des yeux. Puis il s'éloigne vers le quai.") },
-    { l: "« Qu'est-ce que vous faisiez dans le local ? »", fx: () => { learn("local", true); end("Il sourit, mais pas avec les yeux. « Mon boulot. » Il se penche. « Montez dans votre rame, et profitez du voyage. » Ses mains sont noires de graisse jusqu'aux poignets."); } },
-    { l: "Regarder ses mains", fx: () => end("Noires de graisse, jusqu'aux poignets. Une goupille rouge, toute neuve, dépasse de sa poche de poitrine : celle du frein. Il suit votre regard et referme sa veste. « Quoi ? »") }
+    { l: "« Rien vu. »", fx: () => { S.bumpCalm = true; end("« Bien. » Il essuie ses mains noires de graisse sur son gilet, lentement, sans vous quitter des yeux. Puis il s'éloigne vers le quai, rassuré. Il ne se méfie plus de vous."); } },
+    { l: "« Qu'est-ce que vous faisiez dans le local ? »", fx: () => { learn("local", true); S.bumpWatch = true; end("Il sourit, mais pas avec les yeux. « Mon boulot. » Il se penche. « Montez dans votre rame, et profitez du voyage. » Ses mains sont noires de graisse jusqu'aux poignets. Désormais, il ne vous lâche plus des yeux."); } },
+    { l: "Regarder ses mains", fx: () => { S.bumpRush = true; end("Noires de graisse, jusqu'aux poignets. Une goupille rouge, toute neuve, dépasse de sa poche de poitrine : celle du frein. Il suit votre regard et referme sa veste. « Quoi ? » Puis il file vers la sortie, sans se retourner."); } }
   ], 1); S.noLeave = false;
 }
 // filature : il se retourne de temps en temps ; il faut regarder ailleurs à ce moment-là, et ne pas lui coller aux talons
@@ -1044,6 +1052,7 @@ function updateTailBar() {
 // le cadrage avec Bastien : viser la porte du local, malgré ses mains qui tremblent
 function frameGame() {
   panel("Bastien", `<p class="say">Il vous tend son écran de contrôle : « Montrez-moi où viser. Je bloque l'angle et je n'y touche plus. » Le drone tangue un peu : déclenchez quand la porte du local est dans le cadre.</p><div class="vf"><div class="scn" style="position:absolute;inset:-20%;background:url(img/station.jpg) no-repeat;background-size:420% auto;background-position:32.5% 34%"></div><div class="fr"></div><span class="rec">● CADRAGE</span></div><button type="button" class="opt give" id="shoot" style="width:auto">🎯 Bloquer l'angle</button>`, el => {
+    Voice.speak("bastien", "« Montrez-moi où viser. Je bloque l'angle et je n'y touche plus. »");
     const im = el.querySelector(".scn"); let raf = 0, ox = 0, oy = 0; const t0 = performance.now();
     const loop = now => { const t = (now - t0) / 1000; ox = Math.sin(t * 1.3) * 40 + Math.sin(t * 3.1) * 13; oy = Math.cos(t * 1.05) * 20 + Math.sin(t * 2.4) * 8; im.style.transform = `translate(${ox.toFixed(1)}px, ${oy.toFixed(1)}px)`; raf = requestAnimationFrame(loop); };
     raf = requestAnimationFrame(loop); mgStop = () => cancelAnimationFrame(raf);
@@ -1056,7 +1065,7 @@ function frameGame() {
 const confrontReady = () => S.t >= 278 && !S.odileClosed && !S.fixed && !S.odileKnows && hasProof() && ((has("enveloppe") && !S.envShown) || (!S.odileConfess && (PROOFS().length || (S.proofW || 0) >= 2)));
 function confrontation() {
   closeUp(); Snd.tension(0.6);
-  panel("À la vitre", `<div class="cf"><img class="cfp" id="cfP" src="img/p_odile_1.webp" alt=""><div><p class="say" id="cfT">Vous posez la main à plat sur la vitre. Votre mère lève les yeux. Derrière vous, la rame attend, portes ouvertes. Une pièce après l'autre.</p><p class="mgmsg" id="cfC"></p></div></div><div class="cards" id="cfK"></div>`, el => {
+  panel("À la vitre", `<img class="art" alt="" src="img/scene_vitre.jpg"><div class="cf"><img class="cfp" id="cfP" src="img/p_odile_1.webp" alt=""><div><p class="say" id="cfT">Vous posez la main à plat sur la vitre. Votre mère lève les yeux. Derrière vous, la rame attend, portes ouvertes. Une pièce après l'autre.</p><p class="mgmsg" id="cfC"></p></div></div><div class="cards" id="cfK"></div>`, el => {
     const T = el.querySelector("#cfT"), K = el.querySelector("#cfK"), C = el.querySelector("#cfC"), Pp = el.querySelector("#cfP");
     const left = () => { const r = Math.max(0, 360 - S.t); C.textContent = `Départ à 22:00:00 — il reste ${Math.floor(r / 60)} min ${String(Math.floor(r % 60)).padStart(2, "0")} s`; C.style.color = r < 45 ? "#e0604a" : ""; };
     const speak = (txt, mood) => { T.innerHTML = txt; Pp.src = `img/p_odile_${mood}.webp`; Voice.speak("odile", txt); left(); };
@@ -1078,20 +1087,22 @@ function confrontation() {
 }
 function badgeWon(txt) { give("badge"); award("pickpocket"); learn("nomG", true); sheet("L'homme au gilet jaune", txt + " « TechniRail Services — Gérald Morin — Intervenant ».", []); }
 // le badge : approcher la main pendant qu'il téléphone, et la retirer dès qu'il tourne la tête
-function badgeGame() {
-  panel("L'homme au gilet jaune", `<p class="say">Il téléphone, de profil, le badge pendu à sa poche de poitrine. Maintenez le bouton pour approcher la main. Lâchez dès qu'il tourne la tête.</p><p class="mgmsg" id="bgEye">👀 Il regarde vers l'entrée.</p><div class="breath" aria-hidden="true"><i id="bgP"></i></div><button type="button" class="opt give" id="bgH" style="width:auto;touch-action:none">✋ Approcher la main (maintenir)</button>`, el => {
+function badgeGame(kind) {
+  const gp = kind === "goupille";
+  panel("L'homme au gilet jaune", `<p class="say">${gp ? "Il regarde la rame arriver, la goupille rouge dépassant de sa poche de poitrine. Maintenez le bouton pour approcher la main. Lâchez dès qu'il tourne la tête." : "Il téléphone, de profil, le badge pendu à sa poche de poitrine. Maintenez le bouton pour approcher la main. Lâchez dès qu'il tourne la tête."}</p><p class="mgmsg" id="bgEye">👀 Il regarde vers l'entrée.</p><div class="breath" aria-hidden="true"><i id="bgP"></i></div><button type="button" class="opt give" id="bgH" style="width:auto;touch-action:none">✋ Approcher la main (maintenir)</button>`, el => {
     const eye = el.querySelector("#bgEye"), bar = el.querySelector("#bgP"), h = el.querySelector("#bgH");
     let raf = 0, last = performance.now(), prog = 0, hold = false, clock = 0, next = 1.1 + Math.random() * 0.8, phase = "away";
-    const fail = () => { cancelAnimationFrame(raf); S.badgeTried = true; if (S.t < 200) S.gerWary = true; Snd.click(); sheet("L'homme au gilet jaune", "Il tourne la tête au mauvais moment. Sa main se referme sur votre poignet. « Bas les pattes. » Il vous fixe, puis regarde vers la sortie.", [], 2); };
+    const fail = () => { cancelAnimationFrame(raf); if (gp) { S.gTaken = true; S.bumpCalm = false; S.bumpWatch = true; Snd.click(); return sheet("L'homme au gilet jaune", "Il se retourne d'un coup et vous attrape le poignet. « Toi… » Il a compris. Désormais, il ne vous lâche plus des yeux.", [], 2); } S.badgeTried = true; if (S.t < 200) S.gerWary = true; Snd.click(); sheet("L'homme au gilet jaune", "Il tourne la tête au mauvais moment. Sa main se referme sur votre poignet. « Bas les pattes. » Il vous fixe, puis regarde vers la sortie.", [], 2); };
     const loop = now => { const dt = Math.min(0.05, (now - last) / 1000); last = now; clock += dt;
       if (phase === "away" && clock > next) { phase = "turn"; clock = 0; Snd.tick(); }
       else if (phase === "turn" && clock > 0.45) { phase = "look"; clock = 0; }
       else if (phase === "look" && clock > 0.8) { phase = "away"; clock = 0; next = 0.9 + Math.random() * 1.2; }
-      eye.textContent = phase === "away" ? "👀 Il regarde vers l'entrée." : phase === "turn" ? "⚠️ Il bouge la tête…" : "❗ Il regarde de votre côté !";
+      eye.textContent = phase === "away" ? (gp ? "👀 Il regarde la rame." : "👀 Il regarde vers l'entrée.") : phase === "turn" ? "⚠️ Il bouge la tête…" : "❗ Il regarde de votre côté !";
       eye.style.color = phase === "away" ? "" : phase === "turn" ? "var(--amber)" : "#e0604a";
       if (hold) { if (phase === "look") return fail(); prog += dt / 1.6; }
       else prog = Math.max(0, prog - dt * 0.15);
       bar.style.width = (Math.min(1, prog) * 100).toFixed(0) + "%";
+      if (prog >= 1 && gp) { cancelAnimationFrame(raf); S.gTaken = true; give("goupille"); award("pickpocket"); logEv("Vous reprenez la goupille du frein"); return sheet("L'homme au gilet jaune", "Deux doigts, un petit coup sec : la goupille neuve est dans votre manche. Il ne sent rien. Avec elle, le levier du frein tiendra.", []); }
       if (prog >= 1) { cancelAnimationFrame(raf); S.badgeTried = true; return badgeWon("Il rit au téléphone. Deux doigts, un petit coup sec : le badge est dans votre manche."); }
       raf = requestAnimationFrame(loop); };
     const on = e => { e.preventDefault(); hold = true; }, off = () => { hold = false; };
@@ -1155,8 +1166,8 @@ function sheet(title, text, opts, mood) {
   if (mgStop) { mgStop(); mgStop = null; } paused = true; $sheet.hidden = false;
   const who = WHO[title], nm = title === "L'homme au gilet jaune" && knows("nomG") ? "Gérald, l'homme au gilet jaune" : title;
   $sheet.className = who ? "talk" : "";
-  $sheet.innerHTML = `${who ? `<img class="por" alt="" src="img/p_${who}_${mood || 0}.webp">` : ""}<div class="body"><h2 style="${who ? `color:${TAGC[who] || "var(--amber)"}` : ""}">${nm}</h2><p class="say">${text}</p><div class="opts"></div></div>`;
-  Voice.speak(WHO[title] || "narr", text); typeOut($sheet.querySelector(".say"));
+  $sheet.innerHTML = `${who ? `<img class="por" alt="" src="img/p_${who}_${mood || 0}.webp">` : ""}<div class="body">${sheetArt ? `<img class="art" alt="" src="${sheetArt}">` : ""}<h2 style="${who ? `color:${TAGC[who] || "var(--amber)"}` : ""}">${nm}</h2><p class="say">${text}</p><div class="opts"></div></div>`;
+  sheetArt = null; Voice.speak(WHO[title] || "narr", text); typeOut($sheet.querySelector(".say"));
   const box = $sheet.querySelector(".opts");
   for (const o of opts.concat(S.noLeave ? [] : [{ l: "Partir", close: true }])) { const b = document.createElement("button"); b.type = "button"; b.className = "opt" + (o.give ? " give" : "") + (o.close ? " close" : ""); b.textContent = o.l; b.addEventListener("click", () => { if (o.close) return closeSheet(); o.fx(); }); box.appendChild(b); }
   box.querySelector("button").focus();
@@ -1178,8 +1189,9 @@ function closeSheet() { if (mgStop) { mgStop(); mgStop = null; } $sheet.hidden =
 function talk(id) {
   if (id === "odile") {
     const away = roomOf(A.odile) !== "ctrl", opts = [];
+    if (away && S.planB && S.cut && !S.planBFoiled && near(A.odile, FUSE_AT, 0.05)) sheetArt = "img/scene_coffret.jpg";
     if (!S.said.oHi) opts.push({ l: "« Salut, Maman. »", fx: () => { S.said.oHi = 1; S.odileMood++; updateGoal(); sheet("Odile", "« Camille. Tu es là. » Un temps. « Vingt-sept ans de service, et c'est toi que je voulais voir ce soir. Monte dans la rame, je te rejoins en haut. »", odileOpts()); } });
-    sheet("Odile", away && S.planB && S.cut && !S.planBFoiled && near(A.odile, FUSE_AT, 0.05) ? "Votre mère tripote les disjoncteurs du coffret, la lampe de poche entre les dents. Elle ne vous a pas entendu approcher." : away && S.t >= 200 && S.t < 290 ? "Votre mère attend que le gobelet se remplisse. Elle ne vous a pas entendu approcher." : away ? "Votre mère vous regarde approcher, un peu surprise de vous voir là." : S.odileConfess ? "Votre mère ne regarde plus ses écrans. Elle vous regarde, vous." : "Votre mère lève les yeux de ses écrans. Elle sourit, mais le sourire s'arrête avant les yeux.", opts.concat(odileOpts()), S.odileConfess ? 2 : 0);
+    sheet("Odile", away && S.planB && S.cut && !S.planBFoiled && near(A.odile, FUSE_AT, 0.05) ? "Votre mère, à genoux devant le coffret, fouille les vieux fusibles à la lampe de poche. Il en manque un. Elle ne vous a pas entendu approcher." : away && S.t >= 200 && S.t < 290 ? "Votre mère attend que le gobelet se remplisse. Elle ne vous a pas entendu approcher." : away ? "Votre mère vous regarde approcher, un peu surprise de vous voir là." : S.odileConfess ? "Votre mère ne regarde plus ses écrans. Elle vous regarde, vous." : "Votre mère lève les yeux de ses écrans. Elle sourit, mais le sourire s'arrête avant les yeux.", opts.concat(odileOpts()), S.odileConfess ? 2 : 0);
     return;
   }
   if (id === "gerald") {
@@ -1190,6 +1202,7 @@ function talk(id) {
     if (knows("appel")) o.push({ l: "« Il paie bien, Vasseur ? »", fx: () => sheet("L'homme au gilet jaune", "« Connais pas. » Il a répondu trop vite.", [], 1) });
     if (knowsDed("paye") && !S.said.gcrack) o.push({ l: "« Cinq mille euros pour faire tomber une cabine ? »", fx: () => { S.said.gcrack = 1; closeUp(A.gerald); learn("complot", true); sheet("L'homme au gilet jaune", "« Tomber ? » Il recule d'un pas. « Non. Une panne en gare. C'est ce qu'il a dit. » Il déglutit. « Je lui dois trois mois de chantier. Il a dit que la vieille partirait à 57, et que… » Il se tait d'un coup.", [], 1); } });
     o.push({ l: "« Vous attendez quoi ? »", fx: () => sheet("L'homme au gilet jaune", S.t < 200 ? "« Que vous me lâchiez. » Il regarde encore sa montre." : S.sab > 0 || S.t >= 275 ? "« Le départ. Comme tout le monde. » Il ne regarde plus sa montre." : "« Mon heure. » Il ne sourit pas.", []) });
+    if (S.bumpCalm && !S.gTaken && !has("goupille") && S.t < 340) o.push({ l: "Lui prendre la goupille qui dépasse de sa poche", give: true, fx: () => badgeGame("goupille") });
     o.push({ l: "Le suivre discrètement", fx: () => { S.follow = "gerald"; S.turnIn = 2.5 + Math.random() * 1.5; S.glance = 0; S.tailT = 0; closeSheet(); toast("Vous le suivez. S'il se retourne, regardez ailleurs."); } });
     if (!has("badge") && !S.badgeTried) o.push({ l: "Lui subtiliser son badge", give: true, fx: () => {
       if (S.dark > 0) { S.badgeTried = true; return badgeWon("Dans le noir, vous décrochez le badge de son gilet. Il ne sent rien."); }
@@ -1220,7 +1233,7 @@ function talk(id) {
   if (id === "delattre") {
     if (S.vexed.delattre) return sheet("Mme Delattre", "Elle serre son sac contre elle et regarde ailleurs. « Je ne parle pas aux malappris. »", [], 2);
     const kq = [];
-    if (S.t >= 132 && S.t < 162 && Math.hypot(A.delattre.x - 0.4, (A.delattre.y - 0.46) * 0.56) < 0.08 && !S.said.dHelp) kq.push({ l: "L'aider à tourner la clé", give: true, fx: () => { S.said.dHelp = 1; S.delFriend = true; learn("cle", true); learn("henri"); learn("goupille"); sheet("Mme Delattre", "Vous forcez ensemble. La clé ne tourne pas d'un millimètre. Elle rit, un peu honteuse. « Celle d'Henri. Ils ont changé la serrure en 2003, je le sais bien. » Elle range la clé. « Il disait toujours : la goupille rouge, c'est le cœur du frein. Ils l'ont changée en août, et l'ancienne a roulé quelque part dans le hall. Personne ne l'a jamais ramassée. »", [], 1); } });
+    if (S.t >= 132 && S.t < 162 && Math.hypot(A.delattre.x - 0.4, (A.delattre.y - 0.46) * 0.56) < 0.08 && !S.said.dHelp) kq.push({ l: "L'aider à tourner la clé", give: true, fx: () => { S.said.dHelp = 1; S.delFriend = true; learn("cle", true); learn("henri"); learn("goupille"); sheetArt = "img/scene_cle.jpg"; sheet("Mme Delattre", "Vous forcez ensemble. La clé ne tourne pas d'un millimètre. Elle rit, un peu honteuse. « Celle d'Henri. Ils ont changé la serrure en 2003, je le sais bien. » Elle range la clé. « Il disait toujours : la goupille rouge, c'est le cœur du frein. Ils l'ont changée en août, et l'ancienne a roulé quelque part dans le hall. Personne ne l'a jamais ramassée. »", [], 1); } });
     if (knows("cle") && !knows("henri") && S.said.key) {
       kq.push({ l: "« Que faisiez-vous à la porte du local ? »", fx: () => { learn("henri"); sheet("Mme Delattre", "Elle rougit. « Vous m'avez vue. » Elle ouvre la main : une petite clé usée. « Celle d'Henri. Il a travaillé ici douze ans. Je voulais revoir son bureau, une dernière fois. Elle ne tourne plus. »", [], 0); } });
       kq.push({ l: "« Vous vouliez trafiquer l'armoire, avouez. »", fx: () => { S.vexed.delattre = true; S.delDistract = false; learn("henri"); if (S.delKeeps) { S.delKeeps = false; give("enveloppe"); } sheet("Mme Delattre", "« Trafiquer ? Moi ? » Elle tremble de colère. « C'est la clé de mon mari. Trente ans que je la garde. »" + (has("enveloppe") ? " Elle vous fourre l'enveloppe dans les mains. « Et reprenez vos affaires. »" : "") + " Elle vous tourne le dos.", [], 2); } });
@@ -1262,6 +1275,7 @@ function confess(text, key, w) {
 function odileOpts() {
   const o = [], inCtrl = roomOf(A.odile) === "ctrl";
   if (S.rondeAsked && !S.rondeOn && S.t < 190 && inCtrl && !S.odileConfess) o.push({ l: "« D'accord pour la ronde. »", fx: () => { S.rondeOn = true; S.odileMood++; updateGoal(); sheet("Odile", "« Merci, mon cœur. Le bord du quai, l'extincteur près du pilier, la porte du local. Rien de sorcier : tu regardes, et tu me dis. »", odileOpts(), 2); } });
+  if (S.bumpWatch && A.gerald.vis) o.push({ l: "« Maman, cet homme me suit partout. »", fx: () => { S.bumpWatch = false; logEv("Votre mère chasse le gilet jaune"); say(A.gerald, "Ça va, ça va…"); sheet("Odile", "Elle se lève et frappe la vitre du plat de la main. « Monsieur ! Vous, là. Laissez mon enfant tranquille, ou j'appelle la sécurité. » Il recule, les mains levées.", odileOpts(), 1); } });
   if (rondeDone() && !S.rondeReported && inCtrl && !S.odileConfess) o.push({ l: "« La ronde est faite. »", fx: () => { S.rondeReported = 1; S.odileMood++; updateGoal(); award("ronde"); sheet("Odile", "« Merci, mon cœur. » Elle coche une case sur un formulaire. « Rien à signaler ? »", [
     { l: "« La porte du local n'était pas verrouillée. »", fx: () => { learn("oubli"); sheet("Odile", "Elle détourne les yeux une seconde de trop. « J'ai dû oublier. Je fermerai tout à l'heure. » Elle ne se lève pas.", odileOpts(), 1); } },
     { l: "« Rien à signaler. »", fx: () => sheet("Odile", "« Comme toujours. » Elle sourit, soulagée. « Va t'asseoir, il reste un peu de temps. »", odileOpts(), 2) }], 2); } });
@@ -1392,7 +1406,7 @@ function examine(id) {
   if (id === "door") {
     const g = A.gerald, inside = g.vis && roomOf(g) === "ctrl";
     if (inside) { learn("local"); S.sawLocal = true; }
-    const o = []; if (roomOf(A.odile) !== "ctrl") o.push({ l: "Entrer dans le local", fx: () => { closeSheet(); goTo(A.player, { x: 0.33, y: 0.27 }); } });
+    const o = []; if (roomOf(A.odile) !== "ctrl") o.push({ l: "Entrer dans le local", fx: () => { if (S.bumpWatch && A.gerald.vis && Math.hypot(A.player.x - A.gerald.x, (A.player.y - A.gerald.y) * 0.56) < 0.16) return sheet("L'homme au gilet jaune", "Il se plante entre vous et la porte, les bras croisés. « Non. On ne touche à rien. » Il ne bougera pas tant que quelqu'un ne l'y obligera pas.", [], 1); closeSheet(); goTo(A.player, { x: 0.33, y: 0.27 }); } });
     if (rondeLive() && !S.ronde.porte && !inside) o.push({ l: "Vérifier la porte (ronde)", fx: () => { S.ronde.porte = 1; updateGoal(); sheet("Porte du local", "La poignée tourne toute seule : la porte n'est pas verrouillée. Un local technique ouvert, à six minutes du dernier départ. Votre mère ne laisse jamais rien ouvert. <i>Ronde : la porte, c'est fait.</i>", []); } });
     if (has("journal") && !S.doorBlocked && roomOf(A.odile) !== "ctrl" && !inside) o.push({ l: "Coincer la porte avec le journal plié", give: true, fx: () => { take("journal"); S.doorBlocked = true; learn("porte", true); closeSheet(); toast("Porte coincée. Ça ne tiendra pas éternellement."); } });
     return sheet("Local technique", inside ? "Derrière la vitre, l'homme au gilet jaune est penché sur l'armoire électrique, une pince à la main." : roomOf(A.odile) === "ctrl" ? "Votre mère vous fait signe de rester dehors." : "Le local est vide. La porte n'est pas verrouillée.", o);
