@@ -1,3 +1,195 @@
+# Audit objectif : son, ambiance, personnages, rythme
+
+**Léo · 26 novembre 2026 · 20 minutes · angle : mesures, pas impressions**
+
+**Méthode.** J'ai lu le code (`Snd`, `Voice.rec`, `BARKS`, `DEJAVU`, `say()`, `toast()`, `updateAgents`, `LIGHTS`, `render`) et joué deux soirées instrumentées en 1280×720, son et voix activés dans la sauvegarde, avec `#debug` et une accélération ×14 (`S.skipTo`). Profil « passif » : un nouveau joueur qui reste à l'entrée. Profil « baladeur » : il traverse le hall, le banc, la porte du local, le quai. Au barrage, il répond « Rien vu ». Une sonde relevait toutes les 40 ms les nouvelles bulles (`S.said`, `S.barked`), les toasts, les fiches, les `new Audio()` (voix), les créations d'oscillateurs, ainsi que la position des PNJ à chaque seconde de jeu. **Limite assumée** : le navigateur tourne sans écran ni haut-parleur. Je n'ai donc *rien entendu*. Tout ce qui concerne le son vient du code et des événements déclenchés. Aucune erreur JavaScript. Scripts, journaux JSON et captures : `/tmp/claude-0/-workspace/00b10ced-f74c-50ab-a547-eda9febf00db/scratchpad/joueur8/` (`run2.js`, `an.js`, `voix.js`, `passif.json`, `baladeur.json`, `*_h2154.png`, `*_h2156.png`, `*_h2158.png`, `*_h215930.png`).
+
+## Tableau de bord
+
+| Axe | Note | Ça manque ? |
+|---|---|---|
+| Son | **4/10** | **Oui, nettement.** Tout est synthétisé. Les 3 vrais bruitages du dépôt (`sons/`) ne sont jamais chargés, et 83 % des répliques entendues sont muettes. |
+| Ambiance | **6,5/10** | **Un peu.** Le décor est beau et la pluie, les néons et la poussière vivent. Mais le hall est vide (aucun figurant) et la lumière ne change presque pas en 6 minutes. |
+| Personnages | **6/10** | **Oui, en présence à l'écran.** Les fiches sont riches (≈ 105 fiches), mais en jeu les PNJ restent plantés : de 61 à 92 % de leur temps visible immobiles, sans geste. |
+| Rythme | **6/10** | **Oui, au milieu.** La première minute est dense (8-9 événements par 30 s), puis on tombe sous 2 événements par 30 s de 21:56:00 à 21:58:00, avec un trou de 48 s. |
+
+## 1. SON (4/10)
+
+### Inventaire (code, `Snd`, l. 375-424)
+
+| Son | Fabrication | Déclencheur |
+|---|---|---|
+| Nappe grave (ré, la, ré, avec LFO) | 3 oscillateurs sinus, réverbération | Continue dès « Continuer / Commencer » (`Snd.music()`) |
+| Piano feutré | Oscillateurs triangle, une note toutes les 2,6 à 7,8 s | Continu |
+| « Pluie » | Bruit blanc filtré 400-1400 Hz, gain **0,006** | Continu |
+| Tension montante | 2 sinus qui montent | À partir de 21:58:00 (`(S.t-240)/120`) |
+| Battement de cœur | 2 sinus graves | Gilet jaune à moins de 0,08, cachette, traque |
+| Carillon d'annonce | 3 notes | Chaque toast 📢 (21:54:20, 21:58:00, 21:59:30) |
+| Sonnerie de téléphone | Carrés 880/1100 Hz | 21:55:30 (guichet), coupure du coffret |
+| Rame | Dent de scie 70→110 Hz et bruit 4 s | 21:58:45 |
+| Grésillement | Bruit 0,08 s | 21:56:30 (micro-coupure), étincelles, fusibles |
+| Bourdon de drone | Sinus 240 Hz, gain 0,006 | Essai de Bastien (21:55:24-36), tournage |
+| Pas | Bruit 0,05 s toutes les 0,3 s | Uniquement quand Camille marche |
+| Tic d'horloge | Carré 1600 Hz | Chaque seconde après 21:59:50 |
+| Bruitages d'objets (`fx`) | Bruits courts | Porte, bureau, casier, poubelle, distributeur, armoire… à l'examen |
+| Note d'indice, clic, blip de frappe, alarme, crash, rembobinage | Oscillateurs | Événements d'interface |
+
+**Fait marquant n°1** : le dossier `sons/` contient `armoire.mp3` (0,5 s), `rame.mp3` (1,0 s) et `telephone.mp3` (2,0 s), mais **aucune ligne de `index.html` ne les référence** (`grep 'sons/'` ne renvoie rien). La rame et le téléphone sont joués par des oscillateurs alors que les fichiers enregistrés sont là. Le commentaire l. 388, « musique et ambiance enregistrées (boucles) », est faux : rien n'est enregistré.
+
+**Fait marquant n°2** : la pluie est à 0,006 de gain, contre 0,03 pour la fondamentale de la nappe et 0,05 pour le piano, soit environ **14 dB sous la nappe**. Elle est sans doute à peine perceptible (estimation sur le code, non entendue). Pourtant, c'est le motif central du texte (« Quelle pluie… Comme le premier jour. »).
+
+### Doublage : mesure sur une soirée type (profil passif)
+
+- Bulles affichées : **22** (15 répliques scriptées et 7 « barks »), plus 2 répliques de fiche au barrage, soit **24 répliques entre guillemets**.
+- Voix réellement lancées (`new Audio`) : **4**, à savoir `g_appel` (21:54:56), `o_file` (21:57:20), `g_barrage` et `g_bien` (21:58:23). Cela fait **17 % des répliques et 9,4 s de voix sur 360 s (2,6 % du temps)**.
+- Pour le baladeur, le résultat est identique (4 voix sur environ 26 répliques).
+- Couverture dans le code : 71 entrées `Voice.rec` pour 71 fichiers (aucun orphelin, aucun manquant). Sur 57 bulles `say()` distinctes, **11 sont doublées**. Sur 19 barks et lignes DEJAVU, **0 est doublée**. Sur 319 citations « » distinctes dans tout le code, **61 sont doublées (19 %)**.
+- Restent muettes, entre autres, les premières répliques de la soirée : « Camille ! Par ici ! », « Camille ! Tu fais la ronde pour moi ? » et « Quelle pluie… Comme le premier jour. ». Le joueur passe donc **56 secondes** sans entendre une seule voix humaine.
+- Le doublage est vraiment entendu surtout quand on *ouvre des fiches* (les 61 citations doublées sont presque toutes dans des fiches). Le hall, lui, reste muet.
+
+### Silence
+
+- **Silence absolu : 0 s.** La nappe et le piano tournent en continu dès l'écran-titre validé.
+- **Silence événementiel** (aucun son ponctuel lié à ce qui se passe, nappe mise à part) dans une soirée passive : 12 sons ponctuels seulement. Le plus long trou va de **21:56:30 (grésillement) à 21:58:00 (carillon)**, soit **90 s** où seuls la nappe et le piano jouent.
+
+### Sons attendus mais absents
+
+| Attendu | État |
+|---|---|
+| Pluie audible, plus forte près de la porte vitrée | Bruit à 0,006, sans spatialisation |
+| Pas des PNJ (talons de Mme Delattre, chaussures de chantier) | Absents. Seule Camille a des pas |
+| Porte vitrée de l'entrée (gilet jaune à 21:54:48, Vasseur) | Absente. Le `fx.door` ne sonne qu'à l'examen de la porte du local |
+| Rame qui entre, freine, portes qui s'ouvrent, départ | Une seule nappe de 4 s à 21:58:45. Rien à quai, rien au départ |
+| Sonnerie de quai ou buzzer de départ (fermeture des portes) | Absent |
+| Téléphone du gilet jaune (vibreur) à 21:54:56 | Absent |
+| Gobelet du distributeur au café d'Odile (21:57:20) | Absent (son seulement si c'est le joueur qui achète) |
+| Moteur de la berline de Vasseur (21:59:30) | Absent. Seul un toast l'annonce |
+| Bourdonnement des néons, surtout celui qui flanche | Absent (on le voit flancher, on ne l'entend pas) |
+| Voix des annonces 📢 | Texte et carillon seulement, pas de voix |
+
+### 3 améliorations (impact / effort)
+
+1. **Brancher `sons/rame.mp3`, `sons/telephone.mp3` et `sons/armoire.mp3`** à la place des oscillateurs. Impact moyen, effort minime, **0 crédit** (déjà payés).
+2. **Une boucle de pluie et d'ambiance de hall enregistrée** (pluie sur verrière, bourdonnement de néon), montée à environ 0,03, plus forte près de l'entrée. Ajouter des bruitages pour la porte vitrée, le freinage et les portes de la rame, le buzzer de départ et le moteur de berline. Impact fort, effort petit. **Bruitages ElevenLabs : 6 × 17-20 ≈ 110-120 crédits.**
+3. **Doubler les 15 bulles scriptées d'une soirée type et la voix des annonces** (« Camille ! Par ici ! », « Tu fais la ronde pour moi ? », « Quelle pluie… », « Allô ? », « Oh ! Les lumières… », « La voilà ! Ma petite rame… », les 3 annonces…). Environ 15 lignes × 35 caractères et 3 annonces × 60 caractères, soit **≈ 700 crédits**. Doubler aussi les 19 barks coûterait **≈ 650 crédits** de plus. Impact fort, effort petit (une ligne `rec` chacune).
+
+## 2. AMBIANCE (6,5/10)
+
+### Ce qui bouge à l'écran (code `render` et captures)
+
+| Élément | Quantité | Remarque |
+|---|---|---|
+| Gouttes de pluie | 140 traits | **Uniquement dans 2 rectangles « dehors »** (`OUTSIDE`, à gauche). Invisibles dès qu'on est côté quai |
+| Ronds dans les flaques | 3 | Devant l'entrée |
+| Halos de néons | 6 | Pulsation de ±8 %. L'un flanche, et plus fort après 21:59:00 |
+| Poussière dans la lumière | 60 particules | Partout |
+| Étincelles | 4 par image | Seulement pendant le sabotage, dans le local |
+| Dérive de caméra « à l'épaule » | Continue | ±2 px |
+| Drone, rame, berline | Événementiels | 21:55:24, 21:58:45, 21:59:30 |
+| Reflets des personnages au sol | 5 | Bonne idée, discrète |
+
+### Lumière au fil de la soirée
+
+Le fond est **une seule image fixe** (`IMG.bg`) pour les 6 minutes. Voici les variations mesurées :
+- `S.dark` : 1,4 s à 21:56:30 (micro-coupure), plus les coupures déclenchées par le joueur ;
+- le néon défaillant flanche plus souvent après 21:59:00 ;
+- les phares de la rame entre 21:58:45 et 21:59:00 ;
+- le zoom passe à 1,1 après 21:59:40.
+
+Les captures `passif_h2154.png`, `baladeur_h2156.png`, `baladeur_h2158.png` et `baladeur_h215930.png` montrent la **même colorimétrie** du début à la fin. Il n'y a aucune bascule de lumière qui ferait monter la tension (le hall ne s'assombrit pas, aucune lumière de quai ne s'allume pour le départ, aucun gyrophare). La seule exception est le hall « en veilleuse » quand le plan B a lieu.
+
+### Ce qui reste statique
+
+Le fond, les écrans de surveillance (aucune animation), le tableau des départs (il ne s'éteint qu'au plan B, il n'affiche pas d'heure qui défile), le distributeur et **tout le monde quand personne ne marche** (voir § 3).
+
+### Figurants
+
+**Aucun.** Le hall de la « dernière rame après 27 ans » ne contient que 4 PNJ et Camille. Pas un voyageur, pas un agent, pas un passant sous la pluie. C'est cohérent avec un huis clos, mais c'est incohérent avec l'annonce « Merci pour ces vingt-sept ans » : une dernière rame historique attirerait au moins deux ou trois curieux.
+
+### 3 améliorations (impact / effort)
+
+1. **Une courbe de lumière sur 6 minutes, sans nouvelle image** : un filtre global qui refroidit légèrement à 21:58:00, la lumière de quai qui passe à l'ambre quand la rame entre, un voile rouge pulsé à 21:59:50. Impact fort, effort petit, **0 crédit**.
+2. **Pluie visible partout** : ruissellement sur la verrière côté quai, gouttes dans la fosse (« la pluie qui tombe dans la fosse » est écrit dans la fiche du quai mais n'est pas dessiné), traces mouillées laissées par les PNJ qui entrent. Impact moyen, effort petit, **0 crédit**.
+3. **2 ou 3 silhouettes de figurants** (un couple qui photographie la rame, un agent qui ferme les grilles à 21:59:30), avec un trajet simple et un bark chacun. Impact moyen, effort moyen. **Images ElevenLabs : 2 à 3 sprites × 98 ≈ 200-300 crédits**, plus environ 100 crédits si on double un bark chacun.
+
+## 3. PERSONNAGES (6/10)
+
+Mesures : une position par seconde de jeu sur la soirée passive. Les deux profils donnent des résultats à ±2 s près. « Immobile sans pose » veut dire que le PNJ ne bouge pas et n'a aucune pose spéciale (téléphone, travail, café, banc, drone, doigt pointé). Je n'ai trouvé dans `drawAgent` aucune animation d'attente en dehors de la marche (à confirmer à l'œil).
+
+| Personnage | Fiches (`sheet("…")`) | Options de dialogue (≈, `{ l:`) | Bulles `say()` + barks | Voix enregistrées | Comportements autonomes scriptés | Visible | En mouvement | **Immobile sans geste** |
+|---|---|---|---|---|---|---|---|---|
+| Odile | 41 | ≈ 35 (dont 6 questions d'aveu) | 19 + 4 (+1 DEJAVU) | 25 | 6 : salut, ronde, contrôle des voyants (21:55:48), téléphone, café (21:57:20), retour. Plus les branches plan B, chasse, frein | 360 s | 26 s | **265 s (74 %)** |
+| Gilet jaune (Gérald) | 18 | ≈ 11 | 24 + 3 (+1) | 20 | 8 : entrée, appel, attente, regard par la vitre (21:55:46), sabotage, barrage, départ. Plus les branches traque, porte bloquée, fuite, filature | 313 s | 69 s | **190 s (61 %)** |
+| Bastien | 17 | ≈ 11 | 6 + 3 (+2) | 13 | 5 : banc, faire les cent pas, essai de drone, quai, embarquement | 354 s | 30 s | **232 s (66 %)** |
+| Mme Delattre | 19 | ≈ 15 | 5 + 3 (+2) | 12 | 5 : arrivée, gant perdu, clé (21:56:12), micro-coupure, embarquement | 354 s | 30 s | **324 s (92 %)** |
+| Vasseur | 10 | 6 | **0** | 2 | **0** : une image de voiture fixe à partir de 21:59:30 | ≈ 30 s (voiture) | 0 | 100 % |
+
+### Arcs émotionnels (sans intervention du joueur)
+
+- **Odile** : joyeuse (« Camille ! Par ici ! »), puis fonctionnelle (ronde, voyants), puis furtive (« À 57, comme prévu »), puis elle s'absente et revient à son poste. **Le moment de la rame qui part n'est pas joué** : aucune bulle à 21:59:30 ni à 22:00, alors que c'est le dernier départ de sa carrière. Son arc n'existe vraiment que si le joueur ouvre ses fiches (aveu, choix).
+- **Gilet jaune** : l'arc le plus complet. Il est menaçant, puis concentré, puis il barre le passage, puis il part satisfait. C'est lui qui a le plus de comportements autonomes.
+- **Bastien** : il est nerveux (« Allez… juste un essai. »), puis il est pris (« Rien ! Rien du tout. »), puis il attend et embarque. Arc plat après 21:55:36.
+- **Mme Delattre** : nostalgique (« Comme le premier jour »), elle tente la clé, puis s'émerveille (« La voilà ! Ma petite rame… »). L'émotion est juste, mais elle reste **immobile 92 % du temps, sans aucune pose** (zéro geste mesuré en soirée passive). C'est le personnage qui porte la mémoire de la station, et c'est le plus figé.
+- **Vasseur** : aucun arc. Il apparaît sous forme de toast et d'image.
+
+### Figurants
+
+**Zéro.** Voir § 2.
+
+### 3 améliorations (impact / effort)
+
+1. **Des poses d'attente qui tournent** (toutes les 15 à 20 s) avec les images déjà en stock : Delattre qui pointe vers la voie (`delattre_point`), Bastien assis ou drone (`bastien_sit`), Odile au téléphone ou au café, le gilet jaune au téléphone. On réutilise les sprites existants. Impact fort, effort petit, **0 crédit**.
+2. **Un « moment de départ » pour chacun à 21:59:30-22:00** : Odile pose la main sur le pupitre (« Vingt-sept ans… »), Delattre ôte son chapeau, Bastien lève son téléphone. Ce sont 3 bulles. Impact fort (émotion de fin), effort petit. **Voix : 3 × 30 caractères ≈ 90 crédits.**
+3. **Faire exister Vasseur avant 21:59:30** : il appelle le gilet jaune à 21:57:30 (« Alors ? »), on entend la voix filtrée au téléphone et on voit ses phares passer dehors à 21:56:00. Impact moyen, effort petit. **Voix ≈ 60 crédits, bruitage moteur ≈ 20 crédits.**
+
+## 4. RYTHME (6/10)
+
+### Chronologie mesurée, nouveau joueur passif
+
+Les bulles, toasts et fiches sont mesurés. Les « actions possibles » viennent des points d'intérêt visibles et des fiches ouvrables.
+
+| Tranche | Événements (bulles / toasts / fiches) | Contenu | Densité 0-3 |
+|---|---|---|---|
+| 21:54:00-21:54:30 | **8** (3 / 2 / 0, + 3 barks) | Salut, ronde, annonce 1, barks | 3 |
+| 21:54:30-21:55:00 | **9** (5 / 2 / 0, + 1 voix) | Pluie, gant, appel « monsieur Vasseur » | 3 |
+| 21:55:00-21:55:30 | **4** | Pièce tombée de Bastien, « Plus qu'à attendre » | 2 |
+| 21:55:30-21:56:00 | **7** | Drone, téléphone du guichet, « À 57 », voyants | 3 |
+| 21:56:00-21:56:30 | **2** | Clé de Delattre (21:56:16) | 1 |
+| 21:56:30-21:57:00 | **2** | Micro-coupure, « Ce coffret… » | 1 |
+| 21:57:00-21:57:30 | **1** | Odile part au café (voix) | 1 |
+| 21:57:30-21:58:00 | **0 visible** | Le gilet jaune entre dans le local (seulement dans le journal) | **0** |
+| 21:58:00-21:58:30 | **6** | Annonce 2, barrage (fiche, voix, choix), toast | 3 |
+| 21:58:30-21:59:00 | **1** (son de rame) | La rame arrive | 1 |
+| 21:59:00-21:59:30 | **1** | « La voilà ! Ma petite rame… » | 1 |
+| 21:59:30-22:00:00 | **2** | Berline, annonce 3, tic-tac | 1 |
+
+- **Total** : environ 43 événements, soit 7,2 par minute. Mais **63 % sont dans les 2 premières minutes**.
+- **Plus long intervalle sans bulle, toast ni fiche** : **48 s** (passif, 21:56:32 → 21:57:20), puis **40 s** (21:57:20 → 21:58:00). Pour le baladeur, les barks comblent en partie, mais il reste un trou de **34 s** (21:57:26 → 21:58:00).
+- Les 3 minutes du milieu (21:56:00 → 21:58:00), qui sont justement celles du **sabotage**, ne font que **5 événements**. L'action principale (le gilet jaune dans le local) n'émet ni son, ni toast, ni bulle pour qui n'est pas devant la porte.
+
+### Comparaison avec le genre (honnête)
+
+Je n'ai pas mesuré ces jeux avec le même outil. Ce sont des ordres de grandeur tirés de mon expérience de joueur.
+- **Twelve Minutes** : une boucle de 10 à 12 minutes, 3 PNJ, un appartement. Presque chaque seconde offre un objet manipulable, et le mari, la femme et le policier **réagissent en continu** à ce que vous faites. Sa densité *réactive* est plus forte. Sa densité *scriptée*, elle, n'est pas plus forte : il a lui aussi de longs passages d'attente (la femme qui cuisine). **La Dernière Rame fait jeu égal sur la première minute, et moins bien sur le milieu.**
+- **Return of the Obra Dinn** : pas de chronomètre. La densité vient de la déduction, pas des événements, donc la comparaison n'est pas pertinente pour le rythme. Le jeu montre en revanche qu'une **scène figée mais très sonore** (chaque souvenir commence par 10 à 20 s de son seul) crée de l'ambiance sans animation. C'est précisément ce qui manque ici.
+- **Outer Wilds** (une boucle de 22 minutes) : le rythme est porté par des **jalons sonores et visuels globaux** visibles de partout (la musique de la supernova, l'effondrement du Sablier). L'équivalent ici serait un jalon perceptible depuis tout le hall à 21:57:00 et à 21:58:00. Il n'y en a pas pour le sabotage.
+
+### 3 améliorations (impact / effort)
+
+1. **Rendre le sabotage perceptible depuis le hall** entre 21:57:30 et 21:58:00 : coups métalliques sourds venant du local (`sons/armoire.mp3` existe déjà), un néon du hall qui faiblit à chaque coup, un toast unique « Un bruit métallique, derrière la vitre du local. ». Cela bouche le trou de 40 à 48 s. Impact fort, effort petit, **0 crédit**.
+2. **Un événement par tranche vide** : à 21:56:45, Bastien laisse tomber son téléphone qui sonne. À 21:57:40, Delattre vient demander l'heure à Camille (choix rapide). À 21:59:10, les portes de la rame s'ouvrent avec un buzzer. Impact fort, effort moyen. **≈ 2 bruitages (40 crédits) et 2 répliques (≈ 80 crédits).**
+3. **Un barks plus fréquent au milieu** : `barkT` passe de 9-16 s à 6-10 s entre 21:56:00 et 21:58:00, et 3 nouveaux barks « de situation » sont ajoutés (Delattre : « Il est long, ce café… », Bastien : « Il fait quoi, lui, dans le local ? »). Impact moyen, effort minime, 0 crédit en texte seul, **≈ 100 crédits** si on les double.
+
+## Conclusion : les 3 manques les plus importants
+
+1. **Le SON, en priorité.** Il y a 0 bruitage enregistré dans le jeu alors que 3 attendent dans `sons/`. La pluie est quasi inaudible. 17 % des répliques entendues sont doublées et le hall n'a aucune voix pendant les 56 premières secondes. C'est le meilleur rapport impact/coût : brancher les 3 fichiers ne coûte rien, et environ 820 crédits (6 bruitages + 15 bulles + 3 annonces) changeraient la perception de tout le jeu.
+2. **Le RYTHME du milieu.** De 21:56:00 à 21:58:00, il y a 5 événements en 2 minutes, avec un trou de 48 s, *pendant* le sabotage, qui reste invisible et inaudible depuis le hall. C'est corrigeable sans crédit (coups métalliques, néon qui faiblit, un toast).
+3. **La PRÉSENCE des personnages.** Ils sont riches en fiches (≈ 105 fiches, 71 voix) mais figés à l'écran (Delattre immobile 92 % du temps), sans figurant et sans moment de départ à 22:00. Faire tourner les poses existantes et ajouter 3 bulles de départ (≈ 90 crédits) suffirait à les faire vivre.
+
+L'ambiance visuelle est le point le plus solide (le décor, les reflets, les néons, la poussière). Elle a seulement besoin d'une courbe de lumière sur les 6 minutes.
+
+---
+
 # Retours de playtest : Version 11 · tour fun
 
 **Léo · 25 novembre 2026 · environ 15 minutes · angle : le FUN**
