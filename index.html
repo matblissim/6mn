@@ -383,6 +383,8 @@ const Snd = {
   tone(fr, dur, { type = "sine", vol = 0.1, to = null, delay = 0 } = {}) { if (!this.ctx || !M.sound) return; const c = this.ctx, t = c.currentTime + delay, o = c.createOscillator(), g = c.createGain(); o.type = type; o.frequency.setValueAtTime(fr, t); if (to) o.frequency.exponentialRampToValueAtTime(to, t + dur); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + dur); o.connect(g); g.connect(this.master); o.start(t); o.stop(t + dur + 0.05); },
   noise(dur, freq, vol, delay = 0) { if (!this.ctx || !M.sound) return; const c = this.ctx, t = c.currentTime + delay, n = c.createBufferSource(), b = c.createBuffer(1, Math.floor(c.sampleRate * dur), c.sampleRate), d = b.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / d.length); n.buffer = b; const f = c.createBiquadFilter(); f.type = "lowpass"; f.frequency.value = freq; const g = c.createGain(); g.gain.value = vol; n.connect(f); f.connect(g); g.connect(this.master); n.start(t); },
   tick() { this.tone(1600, 0.03, { type: "square", vol: 0.03 }); },
+  // bruitages enregistrés (ElevenLabs) : pas, porte, rame, signal de départ, berline, coups dans l'armoire, téléphone
+  sample(name, vol = 0.5) { if (!M.sound) return; try { const a = new Audio(`sons/${name}.mp3`); a.volume = Math.max(0, Math.min(1, vol)); a.play().catch(() => {}); return a; } catch (e) {} },
   note() { this.tone(880, 0.25, { type: "triangle", vol: 0.05 }); this.tone(1320, 0.3, { type: "triangle", vol: 0.04, delay: 0.08 }); },
   step() { this.noise(0.05, 900, 0.05); },
   // musique et ambiance enregistrées (boucles) : thème sourd, pluie et hall de gare
@@ -396,7 +398,7 @@ const Snd = {
     for (const [f, v] of [[73.42, 0.03], [110, 0.018], [146.83, 0.01]]) { const o = c.createOscillator(), g = c.createGain(), lfo = c.createOscillator(), lg = c.createGain(); o.type = "sine"; o.frequency.value = f; g.gain.value = v; lfo.frequency.value = 0.05 + Math.random() * 0.06; lg.gain.value = v * 0.6; lfo.connect(lg); lg.connect(g.gain); o.connect(g); g.connect(bus); g.connect(rev); o.start(); lfo.start(); }
     // pluie : bruit filtré, plus présent
     const n = c.createBufferSource(), nb = c.createBuffer(1, c.sampleRate * 4, c.sampleRate), nd = nb.getChannelData(0); for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1; n.buffer = nb; n.loop = true;
-    const hp = c.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = 400; const lp = c.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 1400; lp.Q.value = 0.3; const rg = c.createGain(); rg.gain.value = 0.006; n.connect(hp); hp.connect(lp); lp.connect(rg); rg.connect(bus); n.start();
+    const hp = c.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = 400; const lp = c.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 1400; lp.Q.value = 0.3; const rg = c.createGain(); rg.gain.value = 0.03; n.connect(hp); hp.connect(lp); lp.connect(rg); rg.connect(bus); n.start();
     // piano feutré : quelques notes éparses, jamais la même phrase
     const NOTES = [293.66, 349.23, 440, 392, 329.63, 523.25, 587.33, 466.16], note = () => {
       if (M.sound && !document.hidden) { const t = c.currentTime, f = NOTES[Math.floor(Math.random() * NOTES.length)] * (Math.random() < 0.25 ? 0.5 : 1);
@@ -427,7 +429,8 @@ addEventListener("pointerdown", () => Snd.init(), { capture: true });
 /* ================= Voix (synthèse vocale du navigateur, gratuite) ================= */
 const Voice = {
   voices: [], audio: null,
-  rec: [["Tiens. Tout à l'heure", "g_mensonge"], ["Il paraît que vous n'avez rien vu", "b_4k"], ["Monsieur ! Laissez mon enfant", "o_chasse"], ["Vous n'avez rien vu, hein", "g_barrage"], ["Bien.", "g_bien"], ["Mon boulot.", "g_boulot"], ["Quoi ?", "g_quoi"], ["Elle ne bouge pas de sa cabine", "g_coffret"], ["Pardon, madame", "g_pardon"],
+  rec: [["Plus que quelques minutes", "o_b1"], ["Vingt-sept ans. Et ça se termine", "o_b2"], ["Ce néon, je l'ai signalé", "o_b3"], ["Tu montes, Camille", "o_b4"], ["Mon Henri adorait cette rame", "d_b1"], ["Vous croyez qu'ils garderont", "d_b2"], ["Il pleut toujours, à Laon", "d_b3"], ["Bon vent, ma vieille", "o_bonvent"], ["C'est dans la boîte", "b_boite"], ["Au revoir, ma belle", "d_aurevoir"],
+    ["Tiens. Tout à l'heure", "g_mensonge"], ["Il paraît que vous n'avez rien vu", "b_4k"], ["Monsieur ! Laissez mon enfant", "o_chasse"], ["Vous n'avez rien vu, hein", "g_barrage"], ["Bien.", "g_bien"], ["Mon boulot.", "g_boulot"], ["Quoi ?", "g_quoi"], ["Elle ne bouge pas de sa cabine", "g_coffret"], ["Pardon, madame", "g_pardon"],
     ["Le tableau ! Pas ce soir", "o_tableau"], ["Et alors ? Ça ne prouve rien", "o_rien"], ["Le frein ne répond plus d'ici", "o_interphone"], ["Camille… Toi aussi", "o_dejafini"], ["… Tu as raison.", "o_raison"], ["Merci, mon cœur. Le bord du quai", "o_ronde"], ["Dehors. Tout de suite.", "o_dehors"],
     ["Celle d'Henri. Ils ont changé", "d_henri"], ["Filmer quoi ?", "b_quoi"], ["Montrez-moi où viser", "b_cadre"],
     ["Camille. Tu es là.", "o_salut"], ["Demain, je rends mes clés", "o_demain"], ["Le prêt pour ton école.", "o_aveux"], ["Deux minutes, à 57.", "o_cafe57"], ["Arrête. Il y a le frein", "o_arrete"], ["Par qui ?", "o_preuve"], ["Mon Dieu. Le frein.", "o_frein"], ["Il m'a menti.", "o_menti"], ["Fais ce qui est juste", "o_juste"], ["Je file me chercher un café", "o_file"],
@@ -593,7 +596,7 @@ function updateAgents(dt) {
     if (t >= 90 && !S.said.dt2) { S.said.dt2 = 1; say(o, "Qu'est-ce qui bourdonne, là ?"); if (Math.hypot(me.x - b.x, (me.y - b.y) * 0.56) < 0.28) { learn("essai"); learn("drone"); } }
     if (t >= 94 && !S.said.dt3) { S.said.dt3 = 1; say(b, "Rien ! Rien du tout."); } } else S.droneTest = false;
   if (t >= 20 && !S.said.pa1) { S.said.pa1 = 1; toast("📢 « Mesdames et messieurs, dernier départ du POMA à 22 h 00. Merci pour ces vingt-sept ans. »"); }
-  if (t >= 90 && !S.said.ring) { S.said.ring = 1; Snd.ring(); logEv("Le téléphone du guichet sonne"); const heard = Math.hypot(me.x - P.window.x, (me.y - P.window.y) * 0.56) < 0.12 || roomOf(me) === "ctrl"; if (S.odileConfess) say(o, "Non. C'est fini. Ne m'appelez plus."); else { say(o, heard ? "Oui… À 57, comme prévu. Oui." : "Allô ?"); if (heard) learn("guichet"); } }
+  if (t >= 90 && !S.said.ring) { S.said.ring = 1; if (!Snd.sample("telephone", 0.5)) Snd.ring(); logEv("Le téléphone du guichet sonne"); const heard = Math.hypot(me.x - P.window.x, (me.y - P.window.y) * 0.56) < 0.12 || roomOf(me) === "ctrl"; if (S.odileConfess) say(o, "Non. C'est fini. Ne m'appelez plus."); else { say(o, heard ? "Oui… À 57, comme prévu. Oui." : "Allô ?"); if (heard) learn("guichet"); } }
   if (t >= 196 && t < 204 && !S.planB && (S.odileStays || S.odileConfess) && !S.odileKnows && !S.fixed && g.vis && !S.gerWary && !S.gerGone && !S.gerFled && !S.gerCaught && !S.gerInterrupted) {
     S.planB = true; logEv("Le gilet jaune reçoit un appel : votre mère ne bouge pas"); say(g, "Elle ne bouge pas de sa cabine. … Le coffret ? D'accord.");
     if (Math.hypot(me.x - g.x, (me.y - g.y) * 0.56) < 0.15) learn("planB"); else toast("Sur le quai, le gilet jaune reçoit un appel. Il n'a pas l'air content."); }
@@ -602,7 +605,7 @@ function updateAgents(dt) {
   if (t >= 152 && !S.said.flick2) { S.said.flick2 = 1; say(o, "Ce coffret du hall va nous lâcher un de ces jours."); }
   if (t >= 240 && !S.said.pa2) { S.said.pa2 = 1; toast("📢 « La dernière rame entrera en gare dans quelques instants. »"); }
   if (t >= 300 && !S.said.dock) { S.said.dock = 1; logEv("La rame arrive à quai"); say(d, "La voilà ! Ma petite rame…"); }
-  if (t >= 330 && !S.said.car && !S.alarm) { S.said.car = 1; toast("Dehors, une berline noire s'arrête devant l'entrée."); logEv("Une berline noire s'arrête devant l'entrée"); }
+  if (t >= 330 && !S.said.car && !S.alarm) { S.said.car = 1; Snd.sample("berline", 0.4); toast("Dehors, une berline noire s'arrête devant l'entrée."); logEv("Une berline noire s'arrête devant l'entrée"); }
   if (t >= 330 && !S.said.pa3 && !S.alarm) { S.said.pa3 = 1; toast("📢 « Prenez place. Départ imminent. »"); }
   if (S.dark > 0) S.dark = Math.max(0, S.dark - dt);
   // Gérald
@@ -634,10 +637,12 @@ function updateAgents(dt) {
         want(g, DOOR_OUT);
         if (near(g, DOOR_OUT, 0.04)) { S.forcing += dt; if (!S.said.force) { S.said.force = 1; say(g, "Bloquée ?! Saleté de porte…"); learn("porte", true); } if (S.forcing > 20) { S.doorBlocked = false; say(g, "Ça y est."); } }
       }
-      else if (!oIn && !meIn) { want(g, P.cabinet); if (roomOf(g) === "ctrl") { S.toolbagDown = true; logEv("Le gilet jaune entre dans le local, sacoche posée devant la porte"); }
+      else if (!oIn && !meIn) { want(g, P.cabinet); if (roomOf(g) === "ctrl") { if (!S.toolbagDown) Snd.sample("porte", Math.max(0.1, 0.45 - Math.hypot(me.x - DOOR_OUT.x, (me.y - DOOR_OUT.y) * 0.56))); S.toolbagDown = true; logEv("Le gilet jaune entre dans le local, sacoche posée devant la porte"); }
         if (near(g, P.cabinet) && !g.path.length) {
           if (S.dark > 0) { if (!S.said["dk" + S.fuseUses]) { S.said["dk" + S.fuseUses] = 1; say(g, "Qui a coupé le jus ?!"); } }
-          else { S.sab += dt; if (S.sab >= 40) { S.sabDone = true; logEv("Le frein de secours est désarmé"); } }
+          else { if (!S.said.armOpen) { S.said.armOpen = 1; const dd = Math.hypot(me.x - P.cabinet.x, (me.y - P.cabinet.y) * 0.56); Snd.sample("armoire", Math.max(0.12, 0.6 - dd)); }
+            S.sab += dt; S.knockT = (S.knockT || 0) - dt; if (S.knockT <= 0) { S.knockT = 2.5 + Math.random() * 2.5; const dd = Math.hypot(me.x - P.cabinet.x, (me.y - P.cabinet.y) * 0.56); Snd.sample("coups", Math.max(0.08, 0.55 - dd * 0.9)); }
+            if (S.sab >= 40) { S.sabDone = true; logEv("Le frein de secours est désarmé"); } }
           // il travaille dos tourné, et jette un œil derrière lui toutes les dix secondes
           g.face = (S.sab % 10) < 7 ? "b" : "f";
         } }
@@ -684,14 +689,22 @@ function updateAgents(dt) {
   else if (t < 330) want(d, P.delWait); else if (t < 355) want(d, P.delBoard); else if (rame.state === "dock") d.vis = false;
   stepAgent(d, dt, 0.04);
   // la rame
-  if (t >= 285 && t < 300) { rame.state = "arriving"; rame.y = -0.25 + ((t - 285) / 15) * 0.75; if (!S.said.rame) { S.said.rame = 1; Snd.rame(); } }
-  else if (t >= 300 && t < 358) { rame.state = "dock"; rame.y = 0.5; }
+  if (t >= 285 && t < 300) { rame.state = "arriving"; rame.y = -0.25 + ((t - 285) / 15) * 0.75; if (!S.said.rame) { S.said.rame = 1; Snd.rame(); Snd.sample("rame", 0.45); } if (t >= 296 && !S.said.brake) { S.said.brake = 1; Snd.sample("arrivee", 0.6); } }
+  else if (t >= 300 && t < 358) { rame.state = "dock"; rame.y = 0.5; if (t >= 355 && !S.said.bell && !S.alarm) { S.said.bell = 1; Snd.sample("depart", 0.6); }
+    // au départ, chacun salue la dernière rame à sa façon
+    if (t >= 351 && !S.said.bye1 && !S.alarm && d.vis && !S.vexed.delattre) { S.said.bye1 = 1; say(d, "Au revoir, ma belle…"); }
+    if (t >= 354 && !S.said.bye2 && !S.alarm && roomOf(o) === "ctrl" && !S.odileKnows) { S.said.bye2 = 1; say(o, "Bon vent, ma vieille. La dernière."); }
+    if (t >= 357 && !S.said.bye3 && !S.alarm && b.vis && !S.wrongArrest && !S.vexed.bastien) { S.said.bye3 = 1; say(b, "C'est dans la boîte."); } }
   else if (t >= 358) { rame.state = "leaving"; rame.y = 0.5 - ((t - 358) / 2) * 0.35; }
   // poses : téléphone, travail à l'armoire, café, banc, télécommande, doigt levé
   g.pose = t >= 56 && t < 82 && near(g, P.gerCall, 0.03) ? "gerald_phone" : roomOf(g) === "ctrl" && near(g, P.cabinet, 0.03) && g.face === "b" ? "gerald_work" : null;
   o.pose = roomOf(o) !== "ctrl" && (near(o, clampWalk(P.vending), 0.04) || (t >= 280 && o.face === "f")) ? "odile_cafe" : null;
   b.pose = S.droneTest && !b.path.length ? "bastien_drone" : t < 120 && near(b, { x: P.bench.x, y: P.bench.y - 0.02 }, 0.03) ? "bastien_sit" : S.bastFilm && t >= 200 && t < 290 && near(b, P.film, 0.03) ? "bastien_drone" : null;
   d.pose = S.said.dis1 && S.distractLeft > 0 && near(d, g, 0.08) ? "delattre_point" : null; if (d.pose) d.dir = g.x > d.x ? 1 : -1;
+  // petits gestes quand ils attendent : se retourner, regarder la rame, consulter sa montre
+  for (const a of [o, g, b, d]) { if (!a.vis || a.path.length || a.pose || (a === g && (roomOf(g) === "ctrl" || (t >= 100 && t < 118))) || (a === d && t >= 132 && t < 162) || S.hidden) { a.fid = 3 + Math.random() * 4; continue; } a.fid = (a.fid == null ? 4 : a.fid) - dt;
+    if (a.fid <= 0) { a.fid = 4 + Math.random() * 5; const r = Math.random(); if (a === o && roomOf(o) === "ctrl") { o.face = r < 0.6 ? "b" : "f"; } else { a.face = r < 0.4 ? "s" : r < 0.75 ? "f" : "b"; if (Math.random() < 0.5) a.dir = -a.dir || 1; } } }
+  if (g.vis && t >= 120 && t < 196 && !g.path.length && near(g, P.gerWait, 0.03) && Math.sin(t * 0.4) > 0.7) g.pose = "gerald_phone";
   // erreur judiciaire : la sécurité embarque Bastien
   if (S.wrongAt && t >= S.wrongAt && !S.wrongArrest) { S.wrongArrest = true; S.bastFilm = false; say(b, "Mais j'ai rien fait ! Lâchez-moi !"); toast("📻 Deux agents emmènent Bastien. Le gilet jaune regarde la scène, et sourit."); logEv("Bastien est arrêté à tort"); learn("erreur", true); setTimeout(() => { b.vis = false; }, 2500); }
   for (const a of [g, b, d]) if (a.vis && !a.path.length && !a.pose && Math.hypot(me.x - a.x, (me.y - a.y) * 0.56) < 0.11) { a.dir = me.x > a.x ? 1 : -1; if (a.face !== "b" || a !== g) a.face = Math.abs(me.x - a.x) > 0.03 ? "s" : me.y < a.y ? "b" : "f"; }
@@ -745,9 +758,11 @@ const LIGHTS = [
 ];
 const OUTSIDE = [[0, 0, 0.19, 0.42], [0, 0.55, 0.09, 1]];
 function flick(l, t) {
-  if (!l.bad) return 0.92 + 0.08 * Math.sin(t * 3.1 + l.x * 40);
+  // pendant le sabotage, tout le hall vacille un peu : on tire du courant sur la même ligne
+  const sabK = S && S.sab > 0 && !S.sabDone && A.gerald.vis && near(A.gerald, P.cabinet, 0.04) ? (Math.sin(t * 23) * Math.sin(t * 7.7) > 0.6 ? 0.55 : 0.85) : 1;
+  if (!l.bad) return (0.92 + 0.08 * Math.sin(t * 3.1 + l.x * 40)) * sabK;
   const late = S.t > 300 ? 1 : 0.35, n = Math.sin(t * 37) * Math.sin(t * 13.7) * Math.sin(t * 5.3);
-  return n > 0.25 - late * 0.3 ? 0.25 : 1;
+  return (n > 0.25 - late * 0.3 ? 0.25 : 1) * sabK;
 }
 function render(now, real) {
   const t = now / 1000, me = A.player;
@@ -840,6 +855,8 @@ function render(now, real) {
     const x = Math.max(28, Math.min(VW - 28, p.x)); let y = Math.max(96, Math.min(VH - 60, cy)); while (usedA.some(u => Math.abs(u.x - x) < 110 && Math.abs(u.y - y) < 22)) y += 24; usedA.push({ x, y }); arrowHits.push({ x, y, id: Object.keys(A).find(k => A[k] === a) }); const ang = Math.atan2(cy - y, p.x - x), col = TAGC[a.img] || "#e8e4da";
     ctx.save(); ctx.translate(x, y); ctx.rotate(ang); ctx.fillStyle = col; ctx.beginPath(); ctx.moveTo(14, 0); ctx.lineTo(-6, -8); ctx.lineTo(-6, 8); ctx.closePath(); ctx.fill(); ctx.restore();
     ctx.font = "600 11px Inter, sans-serif"; ctx.textAlign = x > VW / 2 ? "right" : "left"; ctx.fillStyle = col; ctx.fillText(TAGN[a.img], x + (x > VW / 2 ? -18 : 18), y + 4); }
+  // la nuit se refroidit doucement vers 22 h 00
+  { const k = Math.min(1, S.t / 360); ctx.fillStyle = `rgba(10,24,48,${0.02 + 0.12 * k})`; ctx.fillRect(0, 0, VW, VH); }
   // vignette, alerte de fin de boucle, alarme
   const vg = ctx.createRadialGradient(VW / 2, VH / 2, Math.min(VW, VH) * 0.3, VW / 2, VH / 2, Math.max(VW, VH) * 0.75); vg.addColorStop(0, "rgba(0,0,0,0)"); vg.addColorStop(1, `rgba(0,0,0,${S.t > 340 ? 0.7 : 0.55})`); ctx.fillStyle = vg; ctx.fillRect(0, 0, VW, VH);
   if (S.t > 345 && !S.over) { ctx.fillStyle = `rgba(160,20,10,${0.08 + 0.08 * Math.sin(t * 6)})`; ctx.fillRect(0, 0, VW, VH); }
@@ -988,7 +1005,8 @@ function updateHideBar() {
   btn("Sortir de la cachette", () => { S.hidden = false; A.player.vis = true; hideKey = ""; updateHideBar(); });
 }
 let sheetArt = null; // une illustration à afficher en tête de la prochaine fiche
-let toastT = 0, pendingPA = null; function toast(msg) { if ((msg.startsWith("📢") || msg.startsWith("📻")) && !$sheet.hidden) { pendingPA = msg; return; } const pa = msg.startsWith("📢") || msg.startsWith("📻"); $toast.className = pa ? "pa" : ""; $toast.textContent = pa ? msg.replace(/^📢 |^📻 /, "") : msg; $toast.hidden = false; toastT = pa ? 5 : 3.2; if (pa) Snd.chime(); }
+const PA_VOICE = [["« Mesdames et messieurs, dernier départ", "pa1"], ["« La dernière rame entrera", "pa2"], ["« Prenez place", "pa3"]];
+let toastT = 0, pendingPA = null; function toast(msg) { const pav = msg.startsWith("📢") && $sheet.hidden && PA_VOICE.find(([k]) => msg.includes(k)); if (pav && M.voice !== false && M.sound) { try { const a = new Audio(`voix/${pav[1]}.mp3`); a.volume = 0.8; Snd.duck(true); a.onended = a.onerror = () => Snd.duck(false); a.play().catch(() => Snd.duck(false)); } catch (e) {} } if ((msg.startsWith("📢") || msg.startsWith("📻")) && !$sheet.hidden) { pendingPA = msg; return; } const pa = msg.startsWith("📢") || msg.startsWith("📻"); $toast.className = pa ? "pa" : ""; $toast.textContent = pa ? msg.replace(/^📢 |^📻 /, "") : msg; $toast.hidden = false; toastT = pa ? 5 : 3.2; if (pa) Snd.chime(); }
 const ITEMS = { registre: "Registre du poste", helice: "Hélice en plastique", pince: "Pince coupante de Bastien", goupille: "Vieille goupille rouge", piece: "Pièce de 2 €", cafe: "Café chaud", photo: "Vidéo de Bastien", enveloppe: "Enveloppe de « V. »", journal: "Journal plié", badge: "Badge « TechniRail »", cliche: "Photo du sabotage", bande: "Enregistrement du local", gant: "Gant de Mme Delattre" };
 const gSeen = () => !!S.gerSeen; // personne ne parle de l'homme au gilet jaune avant son arrivée (21:54:48)
 const hasProof = () => (has("photo") && S.photo === "proof") || has("cliche") || has("bande");
@@ -1701,7 +1719,8 @@ function frame(now) {
     M.playS = (M.playS || 0) + real; if (Math.floor(M.playS) % 10 === 0 && Math.floor(M.playS - real) % 10 !== 0) saveM();
     S.t += dt;
     if (stepAgent(A.player, dt, 0.11) && pending) arrive();
-    if (A.player.path.length) { A.player.stepAcc = (A.player.stepAcc || 0) + real; if (A.player.stepAcc > 0.3) { A.player.stepAcc = 0; Snd.step(); if (A.player.y > 0.6) ripples.push({ x: A.player.x, y: A.player.y, k: 0.55 }); } }
+    { const rm = roomOf(A.player); if (S.lastRoom && rm !== S.lastRoom && (rm === "ctrl" || S.lastRoom === "ctrl")) Snd.sample("porte", 0.45); S.lastRoom = rm; }
+    if (A.player.path.length) { A.player.stepAcc = (A.player.stepAcc || 0) + real; if (A.player.stepAcc > 0.85) { A.player.stepAcc = 0; Snd.sample("pas", 0.28); if (A.player.y > 0.6) ripples.push({ x: A.player.x, y: A.player.y, k: 0.55 }); } }
     if (!focus) zoomT = S.t > 340 ? 1.1 : 1;
     updateAgents(dt);
     if (Math.floor(S.t) !== lastSec) { lastSec = Math.floor(S.t); if (S.t > 350) Snd.tick(); }
