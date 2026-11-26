@@ -29,6 +29,7 @@ button:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
 
 #hud { position: absolute; top: 0; left: 0; right: 0; display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; padding-block: 10px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); pointer-events: none; }
 #hud > * { pointer-events: none; } #hud .btns, #hud .btns * { pointer-events: auto; } /* l'horloge et la piste laissent passer les appuis vers la scène */
+.clock.ff { color: var(--amber); }
 .clock { display: inline-block; font-family: var(--f-mono); font-size: clamp(22px, 5.4vw, 34px); letter-spacing: .08em; color: #f4e9c8; line-height: 1; padding: 7px 10px 6px; border-radius: 4px; background: linear-gradient(#0c0f11 0 49%, #000 49% 52%, #111518 52%); border: 1px solid #2a3338; box-shadow: 0 4px 14px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.06); }
 .clock.late { color: var(--blood); }
 .loop { font-family: var(--f-title); font-size: 14px; letter-spacing: .2em; text-transform: uppercase; color: var(--muted); margin-top: 4px; }
@@ -80,6 +81,7 @@ button:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
 .chip { background: rgba(10,14,16,.78); border-color: rgba(242,180,90,.55); backdrop-filter: blur(6px); }
 .chip { display: inline-flex; align-items: center; gap: 6px; padding-left: 5px; } .chip img { width: 26px; height: 26px; border-radius: 50%; object-fit: cover; flex: none; box-shadow: 0 0 0 1px rgba(242,180,90,.35); }
 #sheet.mg { max-height: 82%; }
+#sheet h2 .tcost { margin-left: 10px; font: 500 12px var(--f-mono); letter-spacing: 0; text-transform: none; color: var(--muted); vertical-align: middle; }
 @media (max-width: 520px) { #sheet .art { height: 15vh !important; } }
 #sheet .art { display: block; width: 100%; max-width: 640px; height: clamp(90px, 22vh, 220px); object-fit: cover; border-radius: 8px; margin: 0 0 10px; box-shadow: 0 6px 24px rgba(0,0,0,.55); animation: fadeIn .5s ease-out; }
 .cf { display: flex; gap: 14px; align-items: flex-end; } .cfp { flex: none; width: clamp(80px, 20vw, 160px); margin-bottom: -6px; filter: drop-shadow(0 6px 18px rgba(0,0,0,.7)); }
@@ -1236,11 +1238,14 @@ function micro(fromHall) {
   o.push({ l: "« Le dernier départ est retardé. »", give: true, fx: () => { S.micUsed = true; S.odileStays = true; logEv("Votre fausse annonce fait revenir votre mère"); closeSheet(); toast("📢 « Le dernier départ est retardé. »"); say(A.odile, "Retardé ?! Qui a dit ça ?"); } });
   sheet(fromHall ? "Téléphone de service" : "Micro d'annonce", (fromHall ? "Vous composez le 9. Un déclic, puis le souffle des haut-parleurs : la ligne est branchée sur la sonorisation de la station." : "Un micro col-de-cygne et un bouton « APPEL GÉNÉRAL ». Votre voix résonnera dans toute la station.") + (knows("nomG") ? "" : gSeen() ? " <i>Pour appeler l'homme au gilet jaune, il faudrait connaître son nom.</i>" : ""), o);
 }
+// le temps d'une réplique : chaque échange fait avancer la soirée (rattrapé en accéléré à la fermeture de la fiche)
+function talkCost(text) { const plain = text.replace(/<[^>]+>/g, ""), q = [...plain.matchAll(/«([^»]*)»/g)].map(m => m[1]).join(" "); return Math.round(Math.max(1.5, Math.min(6, 1 + q.length / 14 + (plain.length - q.length) / 70)) * 2) / 2; }
 function sheet(title, text, opts, mood) {
+  const tc = S && !S.over && title !== "Attendre" ? talkCost(text) : 0; if (tc) S.owe = Math.min((S.owe || 0) + tc, Math.max(0, 358.5 - S.t));
   if (mgStop) { mgStop(); mgStop = null; } paused = true; $sheet.hidden = false;
   const who = WHO[title], nm = title === "L'homme au gilet jaune" && knows("nomG") ? "Gérald, l'homme au gilet jaune" : title;
   $sheet.className = who ? "talk" : "";
-  $sheet.innerHTML = `${who ? `<img class="por" alt="" src="img/p_${who}_${mood || 0}.webp">` : ""}<div class="body">${sheetArt ? `<img class="art" alt="" src="${sheetArt}">` : ""}<h2 style="${who ? `color:${TAGC[who] || "var(--amber)"}` : ""}">${nm}</h2><p class="say">${text}</p><div class="opts"></div></div>`;
+  $sheet.innerHTML = `${who ? `<img class="por" alt="" src="img/p_${who}_${mood || 0}.webp">` : ""}<div class="body">${sheetArt ? `<img class="art" alt="" src="${sheetArt}">` : ""}<h2 style="${who ? `color:${TAGC[who] || "var(--amber)"}` : ""}">${nm}${tc ? `<span class="tcost" title="Temps que prend cet échange">⏱ +${String(tc).replace(".", ",")} s</span>` : ""}</h2><p class="say">${text}</p><div class="opts"></div></div>`;
   sheetArt = null; Voice.speak(WHO[title] || "narr", text); typeOut($sheet.querySelector(".say"));
   const box = $sheet.querySelector(".opts");
   for (const o of opts.concat(S.noLeave ? [] : [{ l: "Partir", close: true }])) { const b = document.createElement("button"); b.type = "button"; b.className = "opt" + (o.give ? " give" : "") + (o.close ? " close" : ""); b.textContent = o.l; b.addEventListener("click", () => { if (o.close) return closeSheet(); o.fx(); }); box.appendChild(b); }
@@ -1751,7 +1756,8 @@ let last = performance.now(), lastSec = -1;
 function frame(now) {
   const real = Math.min(0.05, (now - last) / 1000); last = now;
   if (!paused && !S.over) {
-    const dt = real * (S.skipTo ? 14 : fast ? 6 : M.easy ? 0.66 : 1);
+    const base = fast ? 6 : M.easy ? 0.66 : 1; let k = S.skipTo ? 14 : base; if (!S.skipTo && S.owe > 0) k = Math.max(k, 7);
+    const dt = real * k; if (S.owe > 0 && !S.skipTo) S.owe = Math.max(0, S.owe - real * (k - base));
     if (S.skipTo && S.t >= S.skipTo) S.skipTo = 0;
     M.playS = (M.playS || 0) + real; if (Math.floor(M.playS) % 10 === 0 && Math.floor(M.playS - real) % 10 !== 0) saveM();
     S.t += dt;
@@ -1770,7 +1776,7 @@ function frame(now) {
   }
   for (let i = bubbles.length - 1; i >= 0; i--) { bubbles[i].life -= real; if (bubbles[i].life <= 0) bubbles.splice(i, 1); }
   if (toastT > 0) { toastT -= real; if (toastT <= 0) $toast.hidden = true; }
-  $clock.textContent = fmtT(S.t); $clock.classList.toggle("late", S.t > 345);
+  $clock.textContent = fmtT(S.t); $clock.classList.toggle("late", S.t > 345); $clock.classList.toggle("ff", !paused && S.owe > 0);
   if (rewindT > 0) rewindT = Math.max(0, rewindT - real);
   updateHideBar(); updateTailBar(); updateTut(); render(now, real); requestAnimationFrame(frame);
 }
