@@ -423,6 +423,19 @@ const Snd = {
       setTimeout(note, 1800 + Math.random() * 3200); };
     setTimeout(note, 1500);
   },
+  // câble tracteur : un sifflement continu dont la hauteur suit la vitesse, plus le roulement des pneus sur les joints
+  cableRun(speed, present) { if (!this.ctx || !M.sound) return; const c = this.ctx;
+    if (!this.cab) { const o = c.createOscillator(), o2 = c.createOscillator(), bp = c.createBiquadFilter(), g = c.createGain(), hum = c.createOscillator(), hg = c.createGain();
+      o.type = "triangle"; o2.type = "sine"; o.frequency.value = 520; o2.frequency.value = 523; bp.type = "bandpass"; bp.frequency.value = 900; bp.Q.value = 0.7; g.gain.value = 0;
+      hum.type = "sawtooth"; hum.frequency.value = 50; hg.gain.value = 0; const lp = c.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 400;
+      o.connect(bp); o2.connect(bp); bp.connect(g); g.connect(this.master); hum.connect(lp); lp.connect(hg); hg.connect(this.master); o.start(); o2.start(); hum.start();
+      this.cab = { o, o2, g, hum, hg, clack: 0, whoosh: 0 }; }
+    const k = this.cab, t = c.currentTime, sp = Math.max(0, Math.min(1, speed));
+    k.o.frequency.setTargetAtTime(380 + sp * 520, t, 0.3); k.o2.frequency.setTargetAtTime(383 + sp * 524, t, 0.3);
+    k.g.gain.setTargetAtTime(present ? 0.004 + sp * 0.022 : 0, t, 0.4); k.hum.frequency.setTargetAtTime(40 + sp * 30, t, 0.3); k.hg.gain.setTargetAtTime(present ? 0.01 + sp * 0.03 : 0, t, 0.4);
+    if (present && sp > 0.08) { const now = performance.now();
+      if (now > k.clack) { k.clack = now + 1100 - sp * 650; this.sample("pneus", 0.15 + sp * 0.35); }
+      if (now > k.whoosh) { k.whoosh = now + 950; this.sample("cable", 0.1 + sp * 0.3); } } },
   chime() { [659, 523, 392].forEach((f, i) => this.tone(f, 0.6, { vol: 0.07, delay: i * 0.35 })); },
   rame() { this.tone(70, 4, { type: "sawtooth", to: 110, vol: 0.05 }); this.noise(4, 400, 0.08); },
   crash() { this.noise(2.5, 300, 0.5); this.tone(120, 2.5, { type: "sawtooth", to: 30, vol: 0.12 }); this.tone(900, 1.2, { type: "square", to: 200, vol: 0.05, delay: 0.3 }); },
@@ -698,7 +711,7 @@ function updateAgents(dt) {
   else if (t < 120) want(b, { x: P.bench.x, y: P.bench.y - 0.02 });
   else if (t < 300) { if (S.bastFilm && t >= 200 && t < 290) want(b, P.film); else want(b, P.bastPlat); }
   else if (t < 330) { want(b, { x: P.bench.x, y: P.bench.y - 0.02 }); if (near(b, { x: P.bench.x, y: P.bench.y - 0.02 })) S.bastBag = true; }
-  else if (t < 355) want(b, P.board); else if (rame.state === "dock") b.vis = false;
+  else if (t < 354) want(b, P.board); else b.vis = false;
   stepAgent(b, dt, 0.06);
   if (S.bastFilm && near(b, P.film, 0.03) && roomOf(g) === "ctrl" && near(g, P.cabinet)) S.filmed += dt;
   if (S.bastFilm && near(b, P.film, 0.03) && t < 290 && Math.random() < dt * 0.5) Snd.buzz();
@@ -706,16 +719,20 @@ function updateAgents(dt) {
   if (t >= 30 && t < 70) { want(d, { x: 0.3, y: 0.66 }); if (t >= 42 && !S.said.rain) { S.said.rain = 1; say(d, "Quelle pluie… Comme le premier jour."); } }
   else if (t >= 132 && t < 162 && !S.vexed.delattre) { want(d, { x: 0.4, y: 0.46 }); if (near(d, clampWalk({ x: 0.4, y: 0.46 }), 0.03)) { d.face = "b"; if (!S.said.key) { S.said.key = 1; say(d, "Allez… tourne, ma vieille…"); logEv("Mme Delattre essaie une clé sur la porte du local"); if (Math.hypot(me.x - d.x, (me.y - d.y) * 0.56) < 0.22) learn("cle"); } } }
   else if (S.delDistract && S.distractLeft > 0 && t >= 190 && t < 275 && A.gerald.vis) want(d, { x: A.gerald.x - 0.035, y: A.gerald.y + 0.01 });
-  else if (t < 330) want(d, P.delWait); else if (t < 355) want(d, P.delBoard); else if (rame.state === "dock") d.vis = false;
+  else if (t < 330) want(d, P.delWait); else if (t < 354) want(d, P.delBoard); else d.vis = false;
   stepAgent(d, dt, 0.04);
   // la rame
-  if (t >= 285 && t < 300) { rame.state = "arriving"; rame.y = -0.25 + ((t - 285) / 15) * 0.75; if (!S.said.rame) { S.said.rame = 1; Snd.rame(); Snd.sample("rame", 0.45); } if (t >= 296 && !S.said.brake) { S.said.brake = 1; Snd.sample("arrivee", 0.6); } }
-  else if (t >= 300 && t < 358) { rame.state = "dock"; rame.y = 0.5; if (t >= 355 && !S.said.bell && !S.alarm) { S.said.bell = 1; Snd.sample("depart", 0.6); }
+  // le POMA 2000 : une cabine sur pneus, tirée par un câble. Elle ralentit en gare, sonne avant de fermer, puis repart en accélérant.
+  if (t >= 285 && t < 300) { const u = (t - 285) / 15; rame.state = "arriving"; rame.y = -0.25 + 0.75 * (1 - (1 - u) * (1 - u)); rame.speed = 1 - u;
+    if (t >= 298.5 && !S.said.doorsOpen) { S.said.doorsOpen = 1; Snd.sample("portes", 0.5); } }
+  else if (t >= 300 && t < 355) { rame.state = "dock"; rame.y = 0.5; rame.speed = 0;
+    if (t >= 352 && !S.said.bell && !S.alarm) { S.said.bell = 1; Snd.sample("portes", 0.6); }
     // au départ, chacun salue la dernière rame à sa façon
-    if (t >= 351 && !S.said.bye1 && !S.alarm && d.vis && !S.vexed.delattre) { S.said.bye1 = 1; say(d, "Au revoir, ma belle…"); }
-    if (t >= 354 && !S.said.bye2 && !S.alarm && roomOf(o) === "ctrl" && !S.odileKnows) { S.said.bye2 = 1; say(o, "Bon vent, ma vieille. La dernière."); }
-    if (t >= 357 && !S.said.bye3 && !S.alarm && b.vis && !S.wrongArrest && !S.vexed.bastien) { S.said.bye3 = 1; say(b, "C'est dans la boîte."); } }
-  else if (t >= 358) { rame.state = "leaving"; rame.y = 0.5 - ((t - 358) / 2) * 0.35; }
+    if (t >= 349 && !S.said.bye1 && !S.alarm && d.vis && !S.vexed.delattre) { S.said.bye1 = 1; say(d, "Au revoir, ma belle…"); }
+    if (t >= 352.5 && !S.said.bye3 && !S.alarm && b.vis && !S.wrongArrest && !S.vexed.bastien) { S.said.bye3 = 1; say(b, "C'est dans la boîte."); }
+    if (t >= 354 && !S.said.bye2 && !S.alarm && roomOf(o) === "ctrl" && !S.odileKnows) { S.said.bye2 = 1; say(o, "Bon vent, ma vieille. La dernière."); } }
+  else if (t >= 355) { const u = Math.min(1, (t - 355) / 5); rame.state = S.alarm ? "dock" : "leaving"; if (!S.alarm) { rame.y = 0.5 - 0.85 * u * u; rame.speed = Math.min(1, u * 2); } }
+  if (!S.alarm) Snd.cableRun(rame.state === "away" ? 0 : rame.speed || 0, rame.state !== "away");
   // poses : téléphone, travail à l'armoire, café, banc, télécommande, doigt levé
   g.pose = t >= 56 && t < 82 && near(g, P.gerCall, 0.03) ? "gerald_phone" : roomOf(g) === "ctrl" && near(g, P.cabinet, 0.03) && g.face === "b" ? "gerald_work" : null;
   o.pose = roomOf(o) !== "ctrl" && (near(o, clampWalk(P.vending), 0.04) || (t >= 280 && o.face === "f")) ? "odile_cafe" : null;
@@ -994,7 +1011,7 @@ function drawRame(v, t) {
   ctx.fillStyle = "#c0392b"; ctx.fillRect(-L / 2, Wd * 0.18, L, Wd * 0.12);
   ctx.fillStyle = "rgba(255,226,160,.9)"; for (let i = 0; i < 4; i++) ctx.fillRect(-L / 2 + L * 0.08 + i * L * 0.22, -Wd * 0.32, L * 0.16, Wd * 0.34);
   // portes qui s'ouvrent à quai, côté quai
-  if (rame.state === "dock") { const k = Math.min(1, (S.t - 300) / 2) * (S.t > 356 ? Math.max(0, (358 - S.t) / 2) : 1), gap = L * 0.14 * k; ctx.fillStyle = "#1b1712"; ctx.fillRect(-gap / 2, Wd * 0.32, gap, Wd * 0.18); ctx.fillStyle = "rgba(255,226,160,.6)"; ctx.fillRect(-gap / 2, Wd * 0.42, gap, Wd * 0.08); }
+  if (rame.state === "dock") { const k = Math.min(1, (S.t - 300) / 2) * (S.t > 353 ? Math.max(0, (355 - S.t) / 2) : 1), gap = L * 0.14 * k; ctx.fillStyle = "#1b1712"; ctx.fillRect(-gap / 2, Wd * 0.32, gap, Wd * 0.18); ctx.fillStyle = "rgba(255,226,160,.6)"; ctx.fillRect(-gap / 2, Wd * 0.42, gap, Wd * 0.08); }
   // feux avant et arrière
   ctx.fillStyle = "rgba(255,245,210,.95)"; ctx.fillRect(L / 2 - 3, -Wd * 0.3, 3, Wd * 0.16); ctx.fillRect(L / 2 - 3, Wd * 0.14, 3, Wd * 0.16);
   ctx.fillStyle = "rgba(230,60,40,.95)"; ctx.fillRect(-L / 2, -Wd * 0.3, 3, Wd * 0.16); ctx.fillRect(-L / 2, Wd * 0.14, 3, Wd * 0.16);
@@ -1538,7 +1555,7 @@ function arrive() {
 
 /* ================= Fins de boucle ================= */
 function endLoop() {
-  S.over = true; paused = true; closeSheet(); $toast.hidden = true; toastT = 0;
+  S.over = true; paused = true; closeSheet(); $toast.hidden = true; toastT = 0; Snd.cableRun(0, false);
   let kind;
   S.hidden = false; updateHideBar();
   if (S.aboard && S.sabDone && !S.fixed && !S.cabDone && !S.caughtHiding) return cabinScene();
